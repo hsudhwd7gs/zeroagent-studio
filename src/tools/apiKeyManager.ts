@@ -2,6 +2,9 @@
 //
 // The Worker stores keys in KV, and uses them immediately for proxy requests.
 // No Cloudflare dashboard access needed.
+//
+// Input handling: if text is wired into this node, it's used as the key value
+// fallback (useful for piping keys from a file reader or chat).
 
 export async function runApiKeyManager(
   input: string,
@@ -10,7 +13,7 @@ export async function runApiKeyManager(
   const workerUrl = config.workerUrl?.trim() || window.location.origin
   const action = config.action ?? 'list'
   const name = config.keyName?.trim() || ''
-  const value = config.keyValue?.trim() || ''
+  const value = config.keyValue?.trim() || input.trim()
 
   const baseUrl = workerUrl.replace(/\/+$/, '')
 
@@ -20,12 +23,18 @@ export async function runApiKeyManager(
       if (!response.ok) {
         throw new Error(`List failed: HTTP ${response.status}`)
       }
-      const data = await response.json() as { count: number; keys: string[] }
-      return `Stored keys (${data.count}):\n${data.keys.map((k) => `  • ${k}`).join('\n') || '  (none)'}`
+      const data = (await response.json()) as { count: number; keys: string[] }
+      const lines =
+        data.keys.length > 0
+          ? data.keys.map((k) => `  • ${k}`).join('\n')
+          : '  (none)'
+      return `Stored keys (${data.count}):\n${lines}`
     }
 
     if (action === 'set') {
-      if (!name || !value) throw new Error('keyName and keyValue required')
+      if (!name) throw new Error('keyName required')
+      if (!value) throw new Error('keyValue required (set in inspector or wire input)')
+
       const response = await fetch(`${baseUrl}/api/keys`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -34,15 +43,17 @@ export async function runApiKeyManager(
       if (!response.ok) {
         throw new Error(`Set failed: HTTP ${response.status}`)
       }
-      const data = await response.json() as { ok: boolean; stored: string }
+      const data = (await response.json()) as { ok: boolean; stored: string }
       return `✅ Stored: ${data.stored}\nThe Worker will use it immediately.`
     }
 
     if (action === 'delete') {
       if (!name) throw new Error('keyName required')
-      const response = await fetch(`${baseUrl}/api/keys?name=${encodeURIComponent(name)}`, {
-        method: 'DELETE',
-      })
+
+      const response = await fetch(
+        `${baseUrl}/api/keys?name=${encodeURIComponent(name)}`,
+        { method: 'DELETE' }
+      )
       if (!response.ok) {
         throw new Error(`Delete failed: HTTP ${response.status}`)
       }
@@ -52,6 +63,6 @@ export async function runApiKeyManager(
     throw new Error(`Unknown action: ${action}`)
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    throw new Error(`API Key Manager: ${message}`)
+    throw new Error(`API Key Manager: ${message}`, { cause: err })
   }
 }
