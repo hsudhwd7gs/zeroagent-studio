@@ -2,6 +2,28 @@ import type { Node } from '@xyflow/react'
 import { createAgentNode, createChatNode, createToolNode } from '../components/canvas/nodeFactory'
 import { paletteDragTypeToToolId } from '../tools/registry'
 import { useWorkflowStore } from '../stores/workflowStore'
+import type { LoopNodeData } from '../types'
+
+let loopCounter = 0
+
+function createLoopNode(position: { x: number; y: number }): Node {
+  loopCounter += 1
+  const id = `loop-${Date.now()}-${loopCounter}-${Math.random().toString(36).slice(2, 8)}`
+
+  const data: LoopNodeData = {
+    label: 'Loop',
+    config: { maxIterations: '200' },
+  }
+
+  return {
+    id,
+    type: 'loop',
+    position,
+    width: 260,
+    height: 168,
+    data,
+  }
+}
 
 export function createNodeFromPaletteType(
   type: string,
@@ -12,6 +34,8 @@ export function createNodeFromPaletteType(
       return createAgentNode(position)
     case 'chat':
       return createChatNode(position)
+    case 'loop':
+      return createLoopNode(position)
     default: {
       const toolId = paletteDragTypeToToolId(type)
       if (!toolId) return null
