@@ -1,128 +1,181 @@
-{
-  "name": "zeroagent-studio",
-  "description": "Free visual AI agent builder in the browser. Draw workflows like a flowchart with 203 chainable tools and eight guided quests. Local models (Transformers.js, WebLLM) need no API key; OpenRouter, Groq, and Gemini are optional. No account, no analytics. MIT.",
-  "private": true,
-  "version": "0.1.0",
-  "type": "module",
-  "license": "MIT",
-  "author": "sakurablush (https://github.com/sakurablush)",
-  "homepage": "https://sakurablush.github.io/zeroagent-studio/",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/sakurablush/zeroagent-studio.git"
-  },
-  "bugs": {
-    "url": "https://github.com/sakurablush/zeroagent-studio/issues"
-  },
-  "funding": [
-    "https://github.com/sakurablush/zeroagent-studio#keep-building-optional"
-  ],
-  "keywords": [
-    "zeroagent-studio",
-    "visual-ai",
-    "ai-agents",
-    "agent-builder",
-    "agentic-ai",
-    "ai-workflow",
-    "workflow-builder",
-    "workflow-automation",
-    "visual-programming",
-    "no-code",
-    "low-code",
-    "flowchart",
-    "drag-and-drop",
-    "node-editor",
-    "react-flow",
-    "reactflow",
-    "xyflow",
-    "orchestration",
-    "chainable-tools",
-    "browser-ai",
-    "client-side-ai",
-    "browser-only",
-    "no-backend",
-    "local-llm",
-    "offline-ai",
-    "webllm",
-    "transformers-js",
-    "huggingface",
-    "openrouter",
-    "groq",
-    "gemini",
-    "llm",
-    "privacy-first",
-    "no-telemetry",
-    "no-signup",
-    "zero-install",
-    "education",
-    "students",
-    "guided-quests",
-    "interactive-tutorial",
-    "tutorial",
-    "web-scraping",
-    "speech-to-text",
-    "text-to-speech",
-    "react",
-    "vite",
-    "typescript",
-    "github-pages",
-    "open-source"
-  ],
-  "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "lint": "eslint .",
-    "typecheck": "tsc -b",
-    "test": "vitest",
-    "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage",
-    "ci": "npm run lint && npm run typecheck && npm run test:coverage && npm run build",
-    "audit": "npm audit --audit-level=moderate || true",
-    "ci:install": "npm ci",
-    "preview": "vite preview",
-    "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist"
-  },
-  "packageManager": "npm@10.9.2",
-  "engines": {
-    "node": ">=22"
-  },
-  "dependencies": {
-    "@huggingface/transformers": "^4.2.0",
-    "@mlc-ai/web-llm": "^0.2.79",
-    "@xyflow/react": "^12.11.1",
-    "browser-fs-access": "^0.38.0",
-    "dexie": "^4.0.11",
-    "framer-motion": "^12.42.0",
-    "react": "^19.2.6",
-    "react-dom": "^19.2.6",
-    "zustand": "^5.0.8"
-  },
-  "devDependencies": {
-    "@eslint/js": "^10.0.1",
-    "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/react": "^16.3.2",
-    "@testing-library/user-event": "^14.6.1",
-    "@types/node": "^26.0.1",
-    "@types/react": "^19.2.14",
-    "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^6.0.3",
-    "@vitest/coverage-v8": "^4.1.9",
-    "eslint": "^10.3.0",
-    "eslint-plugin-react-hooks": "^7.1.1",
-    "eslint-plugin-react-refresh": "^0.5.2",
-    "fake-indexeddb": "^6.2.5",
-    "gh-pages": "^6.3.0",
-    "globals": "^17.7.0",
-    "jsdom": "^29.1.1",
-    "typescript": "~6.0.2",
-    "typescript-eslint": "^8.62.0",
-    "vite": "^8.1.0",
-    "vitest": "^4.1.9"
-  },
-  "overrides": {
-    "onnxruntime-node": {
-      "global-agent": "^4.1.3"
+// Fetch JSON — full HTTP client with method, headers, and body support.
+//
+// Backward compatible: if no config.method/headers/body are provided,
+// behaves exactly like the original GET-only tool.
+//
+// Supported methods: GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS
+//
+// Config fields (all optional):
+//   url      — target URL (falls back to input if empty)
+//   method   — HTTP method (default: GET)
+//   headers  — JSON object as string, e.g. {"Authorization": "Bearer xxx"}
+//   body     — request body (only sent for POST, PUT, PATCH, DELETE)
+//
+// Notes:
+//   • Custom headers and non-GET methods trigger a CORS preflight.
+//   • Non-JSON responses are wrapped in { ok, status, rawText }.
+
+const ALLOWED_METHODS = [
+  'GET',
+  'POST',
+  'PUT',
+  'PATCH',
+  'DELETE',
+  'HEAD',
+  'OPTIONS',
+] as const
+
+type AllowedMethod = (typeof ALLOWED_METHODS)[number]
+
+function isAllowedMethod(value: string): value is AllowedMethod {
+  return (ALLOWED_METHODS as readonly string[]).includes(value)
+}
+
+function truncate(text: string, max = 500): string {
+  return text.length > max ? text.slice(0, max) + '…' : text
+}
+
+export async function fetchJsonTool(
+  input: string,
+  config: Record<string, string>
+): Promise<string> {
+  // ── 1. Resolve URL ──────────────────────────────────────────
+  const url = (config.url?.trim() || input.trim())
+  if (!url) {
+    throw new Error('No URL provided — wire upstream or set URL in inspector')
+  }
+
+  let parsed: URL
+  try {
+    parsed = new URL(url)
+  } catch (err) {
+    throw new Error(`Invalid URL: ${url}`, { cause: err })
+  }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    throw new Error('Only http(s) URLs are supported')
+  }
+
+  // ── 2. Resolve method ───────────────────────────────────────
+  const rawMethod = (config.method?.trim() || 'GET').toUpperCase()
+  if (!isAllowedMethod(rawMethod)) {
+    throw new Error(
+      `Unsupported HTTP method: ${rawMethod}. Allowed: ${ALLOWED_METHODS.join(', ')}`
+    )
+  }
+  const method: AllowedMethod = rawMethod
+
+  // ── 3. Parse custom headers ─────────────────────────────────
+  const headers: Record<string, string> = { Accept: 'application/json' }
+
+  if (config.headers?.trim()) {
+    let parsedHeaders: unknown
+    try {
+      parsedHeaders = JSON.parse(config.headers)
+    } catch (err) {
+      throw new Error(
+        'Headers must be valid JSON, e.g. {"Authorization": "Bearer xxx"}',
+        { cause: err }
+      )
     }
+    if (
+      parsedHeaders === null ||
+      typeof parsedHeaders !== 'object' ||
+      Array.isArray(parsedHeaders)
+    ) {
+      throw new Error('Headers must be a JSON object (key-value pairs)')
+    }
+    for (const [key, value] of Object.entries(
+      parsedHeaders as Record<string, unknown>
+    )) {
+      if (typeof value !== 'string') {
+        throw new Error(`Header "${key}" must be a string`)
+      }
+      headers[key] = value
+    }
+  }
+
+  // ── 4. Resolve body (only for methods that allow it) ────────
+  const methodAllowsBody =
+    method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE'
+
+  let body: string | undefined
+  if (methodAllowsBody && config.body?.trim()) {
+    body = config.body
+
+    const hasContentType = Object.keys(headers).some(
+      (k) => k.toLowerCase() === 'content-type'
+    )
+    if (!hasContentType) {
+      try {
+        JSON.parse(body)
+        headers['Content-Type'] = 'application/json'
+      } catch {
+        void 0
+      }
+    }
+  }
+
+  // ── 5. Perform the request ──────────────────────────────────
+  let response: Response
+  try {
+    response = await fetch(url, { method, headers, body })
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    throw new Error(
+      `Network error: ${msg}. This usually means a CORS block, an offline browser, or an invalid URL.`,
+      { cause: err }
+    )
+  }
+
+  // ── 6. Handle non-OK responses ──────────────────────────────
+  if (!response.ok) {
+    let errorBody = ''
+    try {
+      errorBody = await response.text()
+    } catch {
+      void 0
+    }
+    const suffix = errorBody ? ` — ${truncate(errorBody)}` : ''
+    throw new Error(
+      `Fetch failed: ${response.status} ${response.statusText}${suffix}`
+    )
+  }
+
+  // ── 7. Read response text ───────────────────────────────────
+  let text: string
+  try {
+    text = await response.text()
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    throw new Error(`Failed to read response body: ${msg}`, { cause: err })
+  }
+
+  // ── 8. Handle empty responses (204, HEAD, etc.) ─────────────
+  if (!text.trim()) {
+    return JSON.stringify(
+      {
+        ok: true,
+        status: response.status,
+        body: null,
+      },
+      null,
+      2
+    )
+  }
+
+  // ── 9. Try to parse as JSON ─────────────────────────────────
+  try {
+    const json = JSON.parse(text)
+    return JSON.stringify(json, null, 2)
+  } catch {
+    return JSON.stringify(
+      {
+        ok: true,
+        status: response.status,
+        rawText: text,
+      },
+      null,
+      2
+    )
   }
 }
