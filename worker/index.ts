@@ -600,7 +600,7 @@ export default {
   // ─────────────────────────────────────────────────────────────
   // Cron Handler (runs when trigger fires)
   // ─────────────────────────────────────────────────────────────
-  async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext) {
+  async scheduled(event: ScheduledEvent, env: Env, _ctx: ExecutionContext) {
     console.log(`Cron fired at ${new Date(event.scheduledTime).toISOString()}`)
     // Example: refresh a cached dataset daily
     try {
