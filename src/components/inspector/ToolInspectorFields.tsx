@@ -525,8 +525,6 @@ export function ToolInspectorFields({
 
               <p className="inspector-hint">
                 Supports <strong>GET, POST, PUT, PATCH, DELETE</strong> with custom headers and body.
-                Custom headers and non-GET methods trigger CORS preflight — the target server must
-                respond to <code>OPTIONS</code> correctly, or the request will fail.
               </p>
             </>
           )
@@ -564,7 +562,6 @@ export function ToolInspectorFields({
             <>
               <p className="inspector-hint">
                 Add named fields — the node outputs them as a JSON object.
-                Downstream nodes receive the JSON as text.
               </p>
 
               {fields.length === 0 && (
@@ -633,25 +630,1126 @@ export function ToolInspectorFields({
                   onChange={(e) => setConfig({ sample: e.target.value })}
                 />
               </label>
-
-              <button
-                type="button"
-                className="inspector-action-btn"
-                disabled={loading || fields.length === 0 || !!duplicateKey}
-                onClick={() =>
-                  runPreview(() =>
-                    runToolForPreview(tool, data.config?.sample ?? '', data.config ?? {}, {
-                      apiKeys,
-                      log: () => {},
-                    })
-                  )
-                }
-              >
-                {loading ? 'Running…' : 'Run test'}
-              </button>
             </>
           )
         })()}
+
+        {data.toolType === 'string-template' && (
+          <>
+            <label>
+              Template (uses {'{{variable}}'} syntax)
+              <textarea
+                rows={5}
+                className="inspector-code"
+                value={data.config?.template ?? ''}
+                onChange={(e) => setConfig({ template: e.target.value })}
+                placeholder="Hello {{name}}, you have {{count}} items."
+              />
+            </label>
+            <label>
+              Variables (JSON, optional)
+              <textarea
+                rows={3}
+                className="inspector-code"
+                value={data.config?.variables ?? ''}
+                onChange={(e) => setConfig({ variables: e.target.value })}
+                placeholder='{"name":"Alice","count":"5"}'
+              />
+            </label>
+          </>
+        )}
+
+        {data.toolType === 'array-filter' && (
+          <>
+            <label>
+              Mode
+              <select
+                value={data.config?.mode ?? 'truthy'}
+                onChange={(e) => setConfig({ mode: e.target.value })}
+              >
+                <option value="truthy">Truthy (keep non-empty)</option>
+                <option value="contains">Contains</option>
+                <option value="equals">Equals</option>
+                <option value="greater">Greater than</option>
+                <option value="less">Less than</option>
+              </select>
+            </label>
+            <label>
+              Key (property to check, optional)
+              <input
+                value={data.config?.key ?? ''}
+                onChange={(e) => setConfig({ key: e.target.value })}
+                placeholder="views"
+              />
+            </label>
+            <label>
+              Value (for contains/equals/greater/less)
+              <input
+                value={data.config?.value ?? ''}
+                onChange={(e) => setConfig({ value: e.target.value })}
+                placeholder="1000"
+              />
+            </label>
+          </>
+        )}
+
+        {data.toolType === 'array-map' && (
+          <>
+            <label>
+              Mode
+              <select
+                value={data.config?.mode ?? 'extract'}
+                onChange={(e) => setConfig({ mode: e.target.value })}
+              >
+                <option value="extract">Extract key</option>
+                <option value="stringify">Stringify each item</option>
+                <option value="uppercase">Uppercase</option>
+                <option value="lowercase">Lowercase</option>
+                <option value="number">Convert to number</option>
+              </select>
+            </label>
+            {(data.config?.mode ?? 'extract') === 'extract' && (
+              <label>
+                Key
+                <input
+                  value={data.config?.key ?? ''}
+                  onChange={(e) => setConfig({ key: e.target.value })}
+                  placeholder="title"
+                />
+              </label>
+            )}
+          </>
+        )}
+
+        {data.toolType === 'array-sort' && (
+          <>
+            <label>
+              Key (property to sort by, optional)
+              <input
+                value={data.config?.key ?? ''}
+                onChange={(e) => setConfig({ key: e.target.value })}
+                placeholder="views"
+              />
+            </label>
+            <label>
+              Order
+              <select
+                value={data.config?.order ?? 'asc'}
+                onChange={(e) => setConfig({ order: e.target.value })}
+              >
+                <option value="asc">Ascending</option>
+                <option value="desc">Descending</option>
+              </select>
+            </label>
+            <label>
+              Type
+              <select
+                value={data.config?.type ?? 'auto'}
+                onChange={(e) => setConfig({ type: e.target.value })}
+              >
+                <option value="auto">Auto</option>
+                <option value="number">Number</option>
+                <option value="string">String</option>
+              </select>
+            </label>
+          </>
+        )}
+
+        {data.toolType === 'array-dedupe' && (
+          <label>
+            Key (property for uniqueness, optional)
+            <input
+              value={data.config?.key ?? ''}
+              onChange={(e) => setConfig({ key: e.target.value })}
+              placeholder="id"
+            />
+            <span className="inspector-hint">Leave empty to compare whole items.</span>
+          </label>
+        )}
+
+        {data.toolType === 'array-group-by' && (
+          <label>
+            Key (property to group by)
+            <input
+              value={data.config?.key ?? ''}
+              onChange={(e) => setConfig({ key: e.target.value })}
+              placeholder="category"
+            />
+          </label>
+        )}
+
+        {data.toolType === 'array-chunk' && (
+          <label>
+            Chunk size
+            <input
+              type="number"
+              min={1}
+              value={data.config?.size ?? '10'}
+              onChange={(e) => setConfig({ size: e.target.value })}
+            />
+          </label>
+        )}
+
+        {data.toolType === 'array-slice' && (
+          <>
+            <label>
+              Mode
+              <select
+                value={data.config?.mode ?? 'range'}
+                onChange={(e) => setConfig({ mode: e.target.value })}
+              >
+                <option value="range">Range (start → end)</option>
+                <option value="first">First N</option>
+                <option value="last">Last N</option>
+              </select>
+            </label>
+            {(data.config?.mode ?? 'range') === 'range' ? (
+              <>
+                <label>
+                  Start index
+                  <input
+                    type="number"
+                    min={0}
+                    value={data.config?.start ?? '0'}
+                    onChange={(e) => setConfig({ start: e.target.value })}
+                  />
+                </label>
+                <label>
+                  End index (exclusive)
+                  <input
+                    type="number"
+                    min={0}
+                    value={data.config?.end ?? ''}
+                    onChange={(e) => setConfig({ end: e.target.value })}
+                    placeholder="(empty = to end)"
+                  />
+                </label>
+              </>
+            ) : (
+              <label>
+                Count
+                <input
+                  type="number"
+                  min={0}
+                  value={data.config?.count ?? '10'}
+                  onChange={(e) => setConfig({ count: e.target.value })}
+                />
+              </label>
+            )}
+          </>
+        )}
+
+        {data.toolType === 'loop-over' && (
+          <>
+            <label>
+              Mode
+              <select
+                value={data.config?.mode ?? 'extract'}
+                onChange={(e) => setConfig({ mode: e.target.value })}
+              >
+                <option value="extract">Extract key</option>
+                <option value="stringify">Stringify</option>
+                <option value="uppercase">Uppercase</option>
+                <option value="lowercase">Lowercase</option>
+                <option value="trim">Trim</option>
+                <option value="number">Number</option>
+                <option value="length">Length</option>
+              </select>
+            </label>
+            <label>
+              Key (optional)
+              <input
+                value={data.config?.key ?? ''}
+                onChange={(e) => setConfig({ key: e.target.value })}
+                placeholder="title"
+              />
+            </label>
+            <label>
+              Pre-filter (optional)
+              <input
+                value={data.config?.filter ?? ''}
+                onChange={(e) => setConfig({ filter: e.target.value })}
+                placeholder="truthy | contains:X | equals:Y"
+              />
+            </label>
+          </>
+        )}
+
+        {data.toolType === 'batch-split' && (
+          <>
+            <label>
+              Batch size
+              <input
+                type="number"
+                min={1}
+                value={data.config?.size ?? '50'}
+                onChange={(e) => setConfig({ size: e.target.value })}
+              />
+            </label>
+            <label className="inspector-checkbox-label">
+              <input
+                type="checkbox"
+                checked={data.config?.wrap === 'true'}
+                onChange={(e) => setConfig({ wrap: e.target.checked ? 'true' : '' })}
+              />
+              Wrap with metadata
+            </label>
+          </>
+        )}
+
+        {data.toolType === 'json-path' && (
+          <label>
+            Path
+            <input
+              value={data.config?.path ?? ''}
+              onChange={(e) => setConfig({ path: e.target.value })}
+              placeholder="data.users[0].email"
+            />
+          </label>
+        )}
+
+        {data.toolType === 'json-merge' && (
+          <>
+            <label>
+              Other JSON (required)
+              <textarea
+                rows={5}
+                className="inspector-code"
+                value={data.config?.other ?? ''}
+                onChange={(e) => setConfig({ other: e.target.value })}
+                placeholder='{"extra":"value"}'
+              />
+            </label>
+            <label>
+              Mode
+              <select
+                value={data.config?.mode ?? 'deep'}
+                onChange={(e) => setConfig({ mode: e.target.value })}
+              >
+                <option value="deep">Deep merge</option>
+                <option value="shallow">Shallow merge</option>
+              </select>
+            </label>
+          </>
+        )}
+
+        {data.toolType === 'json-flatten' && (
+          <>
+            <label>
+              Separator
+              <input
+                value={data.config?.separator ?? '.'}
+                onChange={(e) => setConfig({ separator: e.target.value })}
+                placeholder="."
+              />
+            </label>
+            <label>
+              Arrays
+              <select
+                value={data.config?.arrays ?? 'index'}
+                onChange={(e) => setConfig({ arrays: e.target.value })}
+              >
+                <option value="index">Index with [0], [1]</option>
+                <option value="keep">Keep arrays intact</option>
+              </select>
+            </label>
+          </>
+        )}
+
+        {data.toolType === 'json-pick' && (
+          <label>
+            Keys (comma-separated)
+            <input
+              value={data.config?.keys ?? ''}
+              onChange={(e) => setConfig({ keys: e.target.value })}
+              placeholder="id,title,views"
+            />
+          </label>
+        )}
+
+        {data.toolType === 'json-diff' && (
+          <>
+            <label>
+              Other JSON (required)
+              <textarea
+                rows={5}
+                className="inspector-code"
+                value={data.config?.other ?? ''}
+                onChange={(e) => setConfig({ other: e.target.value })}
+                placeholder='{"a":1}'
+              />
+            </label>
+            <label>
+              Mode
+              <select
+                value={data.config?.mode ?? 'full'}
+                onChange={(e) => setConfig({ mode: e.target.value })}
+              >
+                <option value="full">Full diff</option>
+                <option value="summary">Summary only</option>
+              </select>
+            </label>
+          </>
+        )}
+
+        {data.toolType === 'csv-export' && (
+          <>
+            <label>
+              Columns (comma-separated, optional)
+              <input
+                value={data.config?.columns ?? ''}
+                onChange={(e) => setConfig({ columns: e.target.value })}
+                placeholder="id,title,views"
+              />
+            </label>
+            <label>
+              Delimiter
+              <select
+                value={data.config?.delimiter ?? ','}
+                onChange={(e) => setConfig({ delimiter: e.target.value })}
+              >
+                <option value=",">Comma (,)</option>
+                <option value="\t">Tab</option>
+                <option value=";">Semicolon (;)</option>
+              </select>
+            </label>
+          </>
+        )}
+
+        {data.toolType === 'csv-to-json' && (
+          <>
+            <label>
+              Delimiter
+              <select
+                value={data.config?.delimiter ?? ','}
+                onChange={(e) => setConfig({ delimiter: e.target.value })}
+              >
+                <option value=",">Comma (,)</option>
+                <option value="\t">Tab</option>
+                <option value=";">Semicolon (;)</option>
+                <option value="|">Pipe (|)</option>
+              </select>
+            </label>
+            <label className="inspector-checkbox-label">
+              <input
+                type="checkbox"
+                checked={data.config?.header !== 'false'}
+                onChange={(e) => setConfig({ header: e.target.checked ? '' : 'false' })}
+              />
+              First row is header
+            </label>
+          </>
+        )}
+
+        {data.toolType === 'text-chunk' && (
+          <>
+            <label>
+              Chunk size (chars)
+              <input
+                type="number"
+                min={50}
+                value={data.config?.size ?? '2000'}
+                onChange={(e) => setConfig({ size: e.target.value })}
+              />
+            </label>
+            <label>
+              Overlap (chars)
+              <input
+                type="number"
+                min={0}
+                value={data.config?.overlap ?? '0'}
+                onChange={(e) => setConfig({ overlap: e.target.value })}
+              />
+            </label>
+          </>
+        )}
+
+        {data.toolType === 'text-truncate' && (
+          <>
+            <label>
+              Max length
+              <input
+                type="number"
+                min={1}
+                value={data.config?.length ?? '100'}
+                onChange={(e) => setConfig({ length: e.target.value })}
+              />
+            </label>
+            <label>
+              Suffix
+              <input
+                value={data.config?.suffix ?? '…'}
+                onChange={(e) => setConfig({ suffix: e.target.value })}
+              />
+            </label>
+            <label className="inspector-checkbox-label">
+              <input
+                type="checkbox"
+                checked={data.config?.words === 'true'}
+                onChange={(e) => setConfig({ words: e.target.checked ? 'true' : '' })}
+              />
+              Cut at word boundary
+            </label>
+          </>
+        )}
+
+        {data.toolType === 'text-extract' && (
+          <label>
+            Mode
+            <select
+              value={data.config?.mode ?? 'all'}
+              onChange={(e) => setConfig({ mode: e.target.value })}
+            >
+              <option value="all">All types</option>
+              <option value="emails">Emails only</option>
+              <option value="urls">URLs only</option>
+              <option value="phones">Phones only</option>
+              <option value="numbers">Numbers only</option>
+              <option value="hashtags">Hashtags only</option>
+            </select>
+          </label>
+        )}
+
+        {data.toolType === 'text-split' && (
+          <>
+            <label>
+              Mode
+              <select
+                value={data.config?.mode ?? 'delimiter'}
+                onChange={(e) => setConfig({ mode: e.target.value })}
+              >
+                <option value="delimiter">Delimiter</option>
+                <option value="regex">Regex</option>
+                <option value="lines">Lines</option>
+                <option value="words">Words</option>
+                <option value="chars">Characters</option>
+              </select>
+            </label>
+            {data.config?.mode === 'delimiter' && (
+              <label>
+                Delimiter
+                <input
+                  value={data.config?.delimiter ?? ','}
+                  onChange={(e) => setConfig({ delimiter: e.target.value })}
+                />
+              </label>
+            )}
+            {data.config?.mode === 'regex' && (
+              <label>
+                Regex pattern
+                <input
+                  value={data.config?.pattern ?? ''}
+                  onChange={(e) => setConfig({ pattern: e.target.value })}
+                  placeholder="\\s+"
+                />
+              </label>
+            )}
+          </>
+        )}
+
+        {data.toolType === 'text-join' && (
+          <>
+            <label>
+              Separator
+              <input
+                value={data.config?.separator ?? ', '}
+                onChange={(e) => setConfig({ separator: e.target.value })}
+              />
+            </label>
+            <label>
+              Mode
+              <select
+                value={data.config?.mode ?? 'plain'}
+                onChange={(e) => setConfig({ mode: e.target.value })}
+              >
+                <option value="plain">Plain</option>
+                <option value="json">JSON stringify each</option>
+                <option value="numbered">Numbered list</option>
+              </select>
+            </label>
+          </>
+        )}
+
+        {data.toolType === 'regex-extract' && (
+          <>
+            <label>
+              Pattern
+              <input
+                value={data.config?.pattern ?? ''}
+                onChange={(e) => setConfig({ pattern: e.target.value })}
+                placeholder="\\d+"
+              />
+            </label>
+            <label>
+              Flags
+              <input
+                value={data.config?.flags ?? 'g'}
+                onChange={(e) => setConfig({ flags: e.target.value })}
+                placeholder="g"
+              />
+            </label>
+            <label>
+              Mode
+              <select
+                value={data.config?.mode ?? 'matches'}
+                onChange={(e) => setConfig({ mode: e.target.value })}
+              >
+                <option value="matches">All matches</option>
+                <option value="groups">With groups</option>
+                <option value="first">First match</option>
+                <option value="replace">Replace</option>
+              </select>
+            </label>
+            {data.config?.mode === 'replace' && (
+              <label>
+                Replacement
+                <input
+                  value={data.config?.replace ?? ''}
+                  onChange={(e) => setConfig({ replace: e.target.value })}
+                />
+              </label>
+            )}
+          </>
+        )}
+
+        {data.toolType === 'hash-text' && (
+          <>
+            <label>
+              Algorithm
+              <select
+                value={data.config?.algorithm ?? 'SHA-256'}
+                onChange={(e) => setConfig({ algorithm: e.target.value })}
+              >
+                <option value="SHA-256">SHA-256</option>
+                <option value="SHA-1">SHA-1</option>
+                <option value="SHA-384">SHA-384</option>
+                <option value="SHA-512">SHA-512</option>
+              </select>
+            </label>
+            <label>
+              Encoding
+              <select
+                value={data.config?.encoding ?? 'hex'}
+                onChange={(e) => setConfig({ encoding: e.target.value })}
+              >
+                <option value="hex">Hex</option>
+                <option value="base64">Base64</option>
+              </select>
+            </label>
+          </>
+        )}
+
+        {data.toolType === 'base64-codec' && (
+          <label>
+            Mode
+            <select
+              value={data.config?.mode ?? 'encode'}
+              onChange={(e) => setConfig({ mode: e.target.value })}
+            >
+              <option value="encode">Encode to base64</option>
+              <option value="decode">Decode from base64</option>
+            </select>
+          </label>
+        )}
+
+        {data.toolType === 'retry-backoff' && (
+          <>
+            <label>
+              URL
+              <input
+                value={data.config?.url ?? ''}
+                onChange={(e) => setConfig({ url: e.target.value })}
+                placeholder="https://api.example.com/data"
+              />
+            </label>
+            <label>
+              Method
+              <select
+                value={data.config?.method ?? 'GET'}
+                onChange={(e) => setConfig({ method: e.target.value })}
+              >
+                <option value="GET">GET</option>
+                <option value="POST">POST</option>
+                <option value="PUT">PUT</option>
+                <option value="PATCH">PATCH</option>
+                <option value="DELETE">DELETE</option>
+              </select>
+            </label>
+            <label>
+              Headers (JSON)
+              <textarea
+                rows={3}
+                className="inspector-code"
+                value={data.config?.headers ?? ''}
+                onChange={(e) => setConfig({ headers: e.target.value })}
+                placeholder='{"Authorization": "Bearer ..."}'
+              />
+            </label>
+            {(data.config?.method ?? 'GET') !== 'GET' && (
+              <label>
+                Body
+                <textarea
+                  rows={3}
+                  className="inspector-code"
+                  value={data.config?.body ?? ''}
+                  onChange={(e) => setConfig({ body: e.target.value })}
+                />
+              </label>
+            )}
+            <label>
+              Max attempts
+              <input
+                type="number"
+                min={1}
+                value={data.config?.maxAttempts ?? '3'}
+                onChange={(e) => setConfig({ maxAttempts: e.target.value })}
+              />
+            </label>
+            <label>
+              Base delay (ms)
+              <input
+                type="number"
+                min={50}
+                value={data.config?.baseDelayMs ?? '500'}
+                onChange={(e) => setConfig({ baseDelayMs: e.target.value })}
+              />
+            </label>
+          </>
+        )}
+
+        {data.toolType === 'variable-store' && (
+          <>
+            <label>
+              Mode
+              <select
+                value={data.config?.mode ?? 'set'}
+                onChange={(e) => setConfig({ mode: e.target.value })}
+              >
+                <option value="set">Set (write)</option>
+                <option value="get">Get (read)</option>
+                <option value="append">Append to array</option>
+                <option value="clear">Clear namespace</option>
+              </select>
+            </label>
+            <label>
+              Namespace
+              <input
+                value={data.config?.namespace ?? 'default'}
+                onChange={(e) => setConfig({ namespace: e.target.value })}
+              />
+            </label>
+            {data.config?.mode !== 'clear' && (
+              <label>
+                Key
+                <input
+                  value={data.config?.key ?? ''}
+                  onChange={(e) => setConfig({ key: e.target.value })}
+                  placeholder="seed"
+                />
+              </label>
+            )}
+            {(data.config?.mode === 'set' || data.config?.mode === 'append') && (
+              <label>
+                Value (JSON or text)
+                <input
+                  value={data.config?.value ?? ''}
+                  onChange={(e) => setConfig({ value: e.target.value })}
+                />
+              </label>
+            )}
+            <label>
+              TTL (ms, 0 = never)
+              <input
+                type="number"
+                min={0}
+                value={data.config?.ttlMs ?? '0'}
+                onChange={(e) => setConfig({ ttlMs: e.target.value })}
+              />
+            </label>
+          </>
+        )}
+
+        {data.toolType === 'cache' && (
+          <>
+            <label>
+              Mode
+              <select
+                value={data.config?.mode ?? 'get'}
+                onChange={(e) => setConfig({ mode: e.target.value })}
+              >
+                <option value="get">Get (read)</option>
+                <option value="set">Set (write)</option>
+                <option value="has">Has (check)</option>
+                <option value="clear">Clear all</option>
+              </select>
+            </label>
+            {data.config?.mode !== 'clear' && (
+              <label>
+                Key
+                <input
+                  value={data.config?.key ?? ''}
+                  onChange={(e) => setConfig({ key: e.target.value })}
+                />
+              </label>
+            )}
+            {data.config?.mode === 'set' && (
+              <>
+                <label>
+                  Value
+                  <input
+                    value={data.config?.value ?? ''}
+                    onChange={(e) => setConfig({ value: e.target.value })}
+                  />
+                </label>
+                <label>
+                  TTL (ms, default 24h)
+                  <input
+                    type="number"
+                    min={0}
+                    value={data.config?.ttlMs ?? '86400000'}
+                    onChange={(e) => setConfig({ ttlMs: e.target.value })}
+                  />
+                </label>
+              </>
+            )}
+            {data.config?.mode === 'get' && (
+              <label>
+                Fallback (if key missing)
+                <input
+                  value={data.config?.fallback ?? ''}
+                  onChange={(e) => setConfig({ fallback: e.target.value })}
+                />
+              </label>
+            )}
+          </>
+        )}
+
+        {data.toolType === 'timer' && (
+          <>
+            <label>
+              Action
+              <select
+                value={data.config?.action ?? 'start'}
+                onChange={(e) => setConfig({ action: e.target.value })}
+              >
+                <option value="start">Start</option>
+                <option value="stop">Stop</option>
+                <option value="reset">Reset</option>
+              </select>
+            </label>
+            <label>
+              Timer name
+              <input
+                value={data.config?.key ?? 'default'}
+                onChange={(e) => setConfig({ key: e.target.value })}
+              />
+            </label>
+          </>
+        )}
+
+        {data.toolType === 'webhook-send' && (
+          <>
+            <label>
+              URL
+              <input
+                value={data.config?.url ?? ''}
+                onChange={(e) => setConfig({ url: e.target.value })}
+                placeholder="https://hooks.example.com/..."
+              />
+            </label>
+            <label>
+              Method
+              <select
+                value={data.config?.method ?? 'POST'}
+                onChange={(e) => setConfig({ method: e.target.value })}
+              >
+                <option value="POST">POST</option>
+                <option value="PUT">PUT</option>
+                <option value="PATCH">PATCH</option>
+              </select>
+            </label>
+            <label>
+              Headers (JSON)
+              <textarea
+                rows={3}
+                className="inspector-code"
+                value={data.config?.headers ?? ''}
+                onChange={(e) => setConfig({ headers: e.target.value })}
+              />
+            </label>
+            <label>
+              Body (empty = use input)
+              <textarea
+                rows={3}
+                className="inspector-code"
+                value={data.config?.body ?? ''}
+                onChange={(e) => setConfig({ body: e.target.value })}
+              />
+            </label>
+          </>
+        )}
+
+        {data.toolType === 'email-send' && (
+          <>
+            <label>
+              Provider
+              <select
+                value={data.config?.provider ?? 'resend'}
+                onChange={(e) => setConfig({ provider: e.target.value })}
+              >
+                <option value="resend">Resend</option>
+                <option value="postmark">Postmark</option>
+              </select>
+            </label>
+            <label>
+              API Key
+              <input
+                type="password"
+                value={data.config?.apiKey ?? ''}
+                onChange={(e) => setConfig({ apiKey: e.target.value })}
+              />
+            </label>
+            <label>
+              From
+              <input
+                value={data.config?.from ?? ''}
+                onChange={(e) => setConfig({ from: e.target.value })}
+                placeholder="you@example.com"
+              />
+            </label>
+            <label>
+              To (comma-separated)
+              <input
+                value={data.config?.to ?? ''}
+                onChange={(e) => setConfig({ to: e.target.value })}
+                placeholder="a@x.com, b@y.com"
+              />
+            </label>
+            <label>
+              Subject
+              <input
+                value={data.config?.subject ?? ''}
+                onChange={(e) => setConfig({ subject: e.target.value })}
+              />
+            </label>
+            <label>
+              Body (empty = use input)
+              <textarea
+                rows={4}
+                className="inspector-code"
+                value={data.config?.body ?? ''}
+                onChange={(e) => setConfig({ body: e.target.value })}
+              />
+            </label>
+            <label className="inspector-checkbox-label">
+              <input
+                type="checkbox"
+                checked={data.config?.html === 'true'}
+                onChange={(e) => setConfig({ html: e.target.checked ? 'true' : '' })}
+              />
+              Send as HTML
+            </label>
+          </>
+        )}
+
+        {data.toolType === 'google-sheets' && (
+          <>
+            <label>
+              Apps Script Webhook URL
+              <input
+                value={data.config?.url ?? ''}
+                onChange={(e) => setConfig({ url: e.target.value })}
+                placeholder="https://script.google.com/macros/s/.../exec"
+              />
+            </label>
+            <label>
+              Sheet name
+              <input
+                value={data.config?.sheet ?? 'Sheet1'}
+                onChange={(e) => setConfig({ sheet: e.target.value })}
+              />
+            </label>
+            <label>
+              Values (JSON array)
+              <textarea
+                rows={3}
+                className="inspector-code"
+                value={data.config?.values ?? ''}
+                onChange={(e) => setConfig({ values: e.target.value })}
+                placeholder='["value1", "value2"]'
+              />
+            </label>
+            <label>
+              Shared token (optional)
+              <input
+                value={data.config?.token ?? ''}
+                onChange={(e) => setConfig({ token: e.target.value })}
+              />
+            </label>
+          </>
+        )}
+
+        {data.toolType === 'google-analytics' && (
+          <>
+            <label>
+              Access Token
+              <input
+                type="password"
+                value={data.config?.accessToken ?? ''}
+                onChange={(e) => setConfig({ accessToken: e.target.value })}
+              />
+            </label>
+            <label>
+              Property ID
+              <input
+                value={data.config?.propertyId ?? ''}
+                onChange={(e) => setConfig({ propertyId: e.target.value })}
+                placeholder="properties/123456789"
+              />
+            </label>
+            <label>
+              Days back
+              <input
+                type="number"
+                min={1}
+                value={data.config?.days ?? '7'}
+                onChange={(e) => setConfig({ days: e.target.value })}
+              />
+            </label>
+            <label>
+              Metrics (comma-separated)
+              <input
+                value={data.config?.metrics ?? 'sessions,users'}
+                onChange={(e) => setConfig({ metrics: e.target.value })}
+              />
+            </label>
+            <label>
+              Dimensions (comma-separated)
+              <input
+                value={data.config?.dimensions ?? 'date'}
+                onChange={(e) => setConfig({ dimensions: e.target.value })}
+              />
+            </label>
+          </>
+        )}
+
+        {data.toolType === 'youtube-analytics' && (
+          <>
+            <label>
+              YouTube API Key
+              <input
+                type="password"
+                value={data.config?.apiKey ?? ''}
+                onChange={(e) => setConfig({ apiKey: e.target.value })}
+              />
+            </label>
+            <label>
+              Video ID (empty = use input)
+              <input
+                value={data.config?.videoId ?? ''}
+                onChange={(e) => setConfig({ videoId: e.target.value })}
+                placeholder="dQw4w9WgXcQ"
+              />
+            </label>
+            <label>
+              Part
+              <input
+                value={data.config?.part ?? 'snippet,statistics,contentDetails,status'}
+                onChange={(e) => setConfig({ part: e.target.value })}
+              />
+            </label>
+          </>
+        )}
+
+        {data.toolType === 'telegram-send' && (
+          <>
+            <label>
+              Bot Token
+              <input
+                type="password"
+                value={data.config?.botToken ?? ''}
+                onChange={(e) => setConfig({ botToken: e.target.value })}
+              />
+            </label>
+            <label>
+              Chat ID
+              <input
+                value={data.config?.chatId ?? ''}
+                onChange={(e) => setConfig({ chatId: e.target.value })}
+              />
+            </label>
+            <label>
+              Message (empty = use input)
+              <textarea
+                rows={3}
+                className="inspector-code"
+                value={data.config?.text ?? ''}
+                onChange={(e) => setConfig({ text: e.target.value })}
+              />
+            </label>
+            <label>
+              Parse Mode
+              <select
+                value={data.config?.parseMode ?? ''}
+                onChange={(e) => setConfig({ parseMode: e.target.value })}
+              >
+                <option value="">None</option>
+                <option value="Markdown">Markdown</option>
+                <option value="HTML">HTML</option>
+              </select>
+            </label>
+          </>
+        )}
+
+        {data.toolType === 'notion-api' && (
+          <>
+            <label>
+              Integration Token
+              <input
+                type="password"
+                value={data.config?.apiKey ?? ''}
+                onChange={(e) => setConfig({ apiKey: e.target.value })}
+              />
+            </label>
+            <label>
+              Action
+              <select
+                value={data.config?.action ?? 'create'}
+                onChange={(e) => setConfig({ action: e.target.value })}
+              >
+                <option value="create">Create page</option>
+                <option value="query">Query database</option>
+              </select>
+            </label>
+            <label>
+              Database ID
+              <input
+                value={data.config?.databaseId ?? ''}
+                onChange={(e) => setConfig({ databaseId: e.target.value })}
+              />
+            </label>
+            {data.config?.action !== 'query' && (
+              <>
+                <label>
+                  Page title
+                  <input
+                    value={data.config?.title ?? ''}
+                    onChange={(e) => setConfig({ title: e.target.value })}
+                  />
+                </label>
+                <label>
+                  Body (empty = use input)
+                  <textarea
+                    rows={3}
+                    className="inspector-code"
+                    value={data.config?.body ?? ''}
+                    onChange={(e) => setConfig({ body: e.target.value })}
+                  />
+                </label>
+              </>
+            )}
+          </>
+        )}
 
         {data.toolType === 'parse-url' && (
           <p className="inspector-hint">
@@ -827,9 +1925,6 @@ export function ToolInspectorFields({
                 <option value="format-now">Format now</option>
                 <option value="parse">Parse input to ISO</option>
               </select>
-              <span className="inspector-hint">
-                Format now needs no upstream wire — use Out → Agent Context in parallel with Chat.
-              </span>
             </label>
             <button
               type="button"
@@ -844,12 +1939,10 @@ export function ToolInspectorFields({
         {data.toolType === 'calculator' && (
           <>
             <p className="inspector-hint">
-              Wire <strong>text</strong> with a math expression like <code>2+2</code> or{' '}
-              <code>(10 - 3) * 2</code>. Allowed: digits and <code>+ - * / ( ) . %</code>. The field below
-              is used when nothing is wired in.
+              Wire a math expression like <code>2+2</code>.
             </p>
             <label>
-              Expression (optional — uses upstream wire when empty)
+              Expression (optional)
               <input
                 value={data.config?.expression ?? ''}
                 onChange={(e) => setConfig({ expression: e.target.value })}
