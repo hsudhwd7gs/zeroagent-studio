@@ -23,13 +23,13 @@ describe('siteStats', () => {
       {
         "browserTools": 235,
         "cloudTools": 4,
-        "curatedModules": 54,
-        "customTools": 2,
+        "curatedModules": 55,
+        "customTools": 3,
         "exampleWorkflows": 22,
         "guidedQuests": 8,
         "manifestPresets": 187,
-        "paletteBuildingBlocks": 243,
-        "totalTools": 241,
+        "paletteBuildingBlocks": 244,
+        "totalTools": 242,
       }
     `)
 
