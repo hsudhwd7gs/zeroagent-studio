@@ -3,6 +3,7 @@ import type {
   AgentNodeData,
   ToolNodeData,
   ChatNodeData,
+  LoopNodeData,
   ApiKeys,
   ExecutionContext,
   WorkflowTrigger,
@@ -45,6 +46,9 @@ type LogFn = (entry: {
   message: string
   data?: unknown
 }) => void
+
+const LOOP_MAX_ITERATIONS = 200
+const LOOP_YIELD_EVERY = 10
 
 function topologicalSort(nodes: Node[], edges: Edge[]): Node[] {
   const adjacency = new Map<string, string[]>()
@@ -127,7 +131,6 @@ export class DAGOrchestrator {
         if (!chatNode || chatNode.type !== 'chat') {
           throw new Error('No chat/trigger node found in workflow')
         }
-
         this.log({
           level: 'info',
           source: 'Orchestrator',
@@ -161,6 +164,17 @@ export class DAGOrchestrator {
           source: 'Orchestrator',
           message: `Starting execution from tool "${label}"`,
         })
+      } else if (trigger.kind === 'loop') {
+        const loopNode = this.nodes.find((n) => n.id === trigger.nodeId)
+        if (!loopNode || loopNode.type !== 'loop') {
+          throw new Error('No loop trigger node found in workflow')
+        }
+        const label = (loopNode.data as LoopNodeData).label || loopNode.id
+        this.log({
+          level: 'info',
+          source: 'Orchestrator',
+          message: `Starting execution from loop "${label}"`,
+        })
       } else {
         const agentNode = this.nodes.find((n) => n.id === trigger.nodeId)
         if (!agentNode || agentNode.type !== 'agent') {
@@ -179,10 +193,48 @@ export class DAGOrchestrator {
       let finalOutput = trigger.kind === 'chat' ? trigger.userInput : ''
       let lastAgentOutput = ''
 
+      // Track which nodes have already been executed as part of a loop subgraph
+      const loopHandledNodes = new Set<string>()
+
       for (const node of sorted) {
+        if (loopHandledNodes.has(node.id)) continue
+
         if (trigger.kind === 'chat' && node.id === trigger.nodeId && node.type === 'chat') {
           continue
         }
+
+        // ─── LOOP NODE HANDLING ────────────────────────────────
+        if (node.type === 'loop') {
+          executionStore.clearFlowingEdges()
+          executionStore.setCurrentNode(node.id)
+          executionStore.addThinkingNode(node.id)
+          setFlowingEdgesForNode(node.id, this.edges)
+          workflowStore.updateNodeData(node.id, {
+            isThinking: true,
+          } as Partial<LoopNodeData>)
+
+          try {
+            const loopOutput = await this.executeLoop(node, sorted, loopHandledNodes)
+            if (loopOutput) finalOutput = loopOutput
+            workflowStore.updateNodeData(node.id, {
+              isThinking: false,
+              lastOutput: loopOutput,
+            } as Partial<LoopNodeData>)
+          } catch (err) {
+            const message = err instanceof Error ? err.message : String(err)
+            const label = (node.data as LoopNodeData).label || node.id
+            nodeErrors.push(`${label}: ${message}`)
+            this.log({ level: 'error', source: label, message })
+            workflowStore.updateNodeData(node.id, {
+              isThinking: false,
+              lastOutput: `Error: ${message}`,
+            } as Partial<LoopNodeData>)
+          } finally {
+            executionStore.removeThinkingNode(node.id)
+          }
+          continue
+        }
+        // ─── END LOOP NODE HANDLING ───────────────────────────
 
         executionStore.clearFlowingEdges()
         executionStore.setCurrentNode(node.id)
@@ -280,6 +332,164 @@ export class DAGOrchestrator {
     }
   }
 
+  private async executeLoop(
+    loopNode: Node,
+    sorted: Node[],
+    loopHandled: Set<string>
+  ): Promise<string> {
+    const data = loopNode.data as LoopNodeData
+    const config = data.config ?? {}
+
+    // 1. Read input array
+    const inputs = this.getPortInputs(loopNode.id, ['in'])
+    const rawInput = inputs['in']?.value ?? this.context.legacyVariables?.[loopNode.id] ?? ''
+
+    let items: unknown[]
+    try {
+      const parsed = JSON.parse(rawInput)
+      if (!Array.isArray(parsed)) {
+        throw new Error('Loop input must be a JSON array')
+      }
+      items = parsed
+    } catch (err) {
+      throw new Error(
+        `Loop: invalid input — ${err instanceof Error ? err.message : String(err)}`
+      )
+    }
+
+    if (items.length === 0) {
+      this.log({
+        level: 'warn',
+        source: data.label || loopNode.id,
+        message: 'Loop: empty array, nothing to iterate',
+      })
+      return '[]'
+    }
+
+    // 2. Find downstream subgraph (excluding loop itself)
+    const downstream = sorted.filter(
+      (n) => n.id !== loopNode.id && this.isDownstreamOf(n.id, loopNode.id)
+    )
+
+    if (downstream.length === 0) {
+      throw new Error('Loop: no downstream nodes connected to iterate')
+    }
+
+    // 3. Determine terminal node (last in topo order of downstream)
+    const terminal = downstream[downstream.length - 1]
+
+    // 4. Cap iterations
+    const maxIterations = Math.min(
+      Math.max(1, Number(config.maxIterations ?? LOOP_MAX_ITERATIONS)),
+      LOOP_MAX_ITERATIONS
+    )
+    const iterations = Math.min(items.length, maxIterations)
+
+    if (items.length > maxIterations) {
+      this.log({
+        level: 'warn',
+        source: data.label || loopNode.id,
+        message: `Loop capped at ${maxIterations} iterations (input had ${items.length})`,
+      })
+    }
+
+    this.log({
+      level: 'info',
+      source: data.label || loopNode.id,
+      message: `Loop: ${iterations} iterations × ${downstream.length} downstream nodes`,
+    })
+
+    useWorkflowStore.getState().updateNodeData(loopNode.id, {
+      totalIterations: iterations,
+      currentIteration: 0,
+    } as Partial<LoopNodeData>)
+
+    const results: string[] = []
+
+    for (let i = 0; i < iterations; i++) {
+      const item = items[i]
+
+      // Set "item" output for downstream consumers
+      const itemText =
+        typeof item === 'string' ? item : JSON.stringify(item, null, 2)
+
+      this.context.variables[loopNode.id] = {
+        item: textPortValue(itemText),
+      }
+      this.context.legacyVariables![loopNode.id] = itemText
+
+      // Update progress
+      useWorkflowStore.getState().updateNodeData(loopNode.id, {
+        currentIteration: i + 1,
+      } as Partial<LoopNodeData>)
+
+      // Yield to UI every N iterations
+      if (i > 0 && i % LOOP_YIELD_EVERY === 0) {
+        await new Promise((resolve) => setTimeout(resolve, 0))
+      }
+
+      // Execute each downstream node
+      for (const dn of downstream) {
+        useExecutionStore.getState().setCurrentNode(dn.id)
+        useExecutionStore.getState().addThinkingNode(dn.id)
+        setFlowingEdgesForNode(dn.id, this.edges)
+
+        try {
+          await this.executeNode(dn)
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err)
+          this.log({
+            level: 'error',
+            source: `Loop iter ${i + 1} · ${(dn.data as { label?: string }).label || dn.id}`,
+            message: msg,
+          })
+        } finally {
+          useExecutionStore.getState().removeThinkingNode(dn.id)
+        }
+      }
+
+      // Collect terminal output
+      const terminalOutput = this.context.legacyVariables?.[terminal.id] ?? ''
+      results.push(terminalOutput)
+    }
+
+    // Mark all downstream as handled (they ran inside loop)
+    for (const dn of downstream) {
+      loopHandled.add(dn.id)
+    }
+
+    // Store final "done" output
+    const finalJson = JSON.stringify(results, null, 2)
+    this.context.variables[loopNode.id] = {
+      done: textPortValue(finalJson),
+    }
+    this.context.legacyVariables![loopNode.id] = finalJson
+
+    this.log({
+      level: 'success',
+      source: data.label || loopNode.id,
+      message: `Loop finished: ${iterations} iterations, ${results.length} results`,
+    })
+
+    return finalJson
+  }
+
+  private isDownstreamOf(nodeId: string, ancestorId: string): boolean {
+    const visited = new Set<string>()
+    const stack = [ancestorId]
+    while (stack.length > 0) {
+      const current = stack.pop()!
+      if (visited.has(current)) continue
+      visited.add(current)
+      const outgoing = this.edges.filter((e) => e.source === current)
+      for (const e of outgoing) {
+        if (e.target === nodeId) return true
+        stack.push(e.target)
+      }
+    }
+    return false
+  }
+
   /** @deprecated Use executeWithTrigger — kept for tests */
   async execute(userInput: string, startNodeId?: string): Promise<string> {
     const chatNode = startNodeId
@@ -355,6 +565,8 @@ export class DAGOrchestrator {
       case 'tool':
         return this.executeTool(node)
       case 'chat':
+        return this.context.legacyVariables?.[node.id] ?? ''
+      case 'loop':
         return this.context.legacyVariables?.[node.id] ?? ''
       default:
         return ''
@@ -568,6 +780,21 @@ export async function runWorkflowFromTool(
   const log = useDebugStore.getState().addLog
   const orchestrator = new DAGOrchestrator(nodes, edges, apiKeys, log)
   return orchestrator.executeWithTrigger({ kind: 'tool', nodeId: toolNodeId })
+}
+
+export async function runWorkflowFromLoop(
+  nodes: Node[],
+  edges: Edge[],
+  loopNodeId: string,
+  apiKeys: ApiKeys
+): Promise<string> {
+  const loopNode = nodes.find((n) => n.id === loopNodeId && n.type === 'loop')
+  if (!loopNode) {
+    throw new Error('No loop trigger node found in workflow')
+  }
+  const log = useDebugStore.getState().addLog
+  const orchestrator = new DAGOrchestrator(nodes, edges, apiKeys, log)
+  return orchestrator.executeWithTrigger({ kind: 'loop', nodeId: loopNodeId })
 }
 
 export async function runWorkflowToSink(
