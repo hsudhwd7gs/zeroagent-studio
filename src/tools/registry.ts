@@ -271,7 +271,7 @@ const CURATED_TOOLS: ToolDefinition[] = [
   {
     id: 'fetch-json',
     label: 'Fetch JSON',
-    description: 'GET JSON from a URL (CORS permitting)',
+    description: 'GET/POST JSON with custom method, headers & body',
     icon: '🌐',
     paletteGroup: 'browser',
     browserSubcategory: 'curated',
