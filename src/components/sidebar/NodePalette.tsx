@@ -31,6 +31,7 @@ import { PaletteAccordionSection } from './PaletteAccordionSection'
 const CORE_ITEMS = [
   { type: 'chat', icon: '💬', label: 'Chat', desc: 'Type here to start', badge: '$0', tier: 'legendary' as const },
   { type: 'agent', icon: '🤖', label: 'Agent', desc: 'AI that reads & writes', badge: '$0', tier: 'legendary' as const },
+  { type: 'loop', icon: '🔁', label: 'Loop', desc: 'Repeat downstream for each item', badge: '$0', tier: 'epic' as const },
 ]
 
 const GROUP_LABELS: Record<string, string> = {
