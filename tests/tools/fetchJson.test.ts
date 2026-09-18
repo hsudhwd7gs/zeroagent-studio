@@ -17,7 +17,7 @@ describe('fetchJsonTool', () => {
     vi.unstubAllGlobals()
   })
 
-  it('throws on invalid JSON response', async () => {
+  it('wraps non-JSON responses in { ok, status, rawText }', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async () => ({
@@ -27,7 +27,10 @@ describe('fetchJsonTool', () => {
         text: async () => 'not-json',
       }))
     )
-    await expect(fetchJsonTool('https://api.example.com/data', {})).rejects.toThrow(/not valid JSON/)
+    const result = await fetchJsonTool('https://api.example.com/data', {})
+    expect(result).toContain('not-json')
+    expect(result).toContain('"ok": true')
+    expect(result).toContain('"rawText"')
     vi.unstubAllGlobals()
   })
 
