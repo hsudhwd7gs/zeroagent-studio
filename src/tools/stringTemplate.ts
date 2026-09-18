@@ -13,7 +13,7 @@ export async function runStringTemplate(
   if (!template) throw new Error('No template provided')
 
   const vars: Record<string, string> = {}
-  
+
   const varsSource = config.variables?.trim() || input.trim()
   if (varsSource) {
     try {
