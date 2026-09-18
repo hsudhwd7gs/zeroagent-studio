@@ -10,15 +10,32 @@
 const PYODIDE_VERSION = '0.26.2'
 const PYODIDE_CDN = `https://cdn.jsdelivr.net/pyodide/v${PYODIDE_VERSION}/full/`
 
-let pyodideInstance: unknown = null
-let loadingPromise: Promise<unknown> | null = null
+// Minimal Pyodide interface — only the methods we actually call
+interface PyodideInstance {
+  loadPackage: (packages: string[]) => Promise<void>
+  globals: {
+    set: (name: string, value: unknown) => void
+  }
+  runPython: (code: string) => unknown
+  runPythonAsync: (code: string) => Promise<unknown>
+}
 
-async function loadPyodide(): Promise<any> {
+// Augment window with loadPyodide
+interface WindowWithPyodide extends Window {
+  loadPyodide?: (options: { indexURL: string }) => Promise<PyodideInstance>
+}
+
+let pyodideInstance: PyodideInstance | null = null
+let loadingPromise: Promise<PyodideInstance> | null = null
+
+async function loadPyodide(): Promise<PyodideInstance> {
   if (pyodideInstance) return pyodideInstance
   if (loadingPromise) return loadingPromise
 
-  loadingPromise = (async () => {
-    if (!(window as any).loadPyodide) {
+  loadingPromise = (async (): Promise<PyodideInstance> => {
+    const win = window as WindowWithPyodide
+
+    if (!win.loadPyodide) {
       await new Promise<void>((resolve, reject) => {
         const script = document.createElement('script')
         script.src = `${PYODIDE_CDN}pyodide.js`
@@ -29,7 +46,11 @@ async function loadPyodide(): Promise<any> {
       })
     }
 
-    const instance = await (window as any).loadPyodide({
+    if (!win.loadPyodide) {
+      throw new Error('Pyodide script loaded but loadPyodide is not defined')
+    }
+
+    const instance = await win.loadPyodide({
       indexURL: PYODIDE_CDN,
     })
 
@@ -92,7 +113,8 @@ sys.stdout = _captured_output
 
   let captured = ''
   try {
-    captured = pyodide.runPython('_captured_output.getvalue()') || ''
+    const capturedRaw = pyodide.runPython('_captured_output.getvalue()')
+    captured = typeof capturedRaw === 'string' ? capturedRaw : ''
   } catch {
     void 0
   }
