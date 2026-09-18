@@ -17,7 +17,7 @@ describe('siteStats', () => {
     expect(stats.browserTools).toBe(235)
     expect(stats.cloudTools).toBe(4)
     expect(stats.customTools).toBe(1)
-    expect(stats.paletteBuildingBlocks).toBe(205)
+    expect(stats.paletteBuildingBlocks).toBe(242)
     expect(stats.guidedQuests).toBe(8)
     expect(stats.guidedQuests).toBe(QUEST_IDS.length)
     expect(stats.exampleWorkflows).toBe(EXAMPLE_WORKFLOWS.length)
