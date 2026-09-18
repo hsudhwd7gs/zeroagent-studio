@@ -2,24 +2,24 @@
  * ZeroAgent Studio — Universal Worker (Production Ready)
  * ======================================================
  *
- * Pure relay + optional Cloudflare feature bindings.
- * Heavy compute runs on your PC (browser) or external APIs.
+ * Pure relay + dynamic API key management via KV.
  *
- * Cloudflare Free Features (all optional):
- *   • KV: 1 GB, 100K reads/day, 1K writes/day
- *   • R2: 10 GB storage, no egress fees
- *   • D1: 5 GB SQL, 5M row reads/day
- *   • Workers AI: 10K Neurons/day (LLMs, embeddings, image gen)
- *   • Cron Triggers: 5 free schedules
- *   • Analytics Engine: unlimited writes
- *   • Cache API: unlimited edge caching
+ * Features:
+ *   • Universal proxy — any API, any method, any auth
+ *   • Dynamic API keys — add/update from ZeroAgent UI, stored in KV
+ *   • All Cloudflare free features (KV, R2, D1, Workers AI, Cron)
+ *   • Auto-secret injection for 15+ providers
+ *   • Zero computation — all heavy work on your PC or external APIs
  *
  * Endpoints:
  *   GET  /api/health                    → Status + enabled features
- *   POST /api/proxy                     → Universal proxy (any method)
- *   GET  /api/proxy?url=...             → GET proxy (simple)
+ *   POST /api/proxy                     → Universal proxy
+ *   GET  /api/proxy?url=...             → Simple GET proxy
  *   POST /api/multi                     → Parallel requests (max 10)
  *   GET  /api/cached-proxy?url=...      → Cached GET via Cache API
+ *   POST /api/keys                      → Store API key in KV (dynamic)
+ *   GET  /api/keys                      → List stored key names
+ *   DELETE /api/keys?name=...           → Delete stored key
  *   POST /api/kaggle/generate           → Trigger Kaggle notebook
  *   GET  /api/kaggle/status             → Kaggle run status
  *   GET  /api/kaggle/output             → Kaggle output download
@@ -40,18 +40,18 @@
  */
 
 // ─────────────────────────────────────────────────────────────
-// Type Definitions
+// Types
 // ─────────────────────────────────────────────────────────────
 
 interface Env {
   ASSETS: Fetcher
-  // Optional Cloudflare bindings — add in dashboard to enable
+  // Optional Cloudflare bindings
   CACHE?: KVNamespace
   STORAGE?: R2Bucket
   DB?: D1Database
   AI?: Ai
   ANALYTICS?: AnalyticsEngineDataset
-  // Known provider secrets (all optional)
+  // Static secrets (from Cloudflare dashboard)
   KAGGLE_USERNAME?: string
   KAGGLE_KEY?: string
   KAGGLE_NOTEBOOK_SLUG?: string
@@ -65,13 +65,11 @@ interface Env {
   SLACK_TOKEN?: string
   RESEND_API_KEY?: string
   TELEGRAM_BOT_TOKEN?: string
-  DISCORD_WEBHOOK?: string
-  // Any custom secret with prefix SECRET_
   [key: string]: string | Fetcher | KVNamespace | R2Bucket | D1Database | Ai | AnalyticsEngineDataset | undefined
 }
 
 // ─────────────────────────────────────────────────────────────
-// CORS Helpers
+// CORS
 // ─────────────────────────────────────────────────────────────
 
 const CORS_HEADERS: Record<string, string> = {
@@ -97,10 +95,33 @@ function json(data: unknown, status = 200): Response {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Secret Injection by Target Hostname
+// Dynamic key resolution — KV first, then env
 // ─────────────────────────────────────────────────────────────
 
-function injectProviderAuth(env: Env, targetUrl: string, headers: Record<string, string>): void {
+async function getKey(env: Env, name: string): Promise<string | undefined> {
+  // 1. Try KV first (dynamic keys added from ZeroAgent UI)
+  if (env.CACHE) {
+    try {
+      const kvValue = await env.CACHE.get(`apikey:${name}`)
+      if (kvValue) return kvValue
+    } catch {
+      /* ignore */
+    }
+  }
+  // 2. Fall back to env (static dashboard secrets)
+  const envValue = env[name]
+  return typeof envValue === 'string' ? envValue : undefined
+}
+
+// ─────────────────────────────────────────────────────────────
+// Auto-inject provider auth based on target hostname
+// ─────────────────────────────────────────────────────────────
+
+async function injectProviderAuth(
+  env: Env,
+  targetUrl: string,
+  headers: Record<string, string>
+): Promise<void> {
   let host: string
   try {
     host = new URL(targetUrl).hostname
@@ -109,70 +130,77 @@ function injectProviderAuth(env: Env, targetUrl: string, headers: Record<string,
   }
 
   // Groq
-  if (host.endsWith('groq.com') && env.GROQ_API_KEY) {
-    headers['Authorization'] = `Bearer ${env.GROQ_API_KEY}`
+  if (host.endsWith('groq.com')) {
+    const key = await getKey(env, 'GROQ_API_KEY')
+    if (key) headers['Authorization'] = `Bearer ${key}`
   }
 
   // OpenRouter
-  if (host.endsWith('openrouter.ai') && env.OPENROUTER_API_KEY) {
-    headers['Authorization'] = `Bearer ${env.OPENROUTER_API_KEY}`
+  if (host.endsWith('openrouter.ai')) {
+    const key = await getKey(env, 'OPENROUTER_API_KEY')
+    if (key) headers['Authorization'] = `Bearer ${key}`
   }
 
   // Gemini (Google AI)
-  if (host.endsWith('googleapis.com') && env.GEMINI_API_KEY) {
-    // Gemini API uses x-goog-api-key header
-    headers['x-goog-api-key'] = env.GEMINI_API_KEY
+  if (host.endsWith('googleapis.com')) {
+    const key = await getKey(env, 'GEMINI_API_KEY')
+    if (key) headers['x-goog-api-key'] = key
   }
 
   // Yoinku
-  if (host.endsWith('yoinku.com') && env.YOINKU_API_KEY) {
-    headers['x-api-key'] = env.YOINKU_API_KEY
+  if (host.endsWith('yoinku.com')) {
+    const key = await getKey(env, 'YOINKU_API_KEY')
+    if (key) headers['x-api-key'] = key
   }
 
-  // Kaggle (Basic Auth)
-  if (host.endsWith('kaggle.com') && env.KAGGLE_USERNAME && env.KAGGLE_KEY) {
-    headers['Authorization'] = `Basic ${btoa(`${env.KAGGLE_USERNAME}:${env.KAGGLE_KEY}`)}`
+  // Kaggle
+  if (host.endsWith('kaggle.com')) {
+    const username = await getKey(env, 'KAGGLE_USERNAME')
+    const key = await getKey(env, 'KAGGLE_KEY')
+    if (username && key) {
+      headers['Authorization'] = `Basic ${btoa(`${username}:${key}`)}`
+    }
   }
 
   // Notion
-  if (host.endsWith('notion.com') && env.NOTION_API_KEY) {
-    headers['Authorization'] = `Bearer ${env.NOTION_API_KEY}`
-    headers['Notion-Version'] = '2022-06-28'
+  if (host.endsWith('notion.com')) {
+    const key = await getKey(env, 'NOTION_API_KEY')
+    if (key) {
+      headers['Authorization'] = `Bearer ${key}`
+      headers['Notion-Version'] = '2022-06-28'
+    }
   }
 
   // Slack
-  if (host.endsWith('slack.com') && env.SLACK_TOKEN) {
-    headers['Authorization'] = `Bearer ${env.SLACK_TOKEN}`
+  if (host.endsWith('slack.com')) {
+    const key = await getKey(env, 'SLACK_TOKEN')
+    if (key) headers['Authorization'] = `Bearer ${key}`
   }
 
   // GitHub
-  if (host.endsWith('github.com') && env.GITHUB_TOKEN) {
-    headers['Authorization'] = `Bearer ${env.GITHUB_TOKEN}`
-    headers['Accept'] = 'application/vnd.github+json'
-    headers['X-GitHub-Api-Version'] = '2022-11-28'
-  }
-
-  // Resend (email)
-  if (host.endsWith('resend.com') && env.RESEND_API_KEY) {
-    headers['Authorization'] = `Bearer ${env.RESEND_API_KEY}`
-  }
-
-  // Telegram (token is in path, no injection needed)
-  // Discord webhooks (token in URL, no injection)
-
-  // Generic: any env var starting with SECRET_<hostname_with_underscores>
-  for (const [key, value] of Object.entries(env)) {
-    if (key.startsWith('SECRET_') && typeof value === 'string') {
-      const secretHost = key.slice('SECRET_'.length).toLowerCase().replace(/_/g, '.')
-      if (host.endsWith(secretHost)) {
-        headers['Authorization'] = `Bearer ${value}`
-      }
+  if (host.endsWith('github.com') || host.endsWith('api.github.com')) {
+    const key = await getKey(env, 'GITHUB_TOKEN')
+    if (key) {
+      headers['Authorization'] = `Bearer ${key}`
+      headers['Accept'] = 'application/vnd.github+json'
+      headers['X-GitHub-Api-Version'] = '2022-11-28'
     }
   }
+
+  // Resend
+  if (host.endsWith('resend.com')) {
+    const key = await getKey(env, 'RESEND_API_KEY')
+    if (key) headers['Authorization'] = `Bearer ${key}`
+  }
+
+  // Generic: any SECRET_<hostname_with_underscores> in KV or env
+  const normalizedHost = host.replace(/\./g, '_').toUpperCase()
+  const genericKey = await getKey(env, `SECRET_${normalizedHost}`)
+  if (genericKey) headers['Authorization'] = `Bearer ${genericKey}`
 }
 
 // ─────────────────────────────────────────────────────────────
-// Universal Proxy Core
+// Universal proxy core
 // ─────────────────────────────────────────────────────────────
 
 async function proxyRequest(
@@ -192,10 +220,7 @@ async function proxyRequest(
   }
 
   const headers: Record<string, string> = {}
-  const safeHeaders = [
-    'accept', 'accept-language', 'content-type', 'cache-control',
-    'if-none-match', 'range', 'user-agent',
-  ]
+  const safeHeaders = ['accept', 'accept-language', 'content-type', 'cache-control', 'if-none-match', 'range', 'user-agent']
   for (const [key, value] of request.headers.entries()) {
     const lower = key.toLowerCase()
     if (safeHeaders.includes(lower)) headers[key] = value
@@ -203,7 +228,7 @@ async function proxyRequest(
   }
   if (!headers['User-Agent']) headers['User-Agent'] = 'ZeroAgent-Studio/1.0'
 
-  injectProviderAuth(env, targetUrl, headers)
+  await injectProviderAuth(env, targetUrl, headers)
 
   const init: RequestInit = {
     method: request.method,
@@ -234,7 +259,7 @@ async function proxyRequest(
 }
 
 // ─────────────────────────────────────────────────────────────
-// Main Worker Export
+// Main Worker
 // ─────────────────────────────────────────────────────────────
 
 export default {
@@ -242,14 +267,16 @@ export default {
     const url = new URL(request.url)
     const path = url.pathname
 
-    // Analytics write (non-blocking, best-effort)
+    // Analytics (non-blocking)
     try {
       env.ANALYTICS?.writeDataPoint({
         blobs: [path, request.method],
         doubles: [Date.now()],
         indexes: [path.split('/')[2] ?? 'root'],
       })
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
 
     // Preflight
     if (request.method === 'OPTIONS') {
@@ -265,20 +292,57 @@ export default {
           d1: Boolean(env.DB),
           ai: Boolean(env.AI),
           analytics: Boolean(env.ANALYTICS),
-          kaggle: Boolean(env.KAGGLE_USERNAME && env.KAGGLE_KEY),
-          groq: Boolean(env.GROQ_API_KEY),
-          youtube: Boolean(env.YOUTUBE_API_KEY),
-          yoinku: Boolean(env.YOINKU_API_KEY),
+        }
+        const dynamicKeys: string[] = []
+        if (env.CACHE) {
+          try {
+            const list = await env.CACHE.list({ prefix: 'apikey:' })
+            for (const k of list.keys) {
+              dynamicKeys.push(k.name.replace('apikey:', ''))
+            }
+          } catch {
+            /* ignore */
+          }
         }
         return json({
           ok: true,
           worker: 'zeroagent-studio',
           time: new Date().toISOString(),
           features,
+          dynamicKeys,
+          hint: 'POST /api/keys {name, value} to add keys without redeploying',
         })
       }
 
-      // ─── UNIVERSAL PROXY (POST with body) ──────────────────
+      // ─── DYNAMIC KEYS: Store ───────────────────────────────
+      if (path === '/api/keys' && request.method === 'POST') {
+        if (!env.CACHE) return json({ error: 'KV binding (CACHE) not configured' }, 500)
+        const body = await request.json() as { name?: string; value?: string }
+        if (!body.name || !body.value) {
+          return json({ error: 'name and value required' }, 400)
+        }
+        await env.CACHE.put(`apikey:${body.name}`, body.value)
+        return json({ ok: true, stored: body.name })
+      }
+
+      // ─── DYNAMIC KEYS: List ────────────────────────────────
+      if (path === '/api/keys' && request.method === 'GET') {
+        if (!env.CACHE) return json({ error: 'KV binding (CACHE) not configured' }, 500)
+        const list = await env.CACHE.list({ prefix: 'apikey:' })
+        const names = list.keys.map((k) => k.name.replace('apikey:', ''))
+        return json({ count: names.length, keys: names })
+      }
+
+      // ─── DYNAMIC KEYS: Delete ──────────────────────────────
+      if (path === '/api/keys' && request.method === 'DELETE') {
+        if (!env.CACHE) return json({ error: 'KV binding (CACHE) not configured' }, 500)
+        const name = url.searchParams.get('name')
+        if (!name) return json({ error: 'name query param required' }, 400)
+        await env.CACHE.delete(`apikey:${name}`)
+        return json({ ok: true, deleted: name })
+      }
+
+      // ─── UNIVERSAL PROXY (POST) ────────────────────────────
       if (path === '/api/proxy' && request.method === 'POST') {
         const body = await request.json() as {
           url?: string
@@ -290,7 +354,7 @@ export default {
 
         const headers: Record<string, string> = { ...(body.headers ?? {}) }
         const method = (body.method ?? 'GET').toUpperCase()
-        injectProviderAuth(env, body.url, headers)
+        await injectProviderAuth(env, body.url, headers)
 
         const init: RequestInit = { method, headers, redirect: 'follow' }
         if (method !== 'GET' && method !== 'HEAD' && body.body !== undefined) {
@@ -312,14 +376,14 @@ export default {
         }
       }
 
-      // ─── UNIVERSAL PROXY (GET with ?url=) ─────────────────
+      // ─── UNIVERSAL PROXY (GET) ─────────────────────────────
       if (path === '/api/proxy' && request.method === 'GET') {
         const target = url.searchParams.get('url')
         if (!target) return json({ error: 'url query param required' }, 400)
         return proxyRequest(env, request, target)
       }
 
-      // ─── PARALLEL MULTI (max 10) ───────────────────────────
+      // ─── PARALLEL MULTI ────────────────────────────────────
       if (path === '/api/multi' && request.method === 'POST') {
         const body = await request.json() as {
           requests?: Array<{ url: string; method?: string; headers?: Record<string, string>; body?: unknown }>
@@ -330,7 +394,7 @@ export default {
         const results = await Promise.all(
           limited.map(async (req) => {
             const headers: Record<string, string> = { ...(req.headers ?? {}) }
-            injectProviderAuth(env, req.url, headers)
+            await injectProviderAuth(env, req.url, headers)
             const method = (req.method ?? 'GET').toUpperCase()
             const init: RequestInit = { method, headers, redirect: 'follow' }
             if (method !== 'GET' && method !== 'HEAD' && req.body !== undefined) {
@@ -348,7 +412,7 @@ export default {
         return json({ count: results.length, results })
       }
 
-      // ─── CACHED PROXY (Cache API) ──────────────────────────
+      // ─── CACHED PROXY ──────────────────────────────────────
       if (path === '/api/cached-proxy') {
         const target = url.searchParams.get('url')
         if (!target) return json({ error: 'url required' }, 400)
@@ -364,10 +428,13 @@ export default {
         return withCors(response)
       }
 
-      // ─── KAGGLE: Trigger notebook ──────────────────────────
+      // ─── KAGGLE: Trigger ───────────────────────────────────
       if (path === '/api/kaggle/generate' && request.method === 'POST') {
-        if (!env.KAGGLE_USERNAME || !env.KAGGLE_KEY || !env.KAGGLE_NOTEBOOK_SLUG) {
-          return json({ error: 'Kaggle secrets not configured' }, 500)
+        const username = await getKey(env, 'KAGGLE_USERNAME')
+        const key = await getKey(env, 'KAGGLE_KEY')
+        const slug = await getKey(env, 'KAGGLE_NOTEBOOK_SLUG')
+        if (!username || !key || !slug) {
+          return json({ error: 'Kaggle keys not configured. POST /api/keys to add them.' }, 500)
         }
         const body = await request.json() as {
           prompts: string[]
@@ -375,12 +442,12 @@ export default {
           steps?: number
           gpu?: boolean
         }
-        const auth = btoa(`${env.KAGGLE_USERNAME}:${env.KAGGLE_KEY}`)
+        const auth = btoa(`${username}:${key}`)
         const response = await fetch('https://www.kaggle.com/api/v1/kernels/push', {
           method: 'POST',
           headers: { Authorization: `Basic ${auth}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            slug: env.KAGGLE_NOTEBOOK_SLUG,
+            slug,
             newTitle: `ZeroAgent ${Date.now()}`,
             text: '',
             language: 'python',
@@ -406,12 +473,13 @@ export default {
 
       // ─── KAGGLE: Status ────────────────────────────────────
       if (path === '/api/kaggle/status') {
-        if (!env.KAGGLE_USERNAME || !env.KAGGLE_KEY || !env.KAGGLE_NOTEBOOK_SLUG) {
-          return json({ error: 'Kaggle secrets not configured' }, 500)
-        }
-        const auth = btoa(`${env.KAGGLE_USERNAME}:${env.KAGGLE_KEY}`)
+        const username = await getKey(env, 'KAGGLE_USERNAME')
+        const key = await getKey(env, 'KAGGLE_KEY')
+        const slug = await getKey(env, 'KAGGLE_NOTEBOOK_SLUG')
+        if (!username || !key || !slug) return json({ error: 'Kaggle keys not configured' }, 500)
+        const auth = btoa(`${username}:${key}`)
         const response = await fetch(
-          `https://www.kaggle.com/api/v1/kernels/status?kernelName=${env.KAGGLE_NOTEBOOK_SLUG}`,
+          `https://www.kaggle.com/api/v1/kernels/status?kernelName=${slug}`,
           { headers: { Authorization: `Basic ${auth}` } }
         )
         return withCors(response)
@@ -419,24 +487,26 @@ export default {
 
       // ─── KAGGLE: Output ────────────────────────────────────
       if (path === '/api/kaggle/output') {
-        if (!env.KAGGLE_USERNAME || !env.KAGGLE_KEY || !env.KAGGLE_NOTEBOOK_SLUG) {
-          return json({ error: 'Kaggle secrets not configured' }, 500)
-        }
-        const auth = btoa(`${env.KAGGLE_USERNAME}:${env.KAGGLE_KEY}`)
+        const username = await getKey(env, 'KAGGLE_USERNAME')
+        const key = await getKey(env, 'KAGGLE_KEY')
+        const slug = await getKey(env, 'KAGGLE_NOTEBOOK_SLUG')
+        if (!username || !key || !slug) return json({ error: 'Kaggle keys not configured' }, 500)
+        const auth = btoa(`${username}:${key}`)
         const response = await fetch(
-          `https://www.kaggle.com/api/v1/kernels/output?kernelName=${env.KAGGLE_NOTEBOOK_SLUG}`,
+          `https://www.kaggle.com/api/v1/kernels/output?kernelName=${slug}`,
           { headers: { Authorization: `Basic ${auth}` } }
         )
         return withCors(response)
       }
 
-      // ─── GROQ: Chat completions ────────────────────────────
+      // ─── GROQ: Chat ────────────────────────────────────────
       if (path === '/api/groq' && request.method === 'POST') {
+        const key = await getKey(env, 'GROQ_API_KEY')
         const body = await request.text()
         const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
           method: 'POST',
           headers: {
-            Authorization: `Bearer ${env.GROQ_API_KEY ?? ''}`,
+            Authorization: `Bearer ${key ?? ''}`,
             'Content-Type': 'application/json',
           },
           body,
@@ -444,8 +514,9 @@ export default {
         return withCors(response)
       }
 
-      // ─── GROQ: Whisper transcription ───────────────────────
+      // ─── GROQ: Audio ───────────────────────────────────────
       if (path === '/api/groq/audio' && request.method === 'POST') {
+        const key = await getKey(env, 'GROQ_API_KEY')
         const body = await request.arrayBuffer()
         const contentType = request.headers.get('content-type') ?? 'audio/mpeg'
         const response = await fetch(
@@ -453,7 +524,7 @@ export default {
           {
             method: 'POST',
             headers: {
-              Authorization: `Bearer ${env.GROQ_API_KEY ?? ''}`,
+              Authorization: `Bearer ${key ?? ''}`,
               'Content-Type': contentType,
             },
             body,
@@ -462,7 +533,7 @@ export default {
         return withCors(response)
       }
 
-      // ─── YOUTUBE: HTML search ──────────────────────────────
+      // ─── YOUTUBE: Search ───────────────────────────────────
       if (path === '/api/youtube/search') {
         const q = url.searchParams.get('q')
         if (!q) return json({ error: 'q required' }, 400)
@@ -488,30 +559,32 @@ export default {
         return withCors(response)
       }
 
-      // ─── YOUTUBE: Videos (Data API) ────────────────────────
+      // ─── YOUTUBE: Videos ───────────────────────────────────
       if (path === '/api/youtube/videos') {
-        if (!env.YOUTUBE_API_KEY) return json({ error: 'YOUTUBE_API_KEY not set' }, 500)
+        const key = await getKey(env, 'YOUTUBE_API_KEY')
+        if (!key) return json({ error: 'YOUTUBE_API_KEY not set. POST /api/keys to add it.' }, 500)
         const ids = url.searchParams.get('ids') ?? ''
         const part = url.searchParams.get('part') ?? 'snippet,statistics,contentDetails,status'
         const response = await fetch(
-          `https://www.googleapis.com/youtube/v3/videos?part=${part}&id=${ids}&key=${env.YOUTUBE_API_KEY}`
+          `https://www.googleapis.com/youtube/v3/videos?part=${part}&id=${ids}&key=${key}`
         )
         return withCors(response)
       }
 
-      // ─── YOINKU: MP4 info ──────────────────────────────────
+      // ─── YOINKU ────────────────────────────────────────────
       if (path === '/api/yoinku') {
-        if (!env.YOINKU_API_KEY) return json({ error: 'YOINKU_API_KEY not set' }, 500)
+        const key = await getKey(env, 'YOINKU_API_KEY')
+        if (!key) return json({ error: 'YOINKU_API_KEY not set' }, 500)
         const videoId = url.searchParams.get('video_id')
         if (!videoId) return json({ error: 'video_id required' }, 400)
         const response = await fetch(
           `https://yoinku.com/api/v1/info?url=https://www.youtube.com/watch?v=${videoId}`,
-          { headers: { 'x-api-key': env.YOINKU_API_KEY, 'Accept': 'application/json' } }
+          { headers: { 'x-api-key': key, 'Accept': 'application/json' } }
         )
         return withCors(response)
       }
 
-      // ─── WORKERS AI: Text generation ───────────────────────
+      // ─── WORKERS AI: Text ──────────────────────────────────
       if (path === '/api/ai/generate' && request.method === 'POST') {
         if (!env.AI) return json({ error: 'Workers AI not bound' }, 500)
         const { prompt, model } = await request.json() as { prompt: string; model?: string }
@@ -522,7 +595,7 @@ export default {
         return json(response)
       }
 
-      // ─── WORKERS AI: Image generation ──────────────────────
+      // ─── WORKERS AI: Image ─────────────────────────────────
       if (path === '/api/ai/image' && request.method === 'POST') {
         if (!env.AI) return json({ error: 'Workers AI not bound' }, 500)
         const { prompt } = await request.json() as { prompt: string }
@@ -535,7 +608,7 @@ export default {
         })
       }
 
-      // ─── WORKERS AI: Embeddings ────────────────────────────
+      // ─── WORKERS AI: Embed ─────────────────────────────────
       if (path === '/api/ai/embed' && request.method === 'POST') {
         if (!env.AI) return json({ error: 'Workers AI not bound' }, 500)
         const { text } = await request.json() as { text: string }
@@ -598,18 +671,31 @@ export default {
   },
 
   // ─────────────────────────────────────────────────────────────
-  // Cron Handler (runs when trigger fires)
+  // Cron Handler — uses ctx.waitUntil() to fix the lint error
   // ─────────────────────────────────────────────────────────────
-  async scheduled(event: ScheduledEvent, env: Env, _ctx: ExecutionContext) {
-    console.log(`Cron fired at ${new Date(event.scheduledTime).toISOString()}`)
-    // Example: refresh a cached dataset daily
-    try {
-      const response = await fetch('https://api.example.com/daily-refresh')
-      const data = await response.text()
-      await env.CACHE?.put('daily-data', data, { expirationTtl: 86400 })
-      console.log('Daily data cached successfully')
-    } catch (err) {
-      console.error('Cron job failed:', err)
-    }
+  async scheduled(
+    controller: ScheduledController,
+    env: Env,
+    ctx: ExecutionContext
+  ): Promise<void> {
+    const cronTime = new Date(controller.scheduledTime).toISOString()
+    console.log(`Cron fired: ${controller.cron} at ${cronTime}`)
+
+    // ✅ ctx IS now used — via ctx.waitUntil() for background tasks
+    ctx.waitUntil(
+      (async () => {
+        try {
+          // Example: refresh a cached dataset daily
+          const response = await fetch('https://api.example.com/daily-refresh')
+          if (response.ok) {
+            const data = await response.text()
+            await env.CACHE?.put('daily-data', data, { expirationTtl: 86400 })
+            console.log('Daily data cached successfully')
+          }
+        } catch (err) {
+          console.error('Cron job failed:', err)
+        }
+      })()
+    )
   },
 }
