@@ -193,7 +193,6 @@ export class DAGOrchestrator {
       let finalOutput = trigger.kind === 'chat' ? trigger.userInput : ''
       let lastAgentOutput = ''
 
-      // Track which nodes have already been executed as part of a loop subgraph
       const loopHandledNodes = new Set<string>()
 
       for (const node of sorted) {
@@ -340,7 +339,6 @@ export class DAGOrchestrator {
     const data = loopNode.data as LoopNodeData
     const config = data.config ?? {}
 
-    // 1. Read input array
     const inputs = this.getPortInputs(loopNode.id, ['in'])
     const rawInput = inputs['in']?.value ?? this.context.legacyVariables?.[loopNode.id] ?? ''
 
@@ -353,7 +351,8 @@ export class DAGOrchestrator {
       items = parsed
     } catch (err) {
       throw new Error(
-        `Loop: invalid input — ${err instanceof Error ? err.message : String(err)}`
+        `Loop: invalid input — ${err instanceof Error ? err.message : String(err)}`,
+        { cause: err }
       )
     }
 
@@ -366,7 +365,6 @@ export class DAGOrchestrator {
       return '[]'
     }
 
-    // 2. Find downstream subgraph (excluding loop itself)
     const downstream = sorted.filter(
       (n) => n.id !== loopNode.id && this.isDownstreamOf(n.id, loopNode.id)
     )
@@ -375,10 +373,8 @@ export class DAGOrchestrator {
       throw new Error('Loop: no downstream nodes connected to iterate')
     }
 
-    // 3. Determine terminal node (last in topo order of downstream)
     const terminal = downstream[downstream.length - 1]
 
-    // 4. Cap iterations
     const maxIterations = Math.min(
       Math.max(1, Number(config.maxIterations ?? LOOP_MAX_ITERATIONS)),
       LOOP_MAX_ITERATIONS
@@ -409,7 +405,6 @@ export class DAGOrchestrator {
     for (let i = 0; i < iterations; i++) {
       const item = items[i]
 
-      // Set "item" output for downstream consumers
       const itemText =
         typeof item === 'string' ? item : JSON.stringify(item, null, 2)
 
@@ -418,17 +413,14 @@ export class DAGOrchestrator {
       }
       this.context.legacyVariables![loopNode.id] = itemText
 
-      // Update progress
       useWorkflowStore.getState().updateNodeData(loopNode.id, {
         currentIteration: i + 1,
       } as Partial<LoopNodeData>)
 
-      // Yield to UI every N iterations
       if (i > 0 && i % LOOP_YIELD_EVERY === 0) {
         await new Promise((resolve) => setTimeout(resolve, 0))
       }
 
-      // Execute each downstream node
       for (const dn of downstream) {
         useExecutionStore.getState().setCurrentNode(dn.id)
         useExecutionStore.getState().addThinkingNode(dn.id)
@@ -448,17 +440,14 @@ export class DAGOrchestrator {
         }
       }
 
-      // Collect terminal output
       const terminalOutput = this.context.legacyVariables?.[terminal.id] ?? ''
       results.push(terminalOutput)
     }
 
-    // Mark all downstream as handled (they ran inside loop)
     for (const dn of downstream) {
       loopHandled.add(dn.id)
     }
 
-    // Store final "done" output
     const finalJson = JSON.stringify(results, null, 2)
     this.context.variables[loopNode.id] = {
       done: textPortValue(finalJson),
