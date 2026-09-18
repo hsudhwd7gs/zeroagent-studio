@@ -455,19 +455,76 @@ export function ToolInspectorFields({
           </>
         )}
 
-        {data.toolType === 'fetch-json' && (
-          <>
-            <label>
-              URL (optional if wired upstream)
-              <input
-                value={data.config?.url ?? ''}
-                onChange={(e) => setConfig({ url: e.target.value })}
-                placeholder="https://api.example.com/data.json"
-              />
-            </label>
-            <p className="inspector-hint">Fetches JSON via GET. CORS must allow your browser origin.</p>
-          </>
-        )}
+        {data.toolType === 'fetch-json' && (() => {
+          const method = (data.config?.method ?? 'GET').toUpperCase()
+          const methodAllowsBody =
+            method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE'
+
+          return (
+            <>
+              <label>
+                URL (optional if wired upstream)
+                <input
+                  value={data.config?.url ?? ''}
+                  onChange={(e) => setConfig({ url: e.target.value })}
+                  placeholder="https://api.example.com/data.json"
+                />
+              </label>
+
+              <label>
+                Method
+                <select
+                  value={method}
+                  onChange={(e) => setConfig({ method: e.target.value })}
+                >
+                  <option value="GET">GET</option>
+                  <option value="POST">POST</option>
+                  <option value="PUT">PUT</option>
+                  <option value="PATCH">PATCH</option>
+                  <option value="DELETE">DELETE</option>
+                  <option value="HEAD">HEAD</option>
+                  <option value="OPTIONS">OPTIONS</option>
+                </select>
+              </label>
+
+              <label>
+                Headers (JSON, optional)
+                <textarea
+                  rows={3}
+                  className="inspector-code"
+                  value={data.config?.headers ?? ''}
+                  onChange={(e) => setConfig({ headers: e.target.value })}
+                  placeholder='{"Authorization": "Bearer sk-..."}'
+                />
+                <span className="inspector-hint">
+                  Custom headers trigger a CORS preflight — the server must allow them.
+                </span>
+              </label>
+
+              {methodAllowsBody && (
+                <label>
+                  Body (JSON or text, optional)
+                  <textarea
+                    rows={5}
+                    className="inspector-code"
+                    value={data.config?.body ?? ''}
+                    onChange={(e) => setConfig({ body: e.target.value })}
+                    placeholder='{"model":"llama-3.1-8b-instant","messages":[{"role":"user","content":"Hi"}]}'
+                  />
+                  <span className="inspector-hint">
+                    Auto-sets Content-Type: application/json when body is valid JSON.
+                  </span>
+                </label>
+              )}
+
+              <p className="inspector-hint">
+                Supports <strong>GET, POST, PUT, PATCH, DELETE</strong> with custom headers and body.
+                Custom headers and non-GET methods trigger CORS preflight — the target server must
+                respond to <code>OPTIONS</code> correctly, or the request will fail.
+              </p>
+            </>
+          )
+        })()}
 
         {data.toolType === 'parse-url' && (
           <p className="inspector-hint">
