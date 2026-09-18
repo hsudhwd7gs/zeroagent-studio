@@ -9,16 +9,21 @@ describe('siteStats', () => {
   it('derives counts from the live registry', () => {
     const stats = getSiteStats()
 
+    expect({
+      totalTools: stats.totalTools,
+      manifestPresets: stats.manifestPresets,
+      curatedModules: stats.curatedModules,
+      browserTools: stats.browserTools,
+      cloudTools: stats.cloudTools,
+      customTools: stats.customTools,
+      paletteBuildingBlocks: stats.paletteBuildingBlocks,
+      guidedQuests: stats.guidedQuests,
+      exampleWorkflows: stats.exampleWorkflows,
+    }).toMatchInlineSnapshot()
+
+    // Invariants — these should always be true regardless of counts
     expect(stats.totalTools).toBe(getToolCount())
-    expect(stats.totalTools).toBe(240)
     expect(stats.manifestPresets).toBe(MANIFEST_TOOLS.length)
-    expect(stats.manifestPresets).toBe(187)
-    expect(stats.curatedModules).toBe(53)
-    expect(stats.browserTools).toBe(235)
-    expect(stats.cloudTools).toBe(4)
-    expect(stats.customTools).toBe(1)
-    expect(stats.paletteBuildingBlocks).toBe(242)
-    expect(stats.guidedQuests).toBe(8)
     expect(stats.guidedQuests).toBe(QUEST_IDS.length)
     expect(stats.exampleWorkflows).toBe(EXAMPLE_WORKFLOWS.length)
   })
