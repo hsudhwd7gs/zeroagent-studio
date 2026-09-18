@@ -36,6 +36,7 @@ import { runJsonTool } from '../../tools/jsonTool'
 import { runDatetimeTool } from '../../tools/datetimeTool'
 import { runCalculator } from '../../tools/calculator'
 import { runCustomScript, CUSTOM_SCRIPT_MAX_BYTES } from '../../tools/customScript'
+import { runPython } from '../../tools/pythonRunner'
 import {
   parseMultiInputFields,
   serializeMultiInputFields,
@@ -2057,6 +2058,70 @@ export function ToolInspectorFields({
               }
             >
               {loading ? 'Running…' : 'Run test'}
+            </button>
+          </>
+        )}
+
+        {data.toolType === 'python' && (
+          <>
+            <p className="inspector-hint">
+              Python 3.12 runs in your browser via Pyodide. Use <code>input_text</code>{' '}
+              for input, set <code>result</code> or use <code>print()</code> for output.
+            </p>
+
+            <label>
+              Python code
+              <textarea
+                rows={15}
+                className="inspector-code"
+                value={data.config?.code ?? ''}
+                onChange={(e) => setConfig({ code: e.target.value })}
+                placeholder={`# input_text is available
+# set 'result' or use print()
+
+import pandas as pd
+from io import StringIO
+
+df = pd.read_csv(StringIO(input_text))
+result = df.describe().to_string()`}
+              />
+            </label>
+
+            <label>
+              Packages to load (comma-separated, optional)
+              <input
+                value={data.config?.packages ?? ''}
+                onChange={(e) => setConfig({ packages: e.target.value })}
+                placeholder="pandas, numpy, scikit-learn"
+              />
+              <span className="inspector-hint">
+                First run downloads ~20 MB. Cached after.
+              </span>
+            </label>
+
+            <label>
+              Test input
+              <input
+                value={data.config?.sample ?? ''}
+                onChange={(e) => setConfig({ sample: e.target.value })}
+                placeholder="hello world"
+              />
+            </label>
+
+            <button
+              type="button"
+              className="inspector-action-btn"
+              disabled={loading || !data.config?.code?.trim()}
+              onClick={() =>
+                runPreview(() =>
+                  runPython(data.config?.sample ?? '', {
+                    ...data.config,
+                    code: data.config?.code ?? '',
+                  })
+                )
+              }
+            >
+              {loading ? 'Running Python…' : 'Run Python'}
             </button>
           </>
         )}
