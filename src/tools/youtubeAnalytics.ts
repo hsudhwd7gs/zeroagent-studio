@@ -33,8 +33,8 @@ export async function runYoutubeAnalytics(
     const msg = err instanceof Error ? err.message : String(err)
     throw new Error(`YouTube API request failed: ${msg}`, { cause: err })
   }
-
-  let text = ''
+  
+  let text: string
   try {
     text = await response.text()
   } catch (err) {
