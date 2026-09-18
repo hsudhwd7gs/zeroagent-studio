@@ -1,6 +1,6 @@
 import type { Node } from '@xyflow/react'
 
-export type WorkflowNodeType = 'agent' | 'tool' | 'chat'
+export type WorkflowNodeType = 'agent' | 'tool' | 'chat' | 'loop'
 
 export interface NodeSize {
   width: number
@@ -18,6 +18,7 @@ const NODE_DEFAULTS: Record<WorkflowNodeType, NodeSize> = {
   chat: { width: 340, height: 240 },
   agent: { width: 260, height: 148 },
   tool: { width: 260, height: 132 },
+  loop: { width: 260, height: 168 },
 }
 
 const NODE_LIMITS: Record<WorkflowNodeType, NodeResizeLimits> = {
@@ -42,10 +43,17 @@ const NODE_LIMITS: Record<WorkflowNodeType, NodeResizeLimits> = {
     maxWidth: 480,
     maxHeight: 400,
   },
+  loop: {
+    ...NODE_DEFAULTS.loop,
+    minWidth: 220,
+    minHeight: 140,
+    maxWidth: 520,
+    maxHeight: 480,
+  },
 }
 
 export function resolveWorkflowNodeType(type: string | undefined): WorkflowNodeType {
-  if (type === 'agent' || type === 'tool' || type === 'chat') return type
+  if (type === 'agent' || type === 'tool' || type === 'chat' || type === 'loop') return type
   return 'tool'
 }
 
