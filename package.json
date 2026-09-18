@@ -76,6 +76,7 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "test:update": "vitest run -u",
     "ci": "npm run lint && npm run typecheck && npm run test:coverage && npm run build",
     "audit": "npm audit --audit-level=moderate || true",
     "ci:install": "npm ci",
