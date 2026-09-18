@@ -31,8 +31,8 @@ export async function runEmailSend(
 
   let url: string
   let payload: Record<string, unknown>
-  let headers: Record<string, string> = { 'Content-Type': 'application/json' }
-
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  
   if (provider === 'postmark') {
     url = 'https://api.postmarkapp.com/email'
     headers['X-Postmark-Server-Token'] = apiKey
