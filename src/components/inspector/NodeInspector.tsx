@@ -2,7 +2,7 @@ import { useShallow } from 'zustand/react/shallow'
 import { useWorkflowStore } from '../../stores/workflowStore'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { useExecutionStore } from '../../stores/executionStore'
-import type { AgentNodeData, ChatNodeData, ToolNodeData } from '../../types'
+import type { AgentNodeData, ChatNodeData, LoopNodeData, ToolNodeData } from '../../types'
 import { runWorkflowFromAgent } from '../../orchestrator/dag'
 import {
   getCachedOpenRouterFreeModels,
@@ -14,7 +14,7 @@ import { TRANSFORMERS_MODELS } from '../../engines/transformers'
 import { getBrainCostLabel } from '../../lib/brainResolver'
 import { getBrainSetupMessage, listBrainOptions } from '../../lib/brainSetup'
 import { AUTO_ROTATE_MODEL, OPENROUTER_FREE_ROUTER } from '../../lib/modelRotation'
-import { getChatPorts, getAgentPorts } from '../../lib/nodePorts'
+import { getChatPorts, getAgentPorts, getLoopPorts } from '../../lib/nodePorts'
 import { BaseInspectorShell } from './BaseInspectorShell'
 import { PortLegend } from './PortLegend'
 import { ToolInspectorFields } from './ToolInspectorFields'
@@ -247,6 +247,60 @@ export default function NodeInspector() {
         data={selectedNode.data as ToolNodeData}
         updateNodeData={updateNodeData}
       />
+    )
+  }
+
+  if (selectedNode.type === 'loop') {
+    const data = selectedNode.data as LoopNodeData
+    const iterations = data.totalIterations ?? 0
+    const current = data.currentIteration ?? 0
+
+    return (
+      <BaseInspectorShell
+        title="Loop settings"
+        nodeId={selectedNode.id}
+        nodeType="loop"
+        label={data.label || 'Loop'}
+        onLabelChange={(label) => updateNodeData(selectedNode.id, { label })}
+      >
+        <PortLegend
+          inputs={getLoopPorts().filter((p) => p.direction === 'in')}
+          outputs={getLoopPorts().filter((p) => p.direction === 'out')}
+        />
+        <p className="inspector-hint">
+          Wire a JSON array into <strong>In</strong>. Each item flows through <strong>Item</strong>{' '}
+          to the downstream chain. When all iterations finish, the collected results emit on{' '}
+          <strong>Done</strong>.
+        </p>
+        {iterations > 0 && (
+          <p className="inspector-hint">
+            Progress: {current} / {iterations} iterations
+          </p>
+        )}
+        <label>
+          Max iterations (safety cap)
+          <input
+            type="number"
+            min={1}
+            max={200}
+            value={data.config?.maxIterations ?? '200'}
+            onChange={(e) =>
+              updateNodeData(selectedNode.id, {
+                config: { ...(data.config ?? {}), maxIterations: e.target.value },
+              })
+            }
+          />
+          <span className="inspector-hint">
+            Loop stops after this many items, even if the array is longer. Max: 200.
+          </span>
+        </label>
+        {data.lastOutput && (
+          <pre className="inspector-preview">
+            {data.lastOutput.slice(0, 500)}
+            {data.lastOutput.length > 500 ? '…' : ''}
+          </pre>
+        )}
+      </BaseInspectorShell>
     )
   }
 
