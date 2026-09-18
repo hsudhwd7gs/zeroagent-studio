@@ -52,19 +52,31 @@ function byteLength(text: string): number {
   return encoder.encode(text).length
 }
 
-// Worker source — no blocks, only safety guards.
 const WORKER_SOURCE = `
-// Capture originals so user code can't accidentally break them.
 const SafePostMessage = self.postMessage.bind(self);
 const SafeClose = self.close.bind(self);
 
-// ── Memory guard ────────────────────────────────────────────
-// Runs every CUSTOM_SCRIPT_MEMORY_CHECK_MS. If the JS heap exceeds
-// the configured limit, we abort the script cleanly.
 let memoryTimer = null;
+let isClosing = false;
+
+const stopAll = (delayClose) => {
+  if (memoryTimer !== null) {
+    clearInterval(memoryTimer);
+    memoryTimer = null;
+  }
+  if (isClosing) return;
+  isClosing = true;
+  if (delayClose) {
+    // Give postMessage a tick to flush before we terminate.
+    setTimeout(function () { try { SafeClose(); } catch (e) {} }, 50);
+  } else {
+    try { SafeClose(); } catch (e) {}
+  }
+};
+
 const startMemoryGuard = (maxBytes, checkMs) => {
   if (typeof performance === 'undefined' || !performance.memory) return;
-  memoryTimer = setInterval(() => {
+  memoryTimer = setInterval(function () {
     const used = performance.memory.usedJSHeapSize || 0;
     if (used > maxBytes) {
       SafePostMessage({
@@ -72,20 +84,11 @@ const startMemoryGuard = (maxBytes, checkMs) => {
         error: 'Memory limit exceeded (' + Math.round(used / 1048576) + ' MB > '
               + Math.round(maxBytes / 1048576) + ' MB)'
       });
-      stopAll();
+      stopAll(true);
     }
   }, checkMs);
 };
 
-const stopAll = () => {
-  if (memoryTimer !== null) {
-    clearInterval(memoryTimer);
-    memoryTimer = null;
-  }
-  try { SafeClose(); } catch {}
-};
-
-// ── Console capture ─────────────────────────────────────────
 const capturedLogs = [];
 const captureConsole = () => {
   const wrap = (level) => (...args) => {
@@ -96,12 +99,12 @@ const captureConsole = () => {
           if (a === null) return 'null';
           if (a === undefined) return 'undefined';
           if (typeof a === 'object') {
-            try { return JSON.stringify(a); } catch { return String(a); }
+            try { return JSON.stringify(a); } catch (e) { return String(a); }
           }
           return String(a);
         })
       });
-    } catch {}
+    } catch (e) {}
   };
   self.console = {
     log:   wrap('log'),
@@ -112,9 +115,13 @@ const captureConsole = () => {
   };
 };
 
-// ── Main message handler ────────────────────────────────────
 self.onmessage = async (event) => {
-  const { code, input, config, maxMemoryBytes, memoryCheckMs } = event.data;
+  const data = event.data || {};
+  const code = data.code;
+  const input = data.input;
+  const config = data.config;
+  const maxMemoryBytes = data.maxMemoryBytes;
+  const memoryCheckMs = data.memoryCheckMs;
 
   capturedLogs.length = 0;
   captureConsole();
@@ -142,9 +149,6 @@ self.onmessage = async (event) => {
   const startTime = performance.now();
 
   try {
-    // Compile user code inside an async IIFE.
-    // User code has access to: input, config, helpers, console.
-    // No arguments are pre-shadowed — real fetch/Worker/eval all work.
     const fn = new Function(
       'input', 'config', 'helpers',
       'return (async () => {\\n' + code + '\\n})();'
@@ -157,26 +161,17 @@ self.onmessage = async (event) => {
     else if (typeof result === 'string') out = result;
     else {
       try { out = JSON.stringify(result); }
-      catch { out = String(result); }
+      catch (e) { out = String(result); }
     }
 
-    const elapsed = Math.round(performance.now() - startTime);
-    stopAll();
-    SafePostMessage({
-      ok: true,
-      result: out,
-      elapsedMs: elapsed,
-      logs: capturedLogs,
-    });
+    SafePostMessage({ ok: true, result: out });
+    stopAll(true);
   } catch (err) {
-    const elapsed = Math.round(performance.now() - startTime);
-    stopAll();
     SafePostMessage({
       ok: false,
-      error: err && err.message ? err.message : String(err),
-      elapsedMs: elapsed,
-      logs: capturedLogs,
+      error: err && err.message ? err.message : String(err)
     });
+    stopAll(true);
   }
 };
 `
@@ -192,20 +187,13 @@ export function validateCustomScript(script: string): void {
       `Script exceeds ${kb} KB limit (got ${(bytes / 1024).toFixed(1)} KB)`
     )
   }
-  // No forbidden-pattern check in permissive mode.
-}
-
-export interface CustomScriptResult {
-  result: string
-  elapsedMs: number
-  logs: Array<{ level: string; args: string[] }>
 }
 
 export function runCustomScriptInWorker(
   script: string,
   input: string,
   config: Record<string, string>
-): Promise<CustomScriptResult> {
+): Promise<string> {
   validateCustomScript(script)
 
   return new Promise((resolve, reject) => {
@@ -216,8 +204,8 @@ export function runCustomScriptInWorker(
 
     const cleanup = () => {
       if (timer !== null) { clearTimeout(timer); timer = null }
-      try { if (worker) worker.terminate() } catch {}
-      try { if (blobUrl) URL.revokeObjectURL(blobUrl) } catch {}
+      try { if (worker) worker.terminate() } catch (e) {}
+      try { if (blobUrl) URL.revokeObjectURL(blobUrl) } catch (e) {}
       worker = null
       blobUrl = null
     }
@@ -229,7 +217,7 @@ export function runCustomScriptInWorker(
       reject(new Error(message))
     }
 
-    const succeed = (value: CustomScriptResult) => {
+    const succeed = (value: string) => {
       if (settled) return
       settled = true
       cleanup()
@@ -255,16 +243,10 @@ export function runCustomScriptInWorker(
       ok: boolean
       result?: string
       error?: string
-      elapsedMs?: number
-      logs?: Array<{ level: string; args: string[] }>
     }>) => {
       const data = event.data || { ok: false }
       if (data.ok) {
-        succeed({
-          result: data.result ?? '',
-          elapsedMs: data.elapsedMs ?? 0,
-          logs: data.logs ?? [],
-        })
+        succeed(data.result ?? '')
       } else {
         fail(data.error || 'Custom script failed')
       }
@@ -300,6 +282,5 @@ export async function runCustomScript(
   config: Record<string, string>
 ): Promise<string> {
   const script = config.script ?? ''
-  const { result } = await runCustomScriptInWorker(script, input, config)
-  return result
+  return runCustomScriptInWorker(script, input, config)
 }
