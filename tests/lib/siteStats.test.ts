@@ -14,7 +14,7 @@ describe('siteStats', () => {
     expect(stats.manifestPresets).toBe(MANIFEST_TOOLS.length)
     expect(stats.manifestPresets).toBe(187)
     expect(stats.curatedModules).toBe(53)
-    expect(stats.browserTools).toBe(198)
+    expect(stats.browserTools).toBe(235)
     expect(stats.cloudTools).toBe(4)
     expect(stats.customTools).toBe(1)
     expect(stats.paletteBuildingBlocks).toBe(205)
