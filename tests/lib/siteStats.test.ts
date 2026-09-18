@@ -19,7 +19,19 @@ describe('siteStats', () => {
       paletteBuildingBlocks: stats.paletteBuildingBlocks,
       guidedQuests: stats.guidedQuests,
       exampleWorkflows: stats.exampleWorkflows,
-    }).toMatchInlineSnapshot()
+    }).toMatchInlineSnapshot(`
+      {
+        "browserTools": 235,
+        "cloudTools": 4,
+        "curatedModules": 54,
+        "customTools": 2,
+        "exampleWorkflows": 22,
+        "guidedQuests": 8,
+        "manifestPresets": 187,
+        "paletteBuildingBlocks": 243,
+        "totalTools": 241,
+      }
+    `)
 
     // Invariants — these should always be true regardless of counts
     expect(stats.totalTools).toBe(getToolCount())
