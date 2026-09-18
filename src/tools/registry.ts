@@ -16,6 +16,7 @@ import { runOpenRouterEmbeddings } from './openrouterEmbeddings'
 import { runCustomScript } from './customScript'
 import { parseUrlTool } from './parseUrl'
 import { fetchJsonTool } from './fetchJson'
+import { runMultiInput } from './multiInput'
 import { runTextOutputTool } from './textOutput'
 import {
   isSpeechRecognitionAvailable,
@@ -283,6 +284,22 @@ const CURATED_TOOLS: ToolDefinition[] = [
     },
     ...DEFAULT_TOOL_IO,
     run: wrapLegacyRun(async (input, config) => fetchJsonTool(input, config)),
+  },
+  {
+    id: 'multi-input',
+    label: 'Multi-Input',
+    description: 'Named fields → JSON object',
+    icon: '🧾',
+    paletteGroup: 'browser',
+    browserSubcategory: 'curated',
+    paletteDragType: 'tool-multi-input',
+    requirement: { kind: 'none' },
+    autoRun: {
+      defaultEnabled: false,
+      canRunWithoutInput: (config) => !!config.fields?.trim(),
+    },
+    ...DEFAULT_TOOL_IO,
+    run: wrapLegacyRun(async (input, config) => runMultiInput(input, config)),
   },
 ]
 
