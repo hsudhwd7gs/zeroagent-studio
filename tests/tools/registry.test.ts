@@ -22,7 +22,7 @@ import {
 describe('tool registry', () => {
   it('lists all registered tools', () => {
     expect(listTools().length).toBe(TOOL_REGISTRY.length)
-    expect(TOOL_REGISTRY.length).toBe(203)
+    expect(TOOL_REGISTRY.length).toBe(240)
     expect(getTool('web-scraper').label).toBe('Web Scraper')
   })
 
