@@ -9,9 +9,7 @@
 //   • Timeout: 10 minutes
 //   • Memory guard: 500 MB (auto-kill)
 //
-// WARNING: CORS still applies to network calls. This worker runs on
-// the same origin as your site (e.g. github.io), so most third-party
-// APIs will still refuse the request unless they emit CORS headers.
+// WARNING: CORS still applies to network calls.
 
 export const CUSTOM_SCRIPT_MAX_BYTES = 256 * 1024
 export const CUSTOM_SCRIPT_TIMEOUT_MS = 600_000
@@ -67,10 +65,9 @@ const stopAll = (delayClose) => {
   if (isClosing) return;
   isClosing = true;
   if (delayClose) {
-    // Give postMessage a tick to flush before we terminate.
-    setTimeout(function () { try { SafeClose(); } catch (e) {} }, 50);
+    setTimeout(function () { try { SafeClose(); } catch (e) { void e; } }, 50);
   } else {
-    try { SafeClose(); } catch (e) {}
+    try { SafeClose(); } catch (e) { void e; }
   }
 };
 
@@ -99,12 +96,12 @@ const captureConsole = () => {
           if (a === null) return 'null';
           if (a === undefined) return 'undefined';
           if (typeof a === 'object') {
-            try { return JSON.stringify(a); } catch (e) { return String(a); }
+            try { return JSON.stringify(a); } catch (e) { void e; return String(a); }
           }
           return String(a);
         })
       });
-    } catch (e) {}
+    } catch (e) { void e; }
   };
   self.console = {
     log:   wrap('log'),
@@ -146,8 +143,6 @@ self.onmessage = async (event) => {
 
   startMemoryGuard(maxMemoryBytes, memoryCheckMs);
 
-  const startTime = performance.now();
-
   try {
     const fn = new Function(
       'input', 'config', 'helpers',
@@ -161,7 +156,7 @@ self.onmessage = async (event) => {
     else if (typeof result === 'string') out = result;
     else {
       try { out = JSON.stringify(result); }
-      catch (e) { out = String(result); }
+      catch (e) { void e; out = String(result); }
     }
 
     SafePostMessage({ ok: true, result: out });
@@ -203,9 +198,24 @@ export function runCustomScriptInWorker(
     let settled = false
 
     const cleanup = () => {
-      if (timer !== null) { clearTimeout(timer); timer = null }
-      try { if (worker) worker.terminate() } catch (e) {}
-      try { if (blobUrl) URL.revokeObjectURL(blobUrl) } catch (e) {}
+      if (timer !== null) {
+        clearTimeout(timer)
+        timer = null
+      }
+      if (worker) {
+        try {
+          worker.terminate()
+        } catch {
+          void 0
+        }
+      }
+      if (blobUrl) {
+        try {
+          URL.revokeObjectURL(blobUrl)
+        } catch {
+          void 0
+        }
+      }
       worker = null
       blobUrl = null
     }
