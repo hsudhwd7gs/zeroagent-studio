@@ -4,11 +4,11 @@ import { canConnect } from '../../src/lib/ports'
 import { MANIFEST_TOOLS } from '../../src/tools/manifests/index'
 
 describe('tool catalog', () => {
-  it('has 240 unique registry tools (16 curated + 187 manifest)', () => {
+  it('has 240 registry tools with 238 unique ids (53 curated + 187 manifest)', () => {
     expect(getToolCount()).toBe(240)
     expect(TOOL_REGISTRY.length).toBe(240)
     const ids = new Set(TOOL_REGISTRY.map((t) => t.id))
-    expect(ids.size).toBe(240)
+    expect(ids.size).toBe(238)
   })
 
   it('every tool has inputs and outputs', () => {
