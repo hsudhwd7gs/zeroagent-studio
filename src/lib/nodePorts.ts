@@ -1,80 +1,99 @@
-import type { Node } from '@xyflow/react'
-import type { PortDef } from './ports'
-import { TEXT_IN, TEXT_OUT } from './ports'
-import { getTool } from '../tools/registry'
+import type { Node, Edge } from '@xyflow/react'
 import type { ToolType } from '../tools/registry'
 
-export function getChatPorts(): PortDef[] {
-  return [
-    {
-      id: 'message',
-      label: 'Message',
-      direction: 'out',
-      dataType: 'text',
-    },
-  ]
+export type { ToolType } from '../tools/registry'
+
+export type BrainType = 'local' | 'transformers' | 'openrouter' | 'groq' | 'gemini'
+
+export interface AgentNodeData extends Record<string, unknown> {
+  label: string
+  role: string
+  systemPrompt: string
+  brain: BrainType
+  model?: string
+  isThinking?: boolean
+  lastOutput?: string
+  locked?: boolean
 }
 
-export function getAgentPorts(): PortDef[] {
-  return [
-    {
-      id: 'context',
-      label: 'Context',
-      direction: 'in',
-      dataType: 'text',
-      multiple: true,
-    },
-    {
-      id: 'out',
-      label: 'Out',
-      direction: 'out',
-      dataType: 'text',
-    },
-  ]
+export interface OutputLogEntry {
+  text: string
+  timestamp: number
 }
 
-export function getToolPorts(toolType: ToolType): PortDef[] {
-  const tool = getTool(toolType)
-  return [...tool.inputs, ...tool.outputs]
+export interface ToolNodeData extends Record<string, unknown> {
+  label: string
+  toolType: ToolType
+  config?: Record<string, string>
+  autoRun?: boolean
+  isActive?: boolean
+  isThinking?: boolean
+  lastOutput?: string
+  outputLog?: OutputLogEntry[]
+  locked?: boolean
 }
 
-export function getNodePorts(node: Node): PortDef[] {
-  if (node.type === 'chat') return getChatPorts()
-  if (node.type === 'agent') return getAgentPorts()
-  if (node.type === 'tool') {
-    const toolType = (node.data as { toolType?: ToolType }).toolType
-    if (toolType) return getToolPorts(toolType)
-  }
-  return [TEXT_IN, TEXT_OUT]
+export interface LoopNodeData extends Record<string, unknown> {
+  label: string
+  config?: Record<string, string>
+  isThinking?: boolean
+  lastOutput?: string
+  currentIteration?: number
+  totalIterations?: number
+  locked?: boolean
 }
 
-export function getPortDef(node: Node, handleId: string, handleType: 'source' | 'target'): PortDef | null {
-  const ports = getNodePorts(node)
-  const direction = handleType === 'source' ? 'out' : 'in'
-  return ports.find((p) => p.id === handleId && p.direction === direction) ?? null
+export type WorkflowTrigger =
+  | { kind: 'chat'; nodeId: string; userInput: string }
+  | { kind: 'agent'; nodeId: string }
+  | { kind: 'tool'; nodeId: string }
+  | { kind: 'sink'; nodeId: string }
+  | { kind: 'loop'; nodeId: string }
+
+export interface ChatNodeData extends Record<string, unknown> {
+  label: string
+  messages: ChatMessage[]
+  inputValue?: string
+  isRunning?: boolean
+  locked?: boolean
 }
 
-export function getDefaultSourceHandleForPorts(ports: PortDef[]): string {
-  const out = ports.find((p) => p.direction === 'out')
-  return out?.id ?? 'out'
+export interface ChatMessage {
+  id: string
+  role: 'user' | 'assistant' | 'system'
+  content: string
+  timestamp: number
 }
 
-export function getDefaultSourceHandle(node: Node): string {
-  return getDefaultSourceHandleForPorts(getNodePorts(node))
+export type WorkflowNode = Node<AgentNodeData | ToolNodeData | ChatNodeData | LoopNodeData>
+export type WorkflowEdge = Edge
+
+export interface Workflow {
+  id?: number
+  name: string
+  nodes: WorkflowNode[]
+  edges: WorkflowEdge[]
+  createdAt: number
+  updatedAt: number
 }
 
-export function resolveEdgeSourceHandle(edge: { source: string; sourceHandle?: string | null }, nodes: Node[]): string {
-  const sourceNode = nodes.find((n) => n.id === edge.source)
-  return edge.sourceHandle ?? (sourceNode ? getDefaultSourceHandle(sourceNode) : 'out')
+export interface ApiKeys {
+  openrouter?: string
+  groq?: string
+  gemini?: string
 }
 
-export function resolveEdgeTargetHandle(edge: { target: string; targetHandle?: string | null }, nodes: Node[]): string {
-  const targetNode = nodes.find((n) => n.id === edge.target)
-  return edge.targetHandle ?? (targetNode ? getDefaultTargetHandle(targetNode) : 'in')
+export interface DebugLogEntry {
+  id: string
+  timestamp: number
+  level: 'info' | 'warn' | 'error' | 'success' | 'thought'
+  source: string
+  message: string
+  data?: unknown
 }
 
-export function getDefaultTargetHandle(node: Node): string {
-  const ins = getNodePorts(node).filter((p) => p.direction === 'in')
-  if (ins.length === 0) return ''
-  return ins[0].id
+export interface ExecutionContext {
+  variables: Record<string, Record<string, import('../lib/ports').PortValue>>
+  toolResults: Record<string, Record<string, import('../lib/ports').PortValue>>
+  legacyVariables?: Record<string, string>
 }
