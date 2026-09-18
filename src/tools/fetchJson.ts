@@ -13,8 +13,6 @@
 //
 // Notes:
 //   • Custom headers and non-GET methods trigger a CORS preflight.
-//     The target server MUST respond to OPTIONS with the right headers,
-//     or the request will fail. This is a browser rule, not a bug.
 //   • Non-JSON responses are wrapped in { ok, status, rawText }.
 
 const ALLOWED_METHODS = [
@@ -50,8 +48,8 @@ export async function fetchJsonTool(
   let parsed: URL
   try {
     parsed = new URL(url)
-  } catch {
-    throw new Error(`Invalid URL: ${url}`)
+  } catch (err) {
+    throw new Error(`Invalid URL: ${url}`, { cause: err })
   }
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
     throw new Error('Only http(s) URLs are supported')
@@ -73,9 +71,10 @@ export async function fetchJsonTool(
     let parsedHeaders: unknown
     try {
       parsedHeaders = JSON.parse(config.headers)
-    } catch {
+    } catch (err) {
       throw new Error(
-        'Headers must be valid JSON, e.g. {"Authorization": "Bearer xxx"}'
+        'Headers must be valid JSON, e.g. {"Authorization": "Bearer xxx"}',
+        { cause: err }
       )
     }
     if (
@@ -103,8 +102,6 @@ export async function fetchJsonTool(
   if (methodAllowsBody && config.body?.trim()) {
     body = config.body
 
-    // Auto-set Content-Type: application/json if body looks like JSON
-    // and the user hasn't already set a Content-Type header.
     const hasContentType = Object.keys(headers).some(
       (k) => k.toLowerCase() === 'content-type'
     )
@@ -113,8 +110,7 @@ export async function fetchJsonTool(
         JSON.parse(body)
         headers['Content-Type'] = 'application/json'
       } catch {
-        // Not valid JSON — leave Content-Type unset.
-        // The browser will default to text/plain;charset=UTF-8.
+        void 0
       }
     }
   }
@@ -126,7 +122,8 @@ export async function fetchJsonTool(
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     throw new Error(
-      `Network error: ${msg}. This usually means a CORS block, an offline browser, or an invalid URL.`
+      `Network error: ${msg}. This usually means a CORS block, an offline browser, or an invalid URL.`,
+      { cause: err }
     )
   }
 
@@ -136,7 +133,7 @@ export async function fetchJsonTool(
     try {
       errorBody = await response.text()
     } catch {
-      // ignore
+      void 0
     }
     const suffix = errorBody ? ` — ${truncate(errorBody)}` : ''
     throw new Error(
@@ -145,12 +142,12 @@ export async function fetchJsonTool(
   }
 
   // ── 7. Read response text ───────────────────────────────────
-  let text = ''
+  let text: string
   try {
     text = await response.text()
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
-    throw new Error(`Failed to read response body: ${msg}`)
+    throw new Error(`Failed to read response body: ${msg}`, { cause: err })
   }
 
   // ── 8. Handle empty responses (204, HEAD, etc.) ─────────────
@@ -171,7 +168,6 @@ export async function fetchJsonTool(
     const json = JSON.parse(text)
     return JSON.stringify(json, null, 2)
   } catch {
-    // Not JSON — wrap so downstream nodes still get valid JSON.
     return JSON.stringify(
       {
         ok: true,
