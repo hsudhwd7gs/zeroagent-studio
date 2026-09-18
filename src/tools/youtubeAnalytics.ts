@@ -4,8 +4,6 @@
 //   apiKey  — YouTube Data API key (required)
 //   videoId — video ID (falls back to input)
 //   part    — snippet,statistics,contentDetails,status (default)
-//
-// Docs: https://developers.google.com/youtube/v3/docs/videos/list
 
 export async function runYoutubeAnalytics(
   input: string,
@@ -33,7 +31,7 @@ export async function runYoutubeAnalytics(
     const msg = err instanceof Error ? err.message : String(err)
     throw new Error(`YouTube API request failed: ${msg}`, { cause: err })
   }
-  
+
   let text: string
   try {
     text = await response.text()
