@@ -12,8 +12,8 @@ export async function runStringTemplate(
   const template = (config.template ?? input).trim()
   if (!template) throw new Error('No template provided')
 
-  let vars: Record<string, string> = {}
-
+  const vars: Record<string, string> = {}
+  
   const varsSource = config.variables?.trim() || input.trim()
   if (varsSource) {
     try {
