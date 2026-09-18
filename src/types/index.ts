@@ -13,7 +13,6 @@ export interface AgentNodeData extends Record<string, unknown> {
   model?: string
   isThinking?: boolean
   lastOutput?: string
-  /** When true, block resize, delete, drag, and new connections until unlocked. */
   locked?: boolean
 }
 
@@ -26,14 +25,21 @@ export interface ToolNodeData extends Record<string, unknown> {
   label: string
   toolType: ToolType
   config?: Record<string, string>
-  /** When true, run without upstream input if the tool supports it */
   autoRun?: boolean
   isActive?: boolean
   isThinking?: boolean
   lastOutput?: string
-  /** Text Output — captured run history (persisted in saved workflows) */
   outputLog?: OutputLogEntry[]
-  /** When true, block resize, delete, drag, and new connections until unlocked. */
+  locked?: boolean
+}
+
+export interface LoopNodeData extends Record<string, unknown> {
+  label: string
+  config?: Record<string, string>
+  isThinking?: boolean
+  lastOutput?: string
+  currentIteration?: number
+  totalIterations?: number
   locked?: boolean
 }
 
@@ -42,13 +48,13 @@ export type WorkflowTrigger =
   | { kind: 'agent'; nodeId: string }
   | { kind: 'tool'; nodeId: string }
   | { kind: 'sink'; nodeId: string }
+  | { kind: 'loop'; nodeId: string }
 
 export interface ChatNodeData extends Record<string, unknown> {
   label: string
   messages: ChatMessage[]
   inputValue?: string
   isRunning?: boolean
-  /** When true, block resize, delete, drag, and new connections until unlocked. */
   locked?: boolean
 }
 
@@ -59,7 +65,7 @@ export interface ChatMessage {
   timestamp: number
 }
 
-export type WorkflowNode = Node<AgentNodeData | ToolNodeData | ChatNodeData>
+export type WorkflowNode = Node<AgentNodeData | ToolNodeData | ChatNodeData | LoopNodeData>
 export type WorkflowEdge = Edge
 
 export interface Workflow {
@@ -89,6 +95,5 @@ export interface DebugLogEntry {
 export interface ExecutionContext {
   variables: Record<string, Record<string, import('../lib/ports').PortValue>>
   toolResults: Record<string, Record<string, import('../lib/ports').PortValue>>
-  /** @deprecated Legacy flat string lookup — use port maps */
   legacyVariables?: Record<string, string>
 }
