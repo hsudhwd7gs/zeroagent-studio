@@ -1,11 +1,31 @@
-export const CUSTOM_SCRIPT_MAX_BYTES = 8 * 1024
-export const CUSTOM_SCRIPT_TIMEOUT_MS = 8_000
+// Custom Script sandbox — PERMISSIVE MODE
+//
+// Everything is allowed EXCEPT the safety guards.
+//   • Network: fetch, XMLHttpRequest, WebSocket, EventSource — ALLOWED
+//   • Dynamic loading: importScripts, dynamic import() — ALLOWED
+//   • Nesting: Worker, SharedWorker — ALLOWED
+//   • Reflection: eval, Function constructor — ALLOWED
+//   • Size limit: 256 KB
+//   • Timeout: 10 minutes
+//   • Memory guard: 500 MB (auto-kill)
+//
+// WARNING: CORS still applies to network calls. This worker runs on
+// the same origin as your site (e.g. github.io), so most third-party
+// APIs will still refuse the request unless they emit CORS headers.
+
+export const CUSTOM_SCRIPT_MAX_BYTES = 256 * 1024
+export const CUSTOM_SCRIPT_TIMEOUT_MS = 600_000
+export const CUSTOM_SCRIPT_MAX_MEMORY_BYTES = 500 * 1024 * 1024
+export const CUSTOM_SCRIPT_MEMORY_CHECK_MS = 1_000
 
 export interface CustomScriptHelpers {
   jsonParse: (text: string) => unknown
   jsonStringify: (value: unknown) => string
   trim: (text: string) => string
   regex: (pattern: string, flags?: string) => RegExp
+  sleep: (ms: number) => Promise<void>
+  fetchText: (url: string, init?: RequestInit) => Promise<string>
+  fetchJson: <T = unknown>(url: string, init?: RequestInit) => Promise<T>
 }
 
 export const CUSTOM_SCRIPT_HELPERS: CustomScriptHelpers = {
@@ -13,88 +33,265 @@ export const CUSTOM_SCRIPT_HELPERS: CustomScriptHelpers = {
   jsonStringify: (value) => JSON.stringify(value),
   trim: (text) => text.trim(),
   regex: (pattern, flags) => new RegExp(pattern, flags),
+  sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
+  fetchText: async (url, init) => {
+    const r = await fetch(url, init)
+    if (!r.ok) throw new Error(`HTTP ${r.status} from ${url}`)
+    return r.text()
+  },
+  fetchJson: async <T = unknown>(url: string, init?: RequestInit) => {
+    const r = await fetch(url, init)
+    if (!r.ok) throw new Error(`HTTP ${r.status} from ${url}`)
+    return (await r.json()) as T
+  },
 }
 
-const WORKER_SOURCE = `
-self.importScripts = () => { throw new Error('importScripts is blocked in Custom Script'); };
-self.fetch = () => { throw new Error('Network is not available in Custom Script'); };
-self.XMLHttpRequest = undefined;
-self.WebSocket = undefined;
-self.Worker = function() { throw new Error('Nested workers are blocked in Custom Script'); };
-self.SharedWorker = function() { throw new Error('Nested workers are blocked in Custom Script'); };
+const encoder = new TextEncoder()
 
+function byteLength(text: string): number {
+  return encoder.encode(text).length
+}
+
+// Worker source — no blocks, only safety guards.
+const WORKER_SOURCE = `
+// Capture originals so user code can't accidentally break them.
+const SafePostMessage = self.postMessage.bind(self);
+const SafeClose = self.close.bind(self);
+
+// ── Memory guard ────────────────────────────────────────────
+// Runs every CUSTOM_SCRIPT_MEMORY_CHECK_MS. If the JS heap exceeds
+// the configured limit, we abort the script cleanly.
+let memoryTimer = null;
+const startMemoryGuard = (maxBytes, checkMs) => {
+  if (typeof performance === 'undefined' || !performance.memory) return;
+  memoryTimer = setInterval(() => {
+    const used = performance.memory.usedJSHeapSize || 0;
+    if (used > maxBytes) {
+      SafePostMessage({
+        ok: false,
+        error: 'Memory limit exceeded (' + Math.round(used / 1048576) + ' MB > '
+              + Math.round(maxBytes / 1048576) + ' MB)'
+      });
+      stopAll();
+    }
+  }, checkMs);
+};
+
+const stopAll = () => {
+  if (memoryTimer !== null) {
+    clearInterval(memoryTimer);
+    memoryTimer = null;
+  }
+  try { SafeClose(); } catch {}
+};
+
+// ── Console capture ─────────────────────────────────────────
+const capturedLogs = [];
+const captureConsole = () => {
+  const wrap = (level) => (...args) => {
+    try {
+      capturedLogs.push({
+        level,
+        args: args.map((a) => {
+          if (a === null) return 'null';
+          if (a === undefined) return 'undefined';
+          if (typeof a === 'object') {
+            try { return JSON.stringify(a); } catch { return String(a); }
+          }
+          return String(a);
+        })
+      });
+    } catch {}
+  };
+  self.console = {
+    log:   wrap('log'),
+    info:  wrap('info'),
+    warn:  wrap('warn'),
+    error: wrap('error'),
+    debug: wrap('debug'),
+  };
+};
+
+// ── Main message handler ────────────────────────────────────
 self.onmessage = async (event) => {
-  const { code, input, config } = event.data;
+  const { code, input, config, maxMemoryBytes, memoryCheckMs } = event.data;
+
+  capturedLogs.length = 0;
+  captureConsole();
+
   const helpers = {
     jsonParse: (text) => JSON.parse(text),
     jsonStringify: (value) => JSON.stringify(value),
     trim: (text) => text.trim(),
     regex: (pattern, flags) => new RegExp(pattern, flags),
+    sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
+    fetchText: async (url, init) => {
+      const r = await self.fetch(url, init);
+      if (!r.ok) throw new Error('HTTP ' + r.status + ' from ' + url);
+      return r.text();
+    },
+    fetchJson: async (url, init) => {
+      const r = await self.fetch(url, init);
+      if (!r.ok) throw new Error('HTTP ' + r.status + ' from ' + url);
+      return r.json();
+    },
   };
-  const blockedFetch = () => { throw new Error('Network is not available in Custom Script'); };
-  const blockedImport = () => { throw new Error('Dynamic import is blocked in Custom Script'); };
-  const blockedWorker = () => { throw new Error('Nested workers are blocked in Custom Script'); };
+
+  startMemoryGuard(maxMemoryBytes, memoryCheckMs);
+
+  const startTime = performance.now();
+
   try {
+    // Compile user code inside an async IIFE.
+    // User code has access to: input, config, helpers, console.
+    // No arguments are pre-shadowed — real fetch/Worker/eval all work.
     const fn = new Function(
-      'input', 'config', 'helpers', 'fetch', 'dynamicImport', 'Worker', 'SharedWorker',
-      'return (async () => {\\n' + code + '\\n})()'
+      'input', 'config', 'helpers',
+      'return (async () => {\\n' + code + '\\n})();'
     );
-    const result = await fn(input, config, helpers, blockedFetch, blockedImport, blockedWorker, blockedWorker);
-    self.postMessage({ ok: true, result: result == null ? '' : String(result) });
+
+    const result = await fn(input, config, helpers);
+
+    let out;
+    if (result == null) out = '';
+    else if (typeof result === 'string') out = result;
+    else {
+      try { out = JSON.stringify(result); }
+      catch { out = String(result); }
+    }
+
+    const elapsed = Math.round(performance.now() - startTime);
+    stopAll();
+    SafePostMessage({
+      ok: true,
+      result: out,
+      elapsedMs: elapsed,
+      logs: capturedLogs,
+    });
   } catch (err) {
-    self.postMessage({ ok: false, error: err instanceof Error ? err.message : String(err) });
+    const elapsed = Math.round(performance.now() - startTime);
+    stopAll();
+    SafePostMessage({
+      ok: false,
+      error: err && err.message ? err.message : String(err),
+      elapsedMs: elapsed,
+      logs: capturedLogs,
+    });
   }
 };
 `
 
-const FORBIDDEN_SCRIPT_PATTERN =
-  /\b(import\s*\(|importScripts\s*\(|new\s+Worker\s*\(|new\s+SharedWorker\s*\()/i
-
 export function validateCustomScript(script: string): void {
-  if (!script.trim()) throw new Error('Custom script is empty')
-  if (script.length > CUSTOM_SCRIPT_MAX_BYTES) {
-    throw new Error(`Script exceeds ${CUSTOM_SCRIPT_MAX_BYTES} byte limit`)
+  if (!script.trim()) {
+    throw new Error('Custom script is empty')
   }
-  if (FORBIDDEN_SCRIPT_PATTERN.test(script)) {
-    throw new Error('Custom script cannot use import(), importScripts, or nested Workers')
+  const bytes = byteLength(script)
+  if (bytes > CUSTOM_SCRIPT_MAX_BYTES) {
+    const kb = (CUSTOM_SCRIPT_MAX_BYTES / 1024).toFixed(0)
+    throw new Error(
+      `Script exceeds ${kb} KB limit (got ${(bytes / 1024).toFixed(1)} KB)`
+    )
   }
+  // No forbidden-pattern check in permissive mode.
+}
+
+export interface CustomScriptResult {
+  result: string
+  elapsedMs: number
+  logs: Array<{ level: string; args: string[] }>
 }
 
 export function runCustomScriptInWorker(
   script: string,
   input: string,
   config: Record<string, string>
-): Promise<string> {
+): Promise<CustomScriptResult> {
   validateCustomScript(script)
 
   return new Promise((resolve, reject) => {
-    const blob = new Blob([WORKER_SOURCE], { type: 'application/javascript' })
-    const blobUrl = URL.createObjectURL(blob)
-    const worker = new Worker(blobUrl)
-
-    const timer = setTimeout(() => {
-      cleanup()
-      reject(new Error('Custom script timed out'))
-    }, CUSTOM_SCRIPT_TIMEOUT_MS)
+    let worker: Worker | null = null
+    let blobUrl: string | null = null
+    let timer: ReturnType<typeof setTimeout> | null = null
+    let settled = false
 
     const cleanup = () => {
-      clearTimeout(timer)
-      worker.terminate()
-      URL.revokeObjectURL(blobUrl)
+      if (timer !== null) { clearTimeout(timer); timer = null }
+      try { if (worker) worker.terminate() } catch {}
+      try { if (blobUrl) URL.revokeObjectURL(blobUrl) } catch {}
+      worker = null
+      blobUrl = null
     }
 
-    worker.onmessage = (event: MessageEvent<{ ok: boolean; result?: string; error?: string }>) => {
+    const fail = (message: string) => {
+      if (settled) return
+      settled = true
       cleanup()
-      if (event.data.ok) resolve(event.data.result ?? '')
-      else reject(new Error(event.data.error ?? 'Custom script failed'))
+      reject(new Error(message))
     }
 
-    worker.onerror = () => {
+    const succeed = (value: CustomScriptResult) => {
+      if (settled) return
+      settled = true
       cleanup()
-      reject(new Error('Custom script worker error'))
+      resolve(value)
     }
 
-    worker.postMessage({ code: script, input, config })
+    try {
+      const blob = new Blob([WORKER_SOURCE], { type: 'application/javascript' })
+      blobUrl = URL.createObjectURL(blob)
+      worker = new Worker(blobUrl)
+    } catch (err) {
+      fail('Failed to create Custom Script worker: ' +
+        (err instanceof Error ? err.message : String(err)))
+      return
+    }
+
+    const minutes = Math.round(CUSTOM_SCRIPT_TIMEOUT_MS / 60_000)
+    timer = setTimeout(() => {
+      fail(`Custom script timed out after ${minutes} minutes`)
+    }, CUSTOM_SCRIPT_TIMEOUT_MS)
+
+    worker.onmessage = (event: MessageEvent<{
+      ok: boolean
+      result?: string
+      error?: string
+      elapsedMs?: number
+      logs?: Array<{ level: string; args: string[] }>
+    }>) => {
+      const data = event.data || { ok: false }
+      if (data.ok) {
+        succeed({
+          result: data.result ?? '',
+          elapsedMs: data.elapsedMs ?? 0,
+          logs: data.logs ?? [],
+        })
+      } else {
+        fail(data.error || 'Custom script failed')
+      }
+    }
+
+    worker.onerror = (event: ErrorEvent) => {
+      const detail = event && typeof event.message === 'string' && event.message
+        ? event.message : 'unknown worker error'
+      fail('Custom script worker error: ' + detail)
+    }
+
+    worker.onmessageerror = () => {
+      fail('Custom script worker could not deserialize a message')
+    }
+
+    try {
+      worker.postMessage({
+        code: script,
+        input,
+        config,
+        maxMemoryBytes: CUSTOM_SCRIPT_MAX_MEMORY_BYTES,
+        memoryCheckMs: CUSTOM_SCRIPT_MEMORY_CHECK_MS,
+      })
+    } catch (err) {
+      fail('Failed to send data to Custom Script worker: ' +
+        (err instanceof Error ? err.message : String(err)))
+    }
   })
 }
 
@@ -103,5 +300,6 @@ export async function runCustomScript(
   config: Record<string, string>
 ): Promise<string> {
   const script = config.script ?? ''
-  return runCustomScriptInWorker(script, input, config)
+  const { result } = await runCustomScriptInWorker(script, input, config)
+  return result
 }
