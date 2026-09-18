@@ -36,6 +36,12 @@ import { runJsonTool } from '../../tools/jsonTool'
 import { runDatetimeTool } from '../../tools/datetimeTool'
 import { runCalculator } from '../../tools/calculator'
 import { runCustomScript, CUSTOM_SCRIPT_MAX_BYTES } from '../../tools/customScript'
+import {
+  parseMultiInputFields,
+  serializeMultiInputFields,
+  createEmptyField,
+  type MultiInputField,
+} from '../../tools/multiInput'
 import { BaseInspectorShell } from './BaseInspectorShell'
 import { PortLegend } from './PortLegend'
 import { runToolForPreview } from '../../tools/registryHelpers'
@@ -522,6 +528,127 @@ export function ToolInspectorFields({
                 Custom headers and non-GET methods trigger CORS preflight — the target server must
                 respond to <code>OPTIONS</code> correctly, or the request will fail.
               </p>
+            </>
+          )
+        })()}
+
+        {data.toolType === 'multi-input' && (() => {
+          const fields = parseMultiInputFields(data.config?.fields)
+
+          const updateFields = (next: MultiInputField[]) => {
+            setConfig({ fields: serializeMultiInputFields(next) })
+          }
+
+          const addField = () => {
+            updateFields([...fields, createEmptyField(fields.length + 1)])
+          }
+
+          const removeField = (i: number) => {
+            updateFields(fields.filter((_, idx) => idx !== i))
+          }
+
+          const updateField = (i: number, patch: Partial<MultiInputField>) => {
+            updateFields(fields.map((f, idx) => (idx === i ? { ...f, ...patch } : f)))
+          }
+
+          const duplicateKey = (() => {
+            const seen = new Set<string>()
+            for (const f of fields) {
+              if (seen.has(f.key)) return f.key
+              seen.add(f.key)
+            }
+            return null
+          })()
+
+          return (
+            <>
+              <p className="inspector-hint">
+                Add named fields — the node outputs them as a JSON object.
+                Downstream nodes receive the JSON as text.
+              </p>
+
+              {fields.length === 0 && (
+                <p className="inspector-hint">
+                  No fields yet. Click <strong>+ Add field</strong> to start.
+                </p>
+              )}
+
+              {fields.map((field, i) => (
+                <div
+                  key={i}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr auto',
+                    gap: 6,
+                    alignItems: 'end',
+                    marginBottom: 6,
+                  }}
+                >
+                  <label style={{ margin: 0 }}>
+                    <span className="inspector-hint" style={{ fontSize: 10 }}>Key</span>
+                    <input
+                      value={field.key}
+                      onChange={(e) => updateField(i, { key: e.target.value })}
+                      placeholder="seed"
+                    />
+                  </label>
+                  <label style={{ margin: 0 }}>
+                    <span className="inspector-hint" style={{ fontSize: 10 }}>Value</span>
+                    <input
+                      value={field.value ?? ''}
+                      onChange={(e) => updateField(i, { value: e.target.value })}
+                      placeholder="personal finance"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    className="inspector-action-btn inspector-action-secondary"
+                    title="Remove field"
+                    onClick={() => removeField(i)}
+                    style={{ height: 34, padding: '0 10px' }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+
+              <button
+                type="button"
+                className="inspector-action-btn"
+                onClick={addField}
+              >
+                + Add field
+              </button>
+
+              {duplicateKey && (
+                <p className="inspector-warn">
+                  Duplicate key: &quot;{duplicateKey}&quot; — remove or rename before running.
+                </p>
+              )}
+
+              <label>
+                Test input (optional)
+                <input
+                  value={data.config?.sample ?? ''}
+                  onChange={(e) => setConfig({ sample: e.target.value })}
+                />
+              </label>
+
+              <button
+                type="button"
+                className="inspector-action-btn"
+                disabled={loading || fields.length === 0 || !!duplicateKey}
+                onClick={() =>
+                  runPreview(() =>
+                    runToolForPreview(tool, data.config?.sample ?? '', data.config ?? {}, {
+                      apiKeys,
+                      log: () => {},
+                    })
+                  )
+                }
+              >
+                {loading ? 'Running…' : 'Run test'}
+              </button>
             </>
           )
         })()}
