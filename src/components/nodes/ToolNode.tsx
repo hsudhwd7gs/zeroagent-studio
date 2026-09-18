@@ -10,6 +10,7 @@ import { PortHandles } from './PortHandles'
 import { readNodeLocked } from '../../lib/nodeCanvasLock'
 import { NodeActionBar } from './NodeActionBar'
 import { NodeResizeControls } from './NodeResizeControls'
+import { RichMediaRenderer } from './RichMediaRenderer'
 import './nodes.css'
 
 const SPEECH_MODE_LABELS: Record<string, string> = {
@@ -65,16 +66,20 @@ function ToolNodeComponent({ id, data, selected }: NodeProps) {
                 {outputEntryCount} {outputEntryCount === 1 ? 'entry' : 'entries'} captured
               </div>
               {latestCapture && (
-                <div className="node-output-preview-snippet">{latestCapture}</div>
+                <div className="node-output-preview-snippet">
+                  <RichMediaRenderer text={latestCapture} />
+                </div>
               )}
               {hasError && nodeData.lastOutput && (
-                <div className="node-output-preview-snippet node-output-error">{nodeData.lastOutput}</div>
+                <div className="node-output-preview-snippet node-output-error">
+                  <RichMediaRenderer text={nodeData.lastOutput} />
+                </div>
               )}
             </div>
           ) : (
             nodeData.lastOutput && (
               <div className={`node-output-preview ${hasError ? 'node-output-error' : ''}`}>
-                {nodeData.lastOutput}
+                <RichMediaRenderer text={nodeData.lastOutput} />
               </div>
             )
           )}
