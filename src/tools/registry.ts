@@ -55,6 +55,7 @@ import { runYoutubeAnalytics } from './youtubeAnalytics'
 import { runTelegramSend } from './telegramSend'
 import { runNotionApi } from './notionApi'
 import { runApiKeyManager } from './apiKeyManager'
+import { runPython } from './pythonRunner'
 import {
   isSpeechRecognitionAvailable,
   isSpeechSynthesisAvailable,
