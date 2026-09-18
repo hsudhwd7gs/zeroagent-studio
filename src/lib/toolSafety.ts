@@ -27,6 +27,20 @@ const NOTICES: Record<string, ToolSafetyNotice> = {
       'Stick to public pages you own or have permission to use (e.g. Wikipedia, your own blog).',
     ],
   },
+  'fetch-json': {
+    level: 'network',
+    title: 'Full HTTP — read this first',
+    summary:
+      'Sends any HTTP method with custom headers and body to the URL you provide.',
+    bullets: [
+      'Headers you enter are sent to the target server — including any API keys or tokens. Only use trusted URLs.',
+      'Custom headers and non-GET methods trigger a CORS preflight. If the server does not allow them, the request fails.',
+      'Never paste keys you cannot rotate into a workflow you plan to export or share.',
+      'Responses flow downstream — cloud Agents will forward them to your AI provider if wired.',
+      'Treat all responses as untrusted input. Do not eval or execute remote content.',
+      'For APIs that block browser requests (no CORS), use a server-side relay — not a CORS proxy you do not control.',
+    ],
+  },
   'file-reader': {
     level: 'privacy',
     title: 'Local files stay in your browser',
@@ -59,12 +73,16 @@ const NOTICES: Record<string, ToolSafetyNotice> = {
   },
   'custom-script': {
     level: 'sandbox',
-    title: 'Your JavaScript — sandboxed but powerful',
-    summary: 'Runs locally in a Web Worker with network blocked.',
+    title: 'Your JavaScript — powerful, use responsibly',
+    summary:
+      'Runs locally in a Web Worker with full network, evaluation, and nested workers available. 256 KB script size, 10-minute timeout.',
     bullets: [
-      'No `fetch`, `import()`, `importScripts`, `XMLHttpRequest`, or nested Workers — network calls are blocked.',
-      'Still your code: infinite loops are cut off by a timeout; bugs can freeze a run.',
-      'Never paste API keys or passwords into the script — they can be saved in exported workflows.',
+      'Network access is enabled — fetch, XHR, WebSocket, and EventSource work in this sandbox. Only call URLs you trust.',
+      'Custom headers you send are visible to the target server. Never paste keys you cannot rotate.',
+      'eval and the Function constructor are available. Only run code you wrote or fully reviewed.',
+      'Nested Workers and importScripts are allowed — you can spawn sub-tasks, but they share the same memory cap.',
+      'Long-running scripts are cut off at 10 minutes; runaway memory is killed at 500 MB.',
+      'Never paste API keys or passwords into a workflow you plan to export or share — they are stored in the workflow JSON.',
       'Downstream Agents see script output as plain text — do not return secrets.',
     ],
   },
