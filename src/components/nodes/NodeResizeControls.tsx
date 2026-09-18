@@ -6,7 +6,7 @@ export function NodeResizeControls({
   selected,
   locked = false,
 }: {
-  nodeType: 'agent' | 'tool' | 'chat'
+  nodeType: 'agent' | 'tool' | 'chat' | 'loop'
   selected: boolean
   locked?: boolean
 }) {
