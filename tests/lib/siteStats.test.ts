@@ -10,7 +10,7 @@ describe('siteStats', () => {
     const stats = getSiteStats()
 
     expect(stats.totalTools).toBe(getToolCount())
-    expect(stats.totalTools).toBe(203)
+    expect(stats.totalTools).toBe(240)
     expect(stats.manifestPresets).toBe(MANIFEST_TOOLS.length)
     expect(stats.manifestPresets).toBe(187)
     expect(stats.curatedModules).toBe(16)
