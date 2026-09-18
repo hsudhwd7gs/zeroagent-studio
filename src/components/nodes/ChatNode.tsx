@@ -13,6 +13,7 @@ import { PortHandles } from './PortHandles'
 import { readNodeLocked } from '../../lib/nodeCanvasLock'
 import { NodeActionBar } from './NodeActionBar'
 import { NodeResizeControls } from './NodeResizeControls'
+import { RichMediaRenderer } from './RichMediaRenderer'
 import './nodes.css'
 
 function ChatNodeComponent({ id, data, selected }: NodeProps) {
@@ -112,7 +113,9 @@ function ChatNodeComponent({ id, data, selected }: NodeProps) {
           {(nodeData.messages ?? []).map((msg) => (
             <div key={msg.id} className={`chat-message ${msg.role}`}>
               <span className="message-role">{msg.role}</span>
-              <span className="message-content">{msg.content}</span>
+              <div className="message-content">
+                <RichMediaRenderer text={msg.content} />
+              </div>
             </div>
           ))}
         </div>
