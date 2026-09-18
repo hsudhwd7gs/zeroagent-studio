@@ -13,7 +13,7 @@ describe('siteStats', () => {
     expect(stats.totalTools).toBe(240)
     expect(stats.manifestPresets).toBe(MANIFEST_TOOLS.length)
     expect(stats.manifestPresets).toBe(187)
-    expect(stats.curatedModules).toBe(16)
+    expect(stats.curatedModules).toBe(53)
     expect(stats.browserTools).toBe(198)
     expect(stats.cloudTools).toBe(4)
     expect(stats.customTools).toBe(1)
