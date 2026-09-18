@@ -13,6 +13,7 @@ import '@xyflow/react/dist/style.css'
 import AgentNode from '../nodes/AgentNode'
 import ToolNode from '../nodes/ToolNode'
 import ChatNode from '../nodes/ChatNode'
+import LoopNode from '../nodes/LoopNode'
 import AnimatedEdge from '../edges/AnimatedEdge'
 import { useWorkflowStore } from '../../stores/workflowStore'
 import { useConnectionStore } from '../../stores/connectionStore'
@@ -26,6 +27,7 @@ const nodeTypes = {
   agent: AgentNode,
   tool: ToolNode,
   chat: ChatNode,
+  loop: LoopNode,
 }
 
 const edgeTypes = {
@@ -130,6 +132,7 @@ export default function FlowCanvas({ suppressEmptyState = false }: { suppressEmp
           nodeColor={(n) => {
             if (n.type === 'agent') return '#8b5cf6'
             if (n.type === 'tool') return '#10b981'
+            if (n.type === 'loop') return '#f59e0b'
             return '#06b6d4'
           }}
           maskColor="rgba(10, 10, 11, 0.8)"
