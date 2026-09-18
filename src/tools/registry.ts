@@ -819,6 +819,18 @@ const CURATED_TOOLS: ToolDefinition[] = [
     outputs: [TEXT_OUT],
     run: wrapLegacyRun(async (input, config) => runApiKeyManager(input, config)),
   },
+  {
+    id: 'python',
+    label: 'Python',
+    description: 'Run Python 3.12 in the browser (Pyodide)',
+    icon: '🐍',
+    paletteGroup: 'custom',
+    paletteDragType: 'tool-python',
+    requirement: { kind: 'none' },
+    inputs: [{ id: 'in', label: 'In', direction: 'in', dataType: 'any' }],
+    outputs: [TEXT_OUT],
+    run: wrapLegacyRun(async (input, config) => runPython(input, config)),
+  },
 ]
 
 export const TOOL_REGISTRY: ToolDefinition[] = [
