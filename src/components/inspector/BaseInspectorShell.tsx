@@ -5,7 +5,7 @@ import { isNodeCanvasLocked, NODE_CANVAS_LOCK_HINT } from '../../lib/nodeCanvasL
 interface BaseInspectorShellProps {
   title: string
   nodeId: string
-  nodeType: 'chat' | 'agent' | 'tool'
+  nodeType: 'chat' | 'agent' | 'tool' | 'loop'
   label: string
   onLabelChange: (label: string) => void
   children?: ReactNode
@@ -15,6 +15,7 @@ const TYPE_BADGES: Record<BaseInspectorShellProps['nodeType'], string> = {
   chat: 'Chat',
   agent: 'Agent',
   tool: 'Tool',
+  loop: 'Loop',
 }
 
 export function BaseInspectorShell({
