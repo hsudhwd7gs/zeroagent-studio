@@ -1,3 +1,5 @@
+import { loadImageWithTimeout } from '../lib/scriptLoader'
+
 export async function runImageResize(
   input: string,
   config: Record<string, string>
@@ -8,13 +10,7 @@ export async function runImageResize(
   const width = parseInt(config.width ?? '800')
   const height = parseInt(config.height ?? '600')
 
-  const img = new Image()
-  img.crossOrigin = 'anonymous'
-  img.src = url
-  await new Promise((resolve, reject) => {
-    img.onload = resolve
-    img.onerror = reject
-  })
+  const img = await loadImageWithTimeout({ src: url })
 
   const canvas = document.createElement('canvas')
   canvas.width = width

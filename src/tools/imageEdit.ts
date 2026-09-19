@@ -1,6 +1,8 @@
 // Image Edit — Canvas-based image manipulation. No external deps.
 // Operations: crop, rotate, flipH, flipV, grayscale, blur, brightness, contrast, overlay-text, watermark.
 
+import { loadImageWithTimeout } from '../lib/scriptLoader'
+
 export async function runImageEdit(
   input: string,
   config: Record<string, string>
@@ -11,13 +13,7 @@ export async function runImageEdit(
   const operation = config.operation ?? 'crop'
 
   // Load image
-  const img = new Image()
-  img.crossOrigin = 'anonymous'
-  img.src = url
-  await new Promise<void>((resolve, reject) => {
-    img.onload = () => resolve()
-    img.onerror = () => reject(new Error('Failed to load image'))
-  })
+  const img = await loadImageWithTimeout({ src: url })
 
   const canvas = document.createElement('canvas')
   const ctx = canvas.getContext('2d')!

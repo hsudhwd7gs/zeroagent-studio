@@ -1,12 +1,17 @@
 // Mermaid Renderer — convert Mermaid diagram syntax to an SVG data URL.
 // Loads mermaid from CDN via a script tag on first use.
 
+import { waitForScriptTag, retryableLoad } from '../lib/scriptLoader'
+
 interface MermaidApi {
   render: (id: string, code: string) => Promise<{ svg: string }>
   initialize: (config: unknown) => void
 }
 
-let mermaidLoaded: Promise<MermaidApi> | null = null
+const MERMAID_SRC = 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js'
+const MERMAID_LOAD_TIMEOUT_MS = 15_000
+
+const mermaidCache = { current: null as Promise<MermaidApi> | null }
 
 function getMermaidFromWindow(): MermaidApi | undefined {
   const w = window as unknown as { mermaid?: MermaidApi }
@@ -14,30 +19,17 @@ function getMermaidFromWindow(): MermaidApi | undefined {
 }
 
 async function loadMermaid(): Promise<MermaidApi> {
-  if (mermaidLoaded) return mermaidLoaded
-  mermaidLoaded = (async () => {
-    // Load mermaid from CDN via script tag
-    await new Promise<void>((resolve, reject) => {
-      const existing = document.querySelector('script[data-mermaid]') as HTMLScriptElement | null
-      if (existing) {
-        if (getMermaidFromWindow()) {
-          resolve()
-          return
-        }
-        existing.addEventListener('load', () => resolve())
-        existing.addEventListener('error', () => reject(new Error('Failed to load Mermaid')))
-        return
-      }
-      const script = document.createElement('script')
-      script.src = 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js'
-      script.async = true
-      script.dataset.mermaid = 'true'
-      script.onload = () => resolve()
-      script.onerror = () => reject(new Error('Failed to load Mermaid from CDN'))
-      document.head.appendChild(script)
+  const already = getMermaidFromWindow()
+  if (already) return already
+  return retryableLoad(mermaidCache, async () => {
+    await waitForScriptTag({
+      src: MERMAID_SRC,
+      marker: 'mermaid',
+      label: 'Mermaid',
+      timeoutMs: MERMAID_LOAD_TIMEOUT_MS,
     })
 
-    // Wait for mermaid to be available
+    // Wait for mermaid to be available (script loaded ≠ initialized)
     let tries = 0
     while (!getMermaidFromWindow() && tries < 50) {
       await new Promise((r) => setTimeout(r, 100))
@@ -47,8 +39,7 @@ async function loadMermaid(): Promise<MermaidApi> {
     if (!mermaid) throw new Error('Mermaid failed to initialize')
     mermaid.initialize({ startOnLoad: false, theme: 'dark' })
     return mermaid
-  })()
-  return mermaidLoaded
+  })
 }
 
 export async function runMermaidRenderer(input: string): Promise<string> {

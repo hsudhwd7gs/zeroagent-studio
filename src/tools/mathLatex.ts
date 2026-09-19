@@ -1,11 +1,16 @@
 // Math LaTeX — render LaTeX math expressions to an SVG/PNG data URL.
 // Uses MathJax from CDN.
 
+import { waitForScriptTag, retryableLoad } from '../lib/scriptLoader'
+
 interface MathJaxApi {
   tex2svgPromise: (expr: string) => Promise<HTMLElement>
 }
 
-let mathjaxLoaded: Promise<MathJaxApi> | null = null
+const MATHJAX_SRC = 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js'
+const MATHJAX_LOAD_TIMEOUT_MS = 15_000
+
+const mathjaxCache = { current: null as Promise<MathJaxApi> | null }
 
 function getMathJaxFromWindow(): MathJaxApi | undefined {
   const w = window as unknown as { MathJax?: MathJaxApi }
@@ -13,29 +18,16 @@ function getMathJaxFromWindow(): MathJaxApi | undefined {
 }
 
 async function loadMathJax(): Promise<MathJaxApi> {
-  if (mathjaxLoaded) return mathjaxLoaded
-  mathjaxLoaded = (async () => {
-    // Load MathJax v3 from CDN
-    await new Promise<void>((resolve, reject) => {
-      const existing = document.querySelector('script[data-mathjax]') as HTMLScriptElement | null
-      if (existing) {
-        if (getMathJaxFromWindow()) {
-          resolve()
-          return
-        }
-        existing.addEventListener('load', () => resolve())
-        existing.addEventListener('error', () => reject(new Error('Failed to load MathJax')))
-        return
-      }
-      const script = document.createElement('script')
-      script.src = 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js'
-      script.async = true
-      script.dataset.mathjax = 'true'
-      script.onload = () => resolve()
-      script.onerror = () => reject(new Error('Failed to load MathJax'))
-      document.head.appendChild(script)
+  const already = getMathJaxFromWindow()
+  if (already) return already
+  return retryableLoad(mathjaxCache, async () => {
+    await waitForScriptTag({
+      src: MATHJAX_SRC,
+      marker: 'mathjax',
+      label: 'MathJax',
+      timeoutMs: MATHJAX_LOAD_TIMEOUT_MS,
     })
-    // Wait for MathJax to be available
+    // Wait for MathJax to be available (script loaded ≠ initialized)
     let tries = 0
     while (!getMathJaxFromWindow() && tries < 50) {
       await new Promise((r) => setTimeout(r, 100))
@@ -44,8 +36,7 @@ async function loadMathJax(): Promise<MathJaxApi> {
     const mj = getMathJaxFromWindow()
     if (!mj) throw new Error('MathJax failed to initialize')
     return mj
-  })()
-  return mathjaxLoaded
+  })
 }
 
 export async function runMathLatex(input: string): Promise<string> {

@@ -7,8 +7,12 @@
 //   • `input_text` variable = the text wired into this node
 //   • Set `result` variable OR use print() to return output
 
+import { waitForScriptTag, retryableLoad } from '../lib/scriptLoader'
+
 const PYODIDE_VERSION = '0.26.2'
 const PYODIDE_CDN = `https://cdn.jsdelivr.net/pyodide/v${PYODIDE_VERSION}/full/`
+const PYODIDE_SCRIPT_TIMEOUT_MS = 20_000
+const PYODIDE_INIT_TIMEOUT_MS = 180_000 // first run downloads ~20 MB
 
 // Minimal Pyodide interface — only the methods we actually call
 interface PyodideInstance {
@@ -26,23 +30,35 @@ interface WindowWithPyodide extends Window {
 }
 
 let pyodideInstance: PyodideInstance | null = null
-let loadingPromise: Promise<PyodideInstance> | null = null
+const pyodideCache = { current: null as Promise<PyodideInstance> | null }
+
+function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(message)), ms)
+    promise.then(
+      (value) => {
+        clearTimeout(timer)
+        resolve(value)
+      },
+      (err) => {
+        clearTimeout(timer)
+        reject(err)
+      }
+    )
+  })
+}
 
 async function loadPyodide(): Promise<PyodideInstance> {
   if (pyodideInstance) return pyodideInstance
-  if (loadingPromise) return loadingPromise
-
-  loadingPromise = (async (): Promise<PyodideInstance> => {
+  return retryableLoad(pyodideCache, async (): Promise<PyodideInstance> => {
     const win = window as WindowWithPyodide
 
     if (!win.loadPyodide) {
-      await new Promise<void>((resolve, reject) => {
-        const script = document.createElement('script')
-        script.src = `${PYODIDE_CDN}pyodide.js`
-        script.onload = () => resolve()
-        script.onerror = () =>
-          reject(new Error('Failed to load Pyodide from CDN'))
-        document.head.appendChild(script)
+      await waitForScriptTag({
+        src: `${PYODIDE_CDN}pyodide.js`,
+        marker: 'pyodide',
+        label: 'Pyodide',
+        timeoutMs: PYODIDE_SCRIPT_TIMEOUT_MS,
       })
     }
 
@@ -50,15 +66,15 @@ async function loadPyodide(): Promise<PyodideInstance> {
       throw new Error('Pyodide script loaded but loadPyodide is not defined')
     }
 
-    const instance = await win.loadPyodide({
-      indexURL: PYODIDE_CDN,
-    })
+    const instance = await withTimeout(
+      win.loadPyodide({ indexURL: PYODIDE_CDN }),
+      PYODIDE_INIT_TIMEOUT_MS,
+      'Pyodide took too long to start (first run downloads ~20 MB) — check your connection and run again'
+    )
 
     pyodideInstance = instance
     return instance
-  })()
-
-  return loadingPromise
+  })
 }
 
 export async function runPython(

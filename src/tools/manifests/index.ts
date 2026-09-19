@@ -241,13 +241,15 @@ export const MANIFEST_TOOLS: ToolManifestEntry[] = [
   // Hash (+1)
   textTool('md5', 'MD5', 'MD5 hash for dedup only', '🔒', 'hash', 'md5', 'encoding'),
 
-  // JSON (+8)
-  textTool('json-merge', 'JSON Merge', 'Merge two JSON objects', '➕', 'json', 'merge', 'json'),
+  // JSON (+6)
+  // NOTE: json-merge and json-flatten are intentionally NOT defined here —
+  // richer curated versions already own those ids in CURATED_TOOLS
+  // (deep merge with mode option, delimiter-aware flatten). Registering them
+  // again duplicated the palette entries and shadowed the better tools.
   textTool('json-set-path', 'JSON Set Path', 'Set value at dot path', '✏️', 'json', 'set-path', 'json'),
   textTool('json-delete-path', 'JSON Delete Path', 'Remove key at dot path', '🗑️', 'json', 'delete-path', 'json'),
   textTool('json-pick-keys', 'JSON Pick Keys', 'Keep only listed keys', '🗝️', 'json', 'pick-keys', 'json'),
   textTool('json-omit-keys', 'JSON Omit Keys', 'Remove listed keys', '🚫', 'json', 'omit-keys', 'json'),
-  textTool('json-flatten', 'JSON Flatten', 'Flatten nested JSON', '📊', 'json', 'flatten', 'json'),
   textTool('json-sort-keys', 'JSON Sort Keys', 'Sort object keys A–Z', '🔤', 'json', 'sort-keys', 'json'),
   textTool('json-wrap-array', 'JSON Wrap Array', 'Wrap value in array', '📦', 'json', 'wrap-array', 'json'),
 

@@ -1,6 +1,8 @@
 // Thumbnail Generation — creates YouTube-style thumbnails via Canvas API.
 // No external library needed.
 
+import { loadImageWithTimeout } from '../lib/scriptLoader'
+
 export async function runThumbnailGen(
   input: string,
   config: Record<string, string>
@@ -19,23 +21,28 @@ export async function runThumbnailGen(
   canvas.height = height
   const ctx = canvas.getContext('2d')!
 
-  // Background
+  // Background — best effort: if the background image fails to load (bad
+  // URL, offline, CORS), fall back to the gradient instead of crashing.
+  let bgLoaded = false
   if (bgImage) {
-    const img = new Image()
-    img.crossOrigin = 'anonymous'
-    img.src = bgImage
-    await new Promise((r) => { img.onload = r; img.onerror = r })
-    ctx.drawImage(img, 0, 0, width, height)
-
-    // Dark overlay for readability
-    ctx.fillStyle = 'rgba(0,0,0,0.5)'
-    ctx.fillRect(0, 0, width, height)
-  } else {
-    // Gradient background
+    try {
+      const img = await loadImageWithTimeout({ src: bgImage })
+      ctx.drawImage(img, 0, 0, width, height)
+      bgLoaded = true
+    } catch {
+      bgLoaded = false
+    }
+  }
+  if (!bgLoaded) {
     const grad = ctx.createLinearGradient(0, 0, width, height)
     grad.addColorStop(0, bgColor)
     grad.addColorStop(1, accentColor)
     ctx.fillStyle = grad
+    ctx.fillRect(0, 0, width, height)
+  }
+  if (bgLoaded) {
+    // Dark overlay for readability
+    ctx.fillStyle = 'rgba(0,0,0,0.5)'
     ctx.fillRect(0, 0, width, height)
   }
 

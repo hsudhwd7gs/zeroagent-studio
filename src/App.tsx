@@ -185,9 +185,12 @@ export default function App() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const meta = e.metaKey || e.ctrlKey
-      const target = e.target as HTMLElement | null
+      // Guard: e.target can be window/document for synthetic keydown events
+      // (extensions, screen readers, embedded webviews) — those have no
+      // .getAttribute and would crash this handler, killing every shortcut.
+      const target = e.target instanceof Element ? (e.target as HTMLElement) : null
       const isTyping =
-        target &&
+        !!target &&
         (target.tagName === 'INPUT' ||
           target.tagName === 'TEXTAREA' ||
           target.isContentEditable ||

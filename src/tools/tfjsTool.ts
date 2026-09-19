@@ -2,6 +2,8 @@
 //   • info    → report tf version + backends
 //   • classify → load a LayersModel from modelUrl and run inference on an image URL
 
+import { loadImageWithTimeout } from '../lib/scriptLoader'
+
 const TFJS_URL = 'https://esm.sh/@tensorflow/tfjs@4.22.0'
 
 interface TfTensor {
@@ -74,14 +76,8 @@ export async function runTfjs(
     const targetH = inputShape[1] ?? 224
     const targetW = inputShape[2] ?? 224
 
-    // Load image
-    const img = new Image()
-    img.crossOrigin = 'anonymous'
-    img.src = imageUrl
-    await new Promise<void>((resolve, reject) => {
-      img.onload = () => resolve()
-      img.onerror = () => reject(new Error('Failed to load image'))
-    })
+    // Load image (with hard timeout — never hangs on stalled hosts)
+    const img = await loadImageWithTimeout({ src: imageUrl })
 
     const canvas = document.createElement('canvas')
     canvas.width = targetW
