@@ -15,6 +15,7 @@ import { getBrainDisplayName } from '../../lib/brainLabels'
 import { listTools, isToolRequirementMet } from '../../tools/registry'
 import { CloudPrivacyGuide } from './CloudPrivacyGuide'
 import DataInventorySection from './DataInventorySection'
+import WorkerKeyManager from './WorkerKeyManager'
 import {
   KEY_PERSISTENCE_LOCAL_DESCRIPTION,
   KEY_PERSISTENCE_SESSION_DESCRIPTION,
@@ -300,6 +301,23 @@ export default function SettingsPanel() {
               </section>
 
               <CloudPrivacyGuide />
+
+              <section className="settings-section">
+                <h3>Worker key vault — bulk add + sync</h3>
+                <p className="settings-hint">
+                  The keys above are stored in your browser only. The Worker Key Vault
+                  below stores keys in the Cloudflare Worker KV (encrypted at rest) so
+                  that any node — including the 30+ new ones (OpenAI, Anthropic, Mistral,
+                  Cohere, GitHub, Notion, Slack, Kaggle, Colab, Pexels, Pixabay, etc.) —
+                  can use them automatically when calling those providers.
+                </p>
+                <p className="settings-hint">
+                  <strong>How it works:</strong> the worker auto-injects the matching
+                  Authorization header based on the target hostname. Add as many keys
+                  as you want — no redeploy needed.
+                </p>
+                <WorkerKeyManager workerOrigin={window.location.origin} />
+              </section>
 
               <section className="settings-section">
                 <h3>Tools using your keys</h3>

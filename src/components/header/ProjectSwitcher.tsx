@@ -50,9 +50,29 @@ export default function ProjectSwitcher() {
       setOpen(false)
       return
     }
+    // Switch the project — and load the latest workflow in the new project (if any)
     await setCurrentProject(id)
-    // Don't auto-clear the canvas — user might want to keep what they're working on
     setOpen(false)
+
+    // Try to load the most recent workflow in the new project.
+    // If none exists, start a fresh canvas.
+    try {
+      const { getWorkflowList, loadWorkflow, newWorkflow, hasCanvasWork } =
+        await import('../../stores/workflowStore').then((m) => m.useWorkflowStore.getState())
+      const list = await getWorkflowList()
+      if (list.length > 0) {
+        await loadWorkflow(list[0].id)
+      } else if (!hasCanvasWork()) {
+        newWorkflow()
+      } else {
+        // User has unsaved work — keep it but it will save into the new project.
+        // Clear the workflowId so save creates a new entry in the new project.
+        const { useWorkflowStore } = await import('../../stores/workflowStore')
+        useWorkflowStore.setState({ workflowId: null, isDirty: true })
+      }
+    } catch (err) {
+      console.warn('Could not auto-load workflow on project switch:', err)
+    }
   }
 
   const handleCreate = async () => {

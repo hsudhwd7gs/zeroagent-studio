@@ -77,7 +77,7 @@ export default function NodeInspector() {
 
   if (!selectedNode) {
     return (
-      <aside className="sidebar inspector">
+      <aside className="sidebar inspector inspector--empty">
         <h3 className="sidebar-title">Block settings</h3>
         <div className="inspector-empty-state">
           <span className="inspector-empty-icon" aria-hidden>
@@ -85,9 +85,21 @@ export default function NodeInspector() {
           </span>
           <p className="inspector-empty-title">Nothing selected</p>
           <p className="inspector-empty">
-            Click a block or connector on the canvas. Connectors show the exact payload that last flowed
-            through the wire.
+            Click a block or connector on the canvas to configure it. Connectors show the
+            exact payload that last flowed through the wire.
           </p>
+          <div className="inspector-empty-tips">
+            <p className="inspector-empty-tip-row">
+              <kbd>⌘K</kbd><span>open command palette, add any tool</span>
+            </p>
+            <p className="inspector-empty-tip-row">
+              <kbd>⌘S</kbd><span>save the current canvas</span>
+            </p>
+            <p className="inspector-empty-tip-row">
+              <span className="inspector-empty-tip-icon">📁</span>
+              <span>use the project chip in the header to switch projects</span>
+            </p>
+          </div>
         </div>
       </aside>
     )

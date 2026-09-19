@@ -392,19 +392,48 @@ export function ToolInspectorFields({
 
         {safetyNotice && <ToolSafetyNotice notice={safetyNotice} />}
 
-        {getManifestConfigFields(data.toolType).map((field) => (
-          <label key={field.key}>
-            {field.label}
-            <input
-              type={field.type === 'number' ? 'number' : 'text'}
-              value={data.config?.[field.key] ?? ''}
-              onChange={(e) => setConfig({ [field.key]: e.target.value })}
-              placeholder={field.placeholder}
-              disabled={!requirementMet}
-            />
-            {field.hint && <span className="inspector-hint">{field.hint}</span>}
-          </label>
-        ))}
+        {getManifestConfigFields(data.toolType).map((field) => {
+          const inputType = field.type === 'number'
+            ? 'number'
+            : field.type === 'password'
+              ? 'password'
+              : 'text'
+          return (
+            <label key={field.key}>
+              {field.label}
+              {field.type === 'textarea' ? (
+                <textarea
+                  rows={3}
+                  value={data.config?.[field.key] ?? ''}
+                  onChange={(e) => setConfig({ [field.key]: e.target.value })}
+                  placeholder={field.placeholder}
+                  disabled={!requirementMet}
+                />
+              ) : field.type === 'select' ? (
+                <select
+                  value={data.config?.[field.key] ?? field.placeholder ?? ''}
+                  onChange={(e) => setConfig({ [field.key]: e.target.value })}
+                  disabled={!requirementMet}
+                >
+                  {!field.placeholder && <option value="">—</option>}
+                  {(field.options ?? []).map((opt) => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type={inputType}
+                  value={data.config?.[field.key] ?? ''}
+                  onChange={(e) => setConfig({ [field.key]: e.target.value })}
+                  placeholder={field.placeholder}
+                  disabled={!requirementMet}
+                  autoComplete={field.type === 'password' ? 'off' : undefined}
+                />
+              )}
+              {field.hint && <span className="inspector-hint">{field.hint}</span>}
+            </label>
+          )
+        })}
 
         {tool.engine && (
           <>
@@ -562,53 +591,46 @@ export function ToolInspectorFields({
           return (
             <>
               <p className="inspector-hint">
-                Add named fields — the node outputs them as a JSON object.
+                Add named fields — the node outputs them as a single JSON object.
+                Wire upstream text into the field&apos;s value by leaving it blank.
               </p>
 
-              {fields.length === 0 && (
-                <p className="inspector-hint">
-                  No fields yet. Click <strong>+ Add field</strong> to start.
-                </p>
-              )}
-
-              {fields.map((field, i) => (
-                <div
-                  key={i}
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: '1fr 1fr auto',
-                    gap: 6,
-                    alignItems: 'end',
-                    marginBottom: 6,
-                  }}
-                >
-                  <label style={{ margin: 0 }}>
-                    <span className="inspector-hint" style={{ fontSize: 10 }}>Key</span>
+              <div className="multi-input-grid">
+                <div className="multi-input-header">
+                  <span>Key</span>
+                  <span>Value</span>
+                  <span></span>
+                </div>
+                {fields.length === 0 && (
+                  <p className="inspector-hint multi-input-empty">
+                    No fields yet. Click <strong>+ Add field</strong> to start.
+                  </p>
+                )}
+                {fields.map((field, i) => (
+                  <div className="multi-input-row" key={i}>
                     <input
+                      className="multi-input-key"
                       value={field.key}
                       onChange={(e) => updateField(i, { key: e.target.value })}
                       placeholder="seed"
                     />
-                  </label>
-                  <label style={{ margin: 0 }}>
-                    <span className="inspector-hint" style={{ fontSize: 10 }}>Value</span>
                     <input
+                      className="multi-input-value"
                       value={field.value ?? ''}
                       onChange={(e) => updateField(i, { value: e.target.value })}
-                      placeholder="personal finance"
+                      placeholder="personal finance (or wire upstream)"
                     />
-                  </label>
-                  <button
-                    type="button"
-                    className="inspector-action-btn inspector-action-secondary"
-                    title="Remove field"
-                    onClick={() => removeField(i)}
-                    style={{ height: 34, padding: '0 10px' }}
-                  >
-                    ✕
-                  </button>
-                </div>
-              ))}
+                    <button
+                      type="button"
+                      className="inspector-link-btn multi-input-remove"
+                      title="Remove field"
+                      onClick={() => removeField(i)}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
 
               <button
                 type="button"

@@ -21,15 +21,15 @@ describe('siteStats', () => {
       exampleWorkflows: stats.exampleWorkflows,
     }).toMatchInlineSnapshot(`
       {
-        "browserTools": 257,
-        "cloudTools": 4,
-        "curatedModules": 79,
+        "browserTools": 276,
+        "cloudTools": 17,
+        "curatedModules": 111,
         "customTools": 5,
         "exampleWorkflows": 22,
         "guidedQuests": 8,
         "manifestPresets": 187,
-        "paletteBuildingBlocks": 268,
-        "totalTools": 266,
+        "paletteBuildingBlocks": 300,
+        "totalTools": 298,
       }
     `)
 
