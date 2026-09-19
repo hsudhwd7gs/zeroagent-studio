@@ -2,8 +2,16 @@
  * Inspector panel state policy.
  *
  * Decides when the right-hand inspector panel ("Block settings" /
- * "Tool settings" / "Agent settings" / "Connector") may auto-expand or
- * force-collapse. Extracted from App.tsx so the rules are unit-testable.
+ * "Tool settings" / "Agent settings" / "Connector") may be force-collapsed
+ * or restored. Extracted from App.tsx so the rules are unit-testable.
+ *
+ * Core contract (learned the hard way from user reports):
+ *   The inspector panel NEVER auto-expands. It opens only through an
+ *   explicit user action — the collapse/expand chevron, clicking the
+ *   collapsed rail, the `[` / `]` keyboard shortcut, or the mobile header
+ *   toggle. Auto-expanding on canvas selection made the collapse toggle
+ *   look broken ("the panel won't stay hidden"), so that rule was removed
+ *   for good. Canvas selection is deliberately NOT part of this policy.
  *
  * Rules (evaluated top-to-bottom, first match wins):
  *   1. Settings panel open  → inspector collapses (avoid overlap). We remember
@@ -11,12 +19,7 @@
  *   2. Settings just closed and the collapse was forced by rule 1 → restore
  *      the expanded panel. If the user had collapsed it manually before
  *      opening settings, their choice is respected instead.
- *   3. Canvas selection CHANGED to a block or connector → auto-expand so the
- *      user immediately sees the new settings.
- *   4. Otherwise the user's manual collapse choice wins. This is the fix for
- *      the "toggle doesn't hide Block settings" bug: the old rule re-expanded
- *      the inspector on every render while any node was selected, which made
- *      the collapse toggle look completely broken.
+ *   3. Otherwise: never touch the panel. The user's manual choice always wins.
  */
 
 export interface SelectableItem {
@@ -29,6 +32,10 @@ export interface SelectableItem {
  * Edge wins over node, matching NodeInspector's render priority
  * (EdgeInspector is rendered when an edge is selected, even if a node is
  * also selected).
+ *
+ * NOTE: this is no longer consumed by the panel policy — selection must not
+ * influence panel collapse/expand. It is kept as a small, tested utility for
+ * future features that genuinely need a stable selection key.
  */
 export function canvasSelectionKey(
   nodes: readonly SelectableItem[],
@@ -45,19 +52,15 @@ export interface InspectorPanelState {
   settingsOpen: boolean
   /** Whether the inspector panel is currently collapsed. */
   inspectorCollapsed: boolean
-  /** Current canvas selection key (see canvasSelectionKey). */
-  selectedKey: string | null
 }
 
 export interface InspectorPanelMemory {
-  /** Selection key seen the previous time the policy ran. */
-  lastSelectionKey: string | null
   /** True when the inspector was collapsed by the settings panel (rule 1). */
   collapsedBySettings: boolean
 }
 
 export function initialInspectorPanelMemory(): InspectorPanelMemory {
-  return { lastSelectionKey: null, collapsedBySettings: false }
+  return { collapsedBySettings: false }
 }
 
 export interface InspectorPanelDecision {
@@ -74,9 +77,7 @@ export function resolveInspectorPanel(
   state: InspectorPanelState,
   memory: InspectorPanelMemory
 ): InspectorPanelDecision {
-  const selectionChanged = state.selectedKey !== memory.lastSelectionKey
   const next: InspectorPanelMemory = {
-    lastSelectionKey: state.selectedKey,
     collapsedBySettings: memory.collapsedBySettings,
   }
 
@@ -98,12 +99,6 @@ export function resolveInspectorPanel(
     return { collapsed: null, memory: next }
   }
 
-  // Rule 3 — a fresh selection reveals its settings, but only when the panel
-  // is collapsed. A selection change while expanded needs no action.
-  if (selectionChanged && state.selectedKey !== null && state.inspectorCollapsed) {
-    return { collapsed: false, memory: next }
-  }
-
-  // Rule 4 — respect the user's manual choice (the collapse toggle must work).
+  // Rule 3 — never touch the panel: manual collapse/expand always wins.
   return { collapsed: null, memory: next }
 }

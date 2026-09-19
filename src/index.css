@@ -2227,6 +2227,18 @@ body {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+  /* Sticky footer: the buttons must never hide in the dialog's internal
+     scroll area. On short viewports the storage list above can grow taller
+     than the dialog, which previously pushed "Got it" below the fold and
+     made the whole app feel frozen behind the dimmed overlay. */
+  position: sticky;
+  bottom: calc(-1 * 24px); /* cancel the dialog's 24px padding so the footer
+                              sits flush against the dialog's bottom edge */
+  margin: 0 -24px -24px;
+  padding: 14px 24px 20px;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--glass-border);
+  z-index: 1;
 }
 
 .privacy-consent-btn {

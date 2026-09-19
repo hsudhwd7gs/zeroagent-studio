@@ -23,7 +23,6 @@ import { useTutorialStore } from './stores/tutorialStore'
 import { usePanelCollapseStore } from './stores/panelCollapseStore'
 import { useAppRoute } from './hooks/useAppRoute'
 import {
-  canvasSelectionKey,
   initialInspectorPanelMemory,
   resolveInspectorPanel,
 } from './lib/inspectorPanelPolicy'
@@ -64,7 +63,6 @@ export default function App() {
   const showLaunchSplash = useTutorialStore((s) => s.showLaunchSplash)
   const showLaunchSplashAction = useTutorialStore((s) => s.showLaunchSplashAction)
   const nodes = useWorkflowStore((s) => s.nodes)
-  const edges = useWorkflowStore((s) => s.edges)
   const saveCurrentWorkflow = useWorkflowStore((s) => s.saveCurrentWorkflow)
   const newWorkflow = useWorkflowStore((s) => s.newWorkflow)
   const undo = useWorkflowStore((s) => s.undo)
@@ -80,19 +78,19 @@ export default function App() {
 
   // Combined side-panel state machine — see src/lib/inspectorPanelPolicy.ts
   // for the rules and their rationale. The policy is a pure function so the
-  // behaviour (especially "manual collapse must win") is unit-tested.
+  // behaviour (especially "the panel never auto-expands — the toggle must
+  // actually hide it") is unit-tested.
   const panelMemoryRef = useRef(initialInspectorPanelMemory())
   useEffect(() => {
-    const selectedKey = canvasSelectionKey(nodes, edges)
     const { collapsed, memory } = resolveInspectorPanel(
-      { settingsOpen, inspectorCollapsed, selectedKey },
+      { settingsOpen, inspectorCollapsed },
       panelMemoryRef.current
     )
     panelMemoryRef.current = memory
     if (collapsed !== null && collapsed !== inspectorCollapsed) {
       setCollapsedPanel('inspector', collapsed)
     }
-  }, [settingsOpen, inspectorCollapsed, setCollapsedPanel, nodes, edges])
+  }, [settingsOpen, inspectorCollapsed, setCollapsedPanel])
 
   const [welcomeDismissed, setWelcomeDismissed] = useState(
     () => localStorage.getItem(WELCOME_DISMISSED_KEY) === '1'
