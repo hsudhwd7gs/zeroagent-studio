@@ -506,6 +506,28 @@ const FIELDS: Record<string, ManifestConfigField[]> = {
     { key: 'workflowId', label: 'Workflow to trigger', placeholder: 'workflow uuid or name' },
     { key: 'webhookUrl', label: 'Webhook to fire (optional)', placeholder: 'https://...' },
   ],
+  'file-generator': [
+    { key: 'mode', label: 'Content mode', type: 'select', options: ['text', 'json', 'dataurl', 'url'] },
+    { key: 'filename', label: 'Filename (auto-extension if missing)', placeholder: 'report.txt' },
+    { key: 'format', label: 'Format / extension hint', placeholder: 'txt' },
+    { key: 'mime', label: 'MIME type (optional)', placeholder: 'application/pdf' },
+    { key: 'content', label: 'Content (override upstream)', type: 'textarea', placeholder: 'Paste content here, or wire upstream text into this node' },
+  ],
+  'read-file-content': [
+    { key: 'mode', label: 'Read mode', type: 'select', options: ['auto', 'text', 'dataurl'] },
+    { key: 'accept', label: 'Accept filter (comma-separated extensions)', placeholder: '.json,.csv,.txt' },
+  ],
+  'image-to-file': [
+    { key: 'url', label: 'Image URL or data: URL', placeholder: 'https://... or data:image/png;base64,...' },
+    { key: 'filename', label: 'Filename (optional, auto-extension if missing)', placeholder: 'output.png' },
+  ],
+  'markdown-to-html': [
+    { key: 'theme', label: 'CSS theme', type: 'select', options: ['default', 'minimal'] },
+    { key: 'filename', label: 'Filename', placeholder: 'converted.html' },
+    { key: 'includeCss', label: 'Include CSS', type: 'select', options: ['true', 'false'] },
+    { key: 'autoDownload', label: 'Auto-download', type: 'select', options: ['true', 'false'] },
+    { key: 'markdown', label: 'Markdown content (override upstream)', type: 'textarea', placeholder: '# Title\n\nMarkdown body...' },
+  ],
 }
 
 export function getManifestConfigFields(toolId: string): ManifestConfigField[] {

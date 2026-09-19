@@ -5,10 +5,10 @@ import { MANIFEST_TOOLS } from '../../src/tools/manifests/index'
 
 describe('tool catalog', () => {
   it('has consistent registry counts', () => {
-    expect(getToolCount()).toMatchInlineSnapshot(`298`)
-    expect(TOOL_REGISTRY.length).toMatchInlineSnapshot(`298`)
+    expect(getToolCount()).toMatchInlineSnapshot(`302`)
+    expect(TOOL_REGISTRY.length).toMatchInlineSnapshot(`302`)
     const ids = new Set(TOOL_REGISTRY.map((t) => t.id))
-    expect(ids.size).toMatchInlineSnapshot(`296`)
+    expect(ids.size).toMatchInlineSnapshot(`300`)
   })
 
   it('every tool has inputs and outputs', () => {

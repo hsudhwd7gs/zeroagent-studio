@@ -112,6 +112,10 @@ import { runSentiment } from './sentiment'
 import { runSummarize } from './summarize'
 import { runUrlScreenshot } from './urlScreenshot'
 import { runScheduler } from './scheduler'
+import { runFileGenerator } from './fileGenerator'
+import { runReadFileContent } from './readFileContent'
+import { runImageToFile } from './imageToFile'
+import { runMarkdownToHtml } from './markdownToHtml'
 import {
   isSpeechRecognitionAvailable,
   isSpeechSynthesisAvailable,
@@ -1601,6 +1605,59 @@ const CURATED_TOOLS: ToolDefinition[] = [
     autoRun: { defaultEnabled: false, canRunWithoutInput: (c) => !!c.cron?.trim() },
     ...DEFAULT_TOOL_IO,
     run: wrapLegacyRun(async (input, config) => runScheduler(input, config)),
+  },
+  // ─── File I/O — save any output as a downloadable file ───────────
+  {
+    id: 'file-generator',
+    label: 'File Generator',
+    description: 'Save any input (text / JSON / data:URL / remote URL) as a downloadable file',
+    icon: '📥',
+    paletteGroup: 'browser',
+    browserSubcategory: 'output',
+    paletteDragType: 'tool-file-generator',
+    requirement: { kind: 'none' },
+    autoRun: { defaultEnabled: false, canRunWithoutInput: () => false },
+    ...DEFAULT_TOOL_IO,
+    run: wrapLegacyRun(async (input, config) => runFileGenerator(input, config)),
+  },
+  {
+    id: 'read-file-content',
+    label: 'Read File',
+    description: 'Pick any file → returns content as text or base64 data URL',
+    icon: '📂',
+    paletteGroup: 'browser',
+    browserSubcategory: 'curated',
+    paletteDragType: 'tool-read-file-content',
+    requirement: { kind: 'none' },
+    autoRun: { defaultEnabled: false, canRunWithoutInput: () => true },
+    ...DEFAULT_TOOL_IO,
+    run: wrapLegacyRun(async (input, config) => runReadFileContent(input, config)),
+  },
+  {
+    id: 'image-to-file',
+    label: 'Image to File',
+    description: 'Download an image URL or data URL as a .png/.jpg file',
+    icon: '🖼️',
+    paletteGroup: 'browser',
+    browserSubcategory: 'output',
+    paletteDragType: 'tool-image-to-file',
+    requirement: { kind: 'none' },
+    autoRun: { defaultEnabled: false, canRunWithoutInput: (c) => !!c.url?.trim() },
+    ...DEFAULT_TOOL_IO,
+    run: wrapLegacyRun(async (input, config) => runImageToFile(input, config)),
+  },
+  {
+    id: 'markdown-to-html',
+    label: 'Markdown → HTML',
+    description: 'Convert markdown to a styled self-contained .html file (download)',
+    icon: '📄',
+    paletteGroup: 'browser',
+    browserSubcategory: 'generate',
+    paletteDragType: 'tool-markdown-to-html',
+    requirement: { kind: 'none' },
+    autoRun: { defaultEnabled: false, canRunWithoutInput: () => false },
+    ...DEFAULT_TOOL_IO,
+    run: wrapLegacyRun(async (input, config) => runMarkdownToHtml(input, config)),
   },
 ]
 
