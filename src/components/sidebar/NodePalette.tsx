@@ -131,9 +131,10 @@ export default function NodePalette({ collapsed = false, onToggleCollapse, mobil
 
   const onDoubleClickAdd = (type: string) => {
     // Cascade each new block away from the exact center so consecutive adds
-    // never stack perfectly on top of each other.
+    // never stack on top of each other. The 72px step keeps the new node's
+    // header clearly visible even next to the widest blocks (Chat ≈ 680px).
     const center = getViewportCenterPosition()
-    const cascade = (useWorkflowStore.getState().nodes.length % 8) * 36
+    const cascade = (useWorkflowStore.getState().nodes.length % 5) * 72
     addPaletteNodeAt(type, { x: center.x + cascade, y: center.y + cascade })
   }
 
