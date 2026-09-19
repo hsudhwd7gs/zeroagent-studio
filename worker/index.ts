@@ -676,8 +676,12 @@ async function handleWebhook(env: Env, request: Request, url: URL): Promise<Resp
       }
     }
     if (env.CACHE) {
-      await env.CACHE.put(`webhook:${id}`, body)
-      await env.CACHE.put(`webhook_ts:${id}`, String(ts))
+      try {
+        await env.CACHE.put(`webhook:${id}`, body)
+        await env.CACHE.put(`webhook_ts:${id}`, String(ts))
+      } catch {
+        /* KV hiccup — the D1 history above is the durable record */
+      }
     }
     return json({ ok: true, received: id, ts, size: body.length })
   }
@@ -993,7 +997,7 @@ export default {
         return json({
           ok: true,
           worker: 'brainwire',
-          version: '2.0.0',
+          version: typeof env.WORKER_VERSION === 'string' ? env.WORKER_VERSION : '2.0.0',
           time: new Date().toISOString(),
           features,
           dynamicKeys,
@@ -1116,10 +1120,20 @@ export default {
         const cacheKey = new Request(`https://cache.internal/${encodeURIComponent(target)}`)
         let response = await cache.match(cacheKey)
         if (!response) {
-          response = await fetch(target)
-          response = new Response(response.body, response)
+          const upstream = await fetch(target)
+          response = new Response(upstream.body, {
+            status: upstream.status,
+            statusText: upstream.statusText,
+            headers: upstream.headers,
+          })
           response.headers.set('Cache-Control', 'public, max-age=3600')
-          await cache.put(cacheKey, response.clone())
+          // Not every response is cacheable (4xx/5xx, Set-Cookie, …) —
+          // cache.put rejects on those and used to crash the worker.
+          try {
+            await cache.put(cacheKey, response.clone())
+          } catch {
+            /* serve un-cached */
+          }
         }
         return withCors(response)
       }
@@ -1203,11 +1217,14 @@ export default {
       // ─── GROQ: Chat ────────────────────────────────────────
       if (path === '/api/groq' && request.method === 'POST') {
         const key = await getKey(env, 'GROQ_API_KEY')
+        if (!key) {
+          return json({ error: 'GROQ_API_KEY not set. Add it in Privacy & keys, or POST /api/keys.' }, 500)
+        }
         const body = await request.text()
         const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
           method: 'POST',
           headers: {
-            Authorization: `Bearer ${key ?? ''}`,
+            Authorization: `Bearer ${key}`,
             'Content-Type': 'application/json',
           },
           body,
@@ -1218,6 +1235,9 @@ export default {
       // ─── GROQ: Audio ───────────────────────────────────────
       if (path === '/api/groq/audio' && request.method === 'POST') {
         const key = await getKey(env, 'GROQ_API_KEY')
+        if (!key) {
+          return json({ error: 'GROQ_API_KEY not set. Add it in Privacy & keys, or POST /api/keys.' }, 500)
+        }
         const body = await request.arrayBuffer()
         const contentType = request.headers.get('content-type') ?? 'audio/mpeg'
         const response = await fetch(
@@ -1225,7 +1245,7 @@ export default {
           {
             method: 'POST',
             headers: {
-              Authorization: `Bearer ${key ?? ''}`,
+              Authorization: `Bearer ${key}`,
               'Content-Type': contentType,
             },
             body,
@@ -1388,6 +1408,8 @@ export default {
       if (path === '/api/db/get') {
         if (!env.DB) return json({ error: 'D1 not bound' }, 500)
         const key = url.searchParams.get('key')
+        if (!key) return json({ error: 'key query param required' }, 400)
+        await ensureSchema(env)
         const row = await env.DB.prepare(
           'SELECT value FROM kv WHERE key = ?'
         ).bind(key).first()
