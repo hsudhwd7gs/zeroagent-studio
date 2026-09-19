@@ -79,12 +79,18 @@ export default function NodeInspector({ collapsed = false, onToggleCollapse, mob
   const isRunning = useExecutionStore((s) => s.isRunning)
 
   if (selectedEdge) {
-    return <EdgeInspector edge={selectedEdge} />
+    return <EdgeInspector edge={selectedEdge} collapsed={collapsed} onToggleCollapse={onToggleCollapse} mobileOpen={mobileOpen} onCloseMobile={onCloseMobile} />
   }
 
   if (!selectedNode) {
     return (
-      <aside className={`sidebar inspector inspector--empty ${collapsed ? 'is-collapsed' : ''} ${mobileOpen ? 'is-mobile-open' : ''}`}>
+      <aside
+        className={`sidebar inspector inspector--empty ${collapsed ? 'is-collapsed' : ''} ${mobileOpen ? 'is-mobile-open' : ''}`}
+        onClick={collapsed ? (e) => {
+          if ((e.target as HTMLElement).closest('.sidebar-collapse-btn')) return
+          onToggleCollapse?.()
+        } : undefined}
+      >
         <div className="sidebar-header-row">
           <h3 className="sidebar-title">Block settings</h3>
           {onToggleCollapse && (

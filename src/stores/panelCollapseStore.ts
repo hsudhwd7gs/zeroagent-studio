@@ -71,6 +71,9 @@ export const usePanelCollapseStore = create<PanelCollapseState>((set, get) => ({
   },
 
   setCollapsed: (panel, value) => {
+    // Skip if value is unchanged — avoids infinite render loops when
+    // an effect calls setCollapsed on every render.
+    if (get().collapsed[panel] === value) return
     const next = { ...get().collapsed, [panel]: value }
     writePersisted(next, get().autoHide)
     set({ collapsed: next })

@@ -4066,3 +4066,92 @@ body {
     font-size: 12px;
   }
 }
+
+/* ─── Mobile panel toggle refinements ─── */
+.mobile-panel-toggle.is-active {
+  background: var(--accent-purple, #8b5cf6);
+  color: white;
+  border-color: var(--accent-purple, #8b5cf6);
+}
+
+.mobile-panel-toggle--palette {
+  order: -1; /* place at the very start of header on mobile */
+}
+
+.mobile-panel-toggle--inspector {
+  order: 99; /* place near the end */
+}
+
+/* On mobile, header-left should not push the toggle off-screen */
+@media (max-width: 768px) {
+  .header-left {
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+  .workflow-name-input {
+    max-width: 140px;
+  }
+}
+
+/* When settings panel is open, hide the inspector (avoid overlap) */
+.settings-panel:not(.is-collapsed) ~ .app-main .sidebar.inspector,
+.app:has(.settings-panel:not(.is-collapsed)) .sidebar.inspector {
+  /* The settings panel takes priority — push inspector off-screen */
+  pointer-events: none;
+  opacity: 0.3;
+}
+
+/* Settings panel itself — make sure it sits above the inspector */
+.settings-panel {
+  z-index: 30;
+}
+
+/* When the inspector is collapsed on desktop, show a thin vertical "expand" hint */
+.sidebar.inspector.is-collapsed:hover .sidebar-collapse-btn,
+.sidebar.palette.is-collapsed:hover .sidebar-collapse-btn {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text-primary);
+}
+
+/* Collapsed sidebar hover state — entire rail should be clickable to expand */
+.sidebar.is-collapsed {
+  cursor: pointer;
+}
+
+.sidebar.is-collapsed .sidebar-collapse-btn {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+}
+
+/* ─── Mobile inspector toggle — fixed to right edge ─── */
+@media (max-width: 768px) {
+  .mobile-panel-toggle--inspector {
+    position: fixed;
+    top: 8px;
+    right: 8px;
+    z-index: 60;
+    order: 0; /* override the previous order:99 */
+  }
+  
+  /* Make sure the inspector toggle stays above header-actions scroll */
+  .mobile-panel-toggle--palette {
+    position: fixed;
+    top: 8px;
+    left: 8px;
+    z-index: 60;
+  }
+  
+  /* Push header content away from the toggles */
+  .app-header {
+    padding-left: 48px;
+    padding-right: 48px;
+  }
+  
+  /* First row: logo + workflow name; Second row: actions scroll */
+  .header-left {
+    padding-right: 40px;
+  }
+}

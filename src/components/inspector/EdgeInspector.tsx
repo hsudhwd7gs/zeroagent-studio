@@ -20,7 +20,7 @@ function formatTimestamp(ts: number): string {
   })
 }
 
-export default function EdgeInspector({ edge }: { edge: Edge }) {
+export default function EdgeInspector({ edge, collapsed = false, onToggleCollapse, mobileOpen = false, onCloseMobile }: { edge: Edge, collapsed?: boolean, onToggleCollapse?: () => void, mobileOpen?: boolean, onCloseMobile?: () => void }) {
   const nodes = useWorkflowStore((s) => s.nodes)
   const transfer = useExecutionStore((s) => s.edgeTransfers[edge.id])
   const isFlowing = useExecutionStore((s) => s.flowingEdges.has(edge.id))
@@ -43,8 +43,38 @@ export default function EdgeInspector({ edge }: { edge: Edge }) {
   }, [transfer])
 
   return (
-    <aside className="sidebar inspector edge-inspector">
-      <h3 className="sidebar-title">Connector</h3>
+    <aside
+      className={`sidebar inspector edge-inspector ${collapsed ? 'is-collapsed' : ''} ${mobileOpen ? 'is-mobile-open' : ''}`}
+      onClick={collapsed ? (e) => {
+        if ((e.target as HTMLElement).closest('.sidebar-collapse-btn')) return
+        onToggleCollapse?.()
+      } : undefined}
+    >
+      <div className="sidebar-header-row">
+        <h3 className="sidebar-title">Connector</h3>
+        {onToggleCollapse && (
+          <button
+            type="button"
+            className={`sidebar-collapse-btn ${collapsed ? 'is-collapsed' : ''}`}
+            onClick={onToggleCollapse}
+            aria-label={collapsed ? 'Expand inspector panel' : 'Collapse inspector panel'}
+            title={collapsed ? 'Expand panel (] to toggle)' : 'Collapse panel (] to toggle)'}
+          >
+            <span className="chevron" aria-hidden>›</span>
+          </button>
+        )}
+        {mobileOpen && onCloseMobile && (
+          <button
+            type="button"
+            className="sidebar-collapse-btn mobile-close-btn"
+            onClick={onCloseMobile}
+            aria-label="Close panel"
+            title="Close"
+          >
+            ✕
+          </button>
+        )}
+      </div>
 
       <div className="edge-inspector-status">
         <span className={`edge-inspector-badge ${selectedBadgeClass(isFlowing, isRunning)}`}>

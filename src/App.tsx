@@ -67,8 +67,28 @@ export default function App() {
   const paletteCollapsed = usePanelCollapseStore((s) => s.collapsed.palette)
   const inspectorCollapsed = usePanelCollapseStore((s) => s.collapsed.inspector)
   const togglePalette = usePanelCollapseStore((s) => s.toggle)
+  const setCollapsedPanel = usePanelCollapseStore((s) => s.setCollapsed)
   const mobileOpen = usePanelCollapseStore((s) => s.mobileOpen)
   const closeAllMobile = usePanelCollapseStore((s) => s.closeAllMobile)
+  const settingsOpen = useSettingsStore((s) => s.isSettingsOpen)
+
+  // Combined side-panel state machine.
+  // Rules (evaluated top-to-bottom, first match wins):
+  //   1. If settings panel is open → inspector must be collapsed (avoid overlap).
+  //   2. If a node is selected → inspector must be expanded (so user sees settings).
+  //   3. Otherwise leave the inspector in its current state.
+  // This is a single effect to avoid two effects fighting each other and
+  // causing an infinite render loop.
+  useEffect(() => {
+    if (settingsOpen && !inspectorCollapsed) {
+      setCollapsedPanel('inspector', true)
+      return
+    }
+    if (!settingsOpen && nodes.some((n) => n.selected) && inspectorCollapsed) {
+      setCollapsedPanel('inspector', false)
+      return
+    }
+  }, [settingsOpen, inspectorCollapsed, setCollapsedPanel, nodes])
 
   const [welcomeDismissed, setWelcomeDismissed] = useState(
     () => localStorage.getItem(WELCOME_DISMISSED_KEY) === '1'

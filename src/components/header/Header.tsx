@@ -14,6 +14,7 @@ import {
   getExampleKeyBadgeLabel,
   type ExampleWorkflowId,
 } from '../../lib/exampleWorkflows'
+import { usePanelCollapseStore } from '../../stores/panelCollapseStore'
 import HeaderQuestMenu from './HeaderQuestMenu'
 import ProjectSwitcher from './ProjectSwitcher'
 
@@ -44,6 +45,12 @@ export default function Header() {
     () => exampleGroups.reduce((sum, group) => sum + group.items.length, 0),
     [exampleGroups]
   )
+
+  // Panel collapse state — used by the mobile toggle buttons
+  const toggleMobilePalette = usePanelCollapseStore((s) => s.toggleMobile)
+  const toggleMobileInspector = usePanelCollapseStore((s) => s.toggleMobile)
+  const mobilePaletteOpen = usePanelCollapseStore((s) => s.mobileOpen.palette)
+  const mobileInspectorOpen = usePanelCollapseStore((s) => s.mobileOpen.inspector)
 
   const handleSave = async () => {
     await saveCurrentWorkflow()
@@ -165,6 +172,16 @@ export default function Header() {
         aria-hidden
         onChange={(e) => void handleImportFile(e)}
       />
+      {/* Mobile panel toggle — palette (left). Hidden on desktop. */}
+      <button
+        type="button"
+        className={`mobile-panel-toggle mobile-panel-toggle--palette ${mobilePaletteOpen ? 'is-active' : ''}`}
+        onClick={() => toggleMobilePalette('palette')}
+        aria-label={mobilePaletteOpen ? 'Close building blocks panel' : 'Open building blocks panel'}
+        title="Building blocks"
+      >
+        <span aria-hidden>⚡</span>
+      </button>
       <div className="header-left">
         <motion.div
           className="logo"
@@ -197,6 +214,19 @@ export default function Header() {
         <ProjectSwitcher />
         <kbd className="header-hint" title="Open command palette">⌘K</kbd>
       </div>
+
+      {/* Mobile panel toggle — inspector (right). Hidden on desktop.
+          Placed OUTSIDE header-actions so it stays visible on mobile
+          (header-actions scrolls horizontally and would hide it). */}
+      <button
+        type="button"
+        className={`mobile-panel-toggle mobile-panel-toggle--inspector ${mobileInspectorOpen ? 'is-active' : ''}`}
+        onClick={() => toggleMobileInspector('inspector')}
+        aria-label={mobileInspectorOpen ? 'Close inspector panel' : 'Open inspector panel'}
+        title="Inspector"
+      >
+        <span aria-hidden>⚙</span>
+      </button>
 
       <div className="header-actions">
         <div className="header-group">

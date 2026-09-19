@@ -222,6 +222,11 @@ export default function NodePalette({ collapsed = false, onToggleCollapse, mobil
     <aside
       className={`sidebar palette game-panel ${collapsed ? 'is-collapsed' : ''} ${mobileOpen ? 'is-mobile-open' : ''}`}
       data-tutorial-target="palette"
+      onClick={collapsed ? (e) => {
+        // Only expand if clicking the rail itself (not the collapse button)
+        if ((e.target as HTMLElement).closest('.sidebar-collapse-btn')) return
+        onToggleCollapse?.()
+      } : undefined}
     >
       <div className="sidebar-header-row">
         <h3 className="sidebar-title game-panel-title">

@@ -38,7 +38,13 @@ export function BaseInspectorShell({
   const canvasLocked = useWorkflowStore((s) => isNodeCanvasLocked(s.nodes.find((n) => n.id === nodeId)))
 
   return (
-    <aside className={`sidebar inspector ${collapsed ? 'is-collapsed' : ''} ${mobileOpen ? 'is-mobile-open' : ''}`}>
+    <aside
+      className={`sidebar inspector ${collapsed ? 'is-collapsed' : ''} ${mobileOpen ? 'is-mobile-open' : ''}`}
+      onClick={collapsed ? (e) => {
+        if ((e.target as HTMLElement).closest('.sidebar-collapse-btn')) return
+        onToggleCollapse?.()
+      } : undefined}
+    >
       <div className="inspector-header-row">
         <h3 className="sidebar-title">{title}</h3>
         <span className={`inspector-type-badge inspector-type-badge--${nodeType}`}>
