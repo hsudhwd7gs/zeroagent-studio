@@ -91,10 +91,14 @@ describe('waitForScriptTag', () => {
         label: 'TestLib',
         timeoutMs: 5000,
       })
+      // Attach the rejection handler BEFORE firing anything and before any
+      // await — otherwise the rejection is briefly unhandled while the
+      // event loop turns, which CI reports as an unhandled error.
+      const assertion = expect(promise).rejects.toThrow('Failed to load TestLib')
       listeners['error'](new Event('error'))
-      // Fire the timeout too — it must be a no-op after settling
+      // Fire the timeout too — it must be a no-op after settling.
       await vi.advanceTimersByTimeAsync(6000)
-      await expect(promise).rejects.toThrow('Failed to load TestLib')
+      await assertion
     } finally {
       vi.useRealTimers()
     }
