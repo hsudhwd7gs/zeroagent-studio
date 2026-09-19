@@ -9,11 +9,12 @@ interface FFmpegLike {
   exec: (args: string[]) => Promise<number>
   readFile: (name: string) => Promise<Uint8Array | string>
   deleteFile: (name: string) => Promise<boolean>
-  on: (event: string, cb: (e: unknown) => void) => void
+  on: (event: string, cb: (e: { message?: string }) => void) => void
   load: (opts: { coreURL: string; wasmURL: string }) => Promise<boolean>
 }
 
 let ffmpegInstance: FFmpegLike | null = null
+let fetchFileFn: ((url: string) => Promise<Uint8Array>) | null = null
 
 async function loadFFmpeg(): Promise<FFmpegLike> {
   if (ffmpegInstance) return ffmpegInstance
@@ -29,8 +30,8 @@ async function loadFFmpeg(): Promise<FFmpegLike> {
     wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
   })
   ffmpegInstance = ff
-  // expose fetchFile globally for the run function
-  ;(loadFFmpeg as any).fetchFile = fetchFile
+  // expose fetchFile for the run function
+  fetchFileFn = fetchFile as (url: string) => Promise<Uint8Array>
   return ff
 }
 
@@ -39,14 +40,14 @@ export async function runFFprobe(
   config: Record<string, string>
 ): Promise<string> {
   const ff = await loadFFmpeg()
-  const fetchFile = (loadFFmpeg as any).fetchFile
+  if (!fetchFileFn) throw new Error('FFmpeg helpers not ready — try again')
   const url = config.url?.trim() || input.trim()
   if (!url) throw new Error('No input URL')
 
-  await ff.writeFile('input.bin', await fetchFile(url))
+  await ff.writeFile('input.bin', await fetchFileFn(url))
 
   let metadata = ''
-  ff.on('log', (e: any) => {
+  ff.on('log', (e) => {
     const message: string = e?.message ?? ''
     if (message.includes('Stream') || message.includes('Duration') || message.includes('Input')) {
       metadata += message + '\n'

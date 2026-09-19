@@ -53,7 +53,8 @@ interface Props {
 export default function WorkerKeyManager({ workerOrigin }: Props) {
   const confirm = useConfirmStore((s) => s.confirm)
   const [storedKeys, setStoredKeys] = useState<WorkerKeyEntry[]>([])
-  const [loading, setLoading] = useState(false)
+  // Start in loading state — the initial fetch kicks off from the mount effect.
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [flash, setFlash] = useState<string | null>(null)
 
@@ -62,9 +63,13 @@ export default function WorkerKeyManager({ workerOrigin }: Props) {
   const [customName, setCustomName] = useState('')
   const [customValue, setCustomValue] = useState('')
 
+  /**
+   * Refresh the stored-key list. Safe to call from effects: every state update
+   * happens after the first `await`, so nothing runs synchronously on mount.
+   * Event handlers that want an immediate loading indicator should call
+   * `beginAction()` before awaiting this.
+   */
   const refresh = async () => {
-    setLoading(true)
-    setError(null)
     try {
       const res = await fetch(`${workerOrigin}/api/keys`)
       if (!res.ok) throw new Error(`Worker ${res.status}`)
@@ -90,15 +95,22 @@ export default function WorkerKeyManager({ workerOrigin }: Props) {
     }
   }
 
+  const beginAction = () => {
+    setLoading(true)
+    setError(null)
+  }
+
   useEffect(() => {
-    void refresh()
+    // Defer one tick so every state update inside refresh() happens outside
+    // the synchronous effect body (avoids cascading renders on mount).
+    const t = window.setTimeout(() => void refresh(), 0)
+    return () => window.clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const addKey = async (name: string, value: string) => {
     if (!name.trim() || !value.trim()) return
-    setLoading(true)
-    setError(null)
+    beginAction()
     try {
       const res = await fetch(`${workerOrigin}/api/keys`, {
         method: 'POST',
@@ -124,7 +136,7 @@ export default function WorkerKeyManager({ workerOrigin }: Props) {
       variant: 'danger',
     })
     if (!ok) return
-    setLoading(true)
+    beginAction()
     try {
       const res = await fetch(`${workerOrigin}/api/keys?name=${encodeURIComponent(name)}`, { method: 'DELETE' })
       if (!res.ok) throw new Error(`Worker ${res.status}`)
@@ -165,8 +177,7 @@ export default function WorkerKeyManager({ workerOrigin }: Props) {
       setError('No KEY=value lines detected. Put one key per line like: OPENAI_API_KEY=sk-...')
       return
     }
-    setLoading(true)
-    setError(null)
+    beginAction()
     let ok = 0
     let fail = 0
     for (const e of entries) {

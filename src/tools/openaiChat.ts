@@ -1,5 +1,10 @@
 // OpenAI Chat node — calls OpenAI Chat Completions via the worker proxy.
 
+interface OpenaiChatResponse {
+  choices?: Array<{ message?: { content?: string } }>
+  usage?: Record<string, unknown>
+}
+
 export async function runOpenaiChat(
   input: string,
   config: Record<string, string>
@@ -29,7 +34,7 @@ export async function runOpenaiChat(
     }),
   })
   if (!res.ok) throw new Error(`OpenAI call failed: ${res.status} ${await res.text()}`)
-  const data = await res.json() as any
+  const data = await res.json() as OpenaiChatResponse
   const content = data.choices?.[0]?.message?.content ?? ''
   return JSON.stringify({ ok: true, model: body.model, content, usage: data.usage }, null, 2)
 }

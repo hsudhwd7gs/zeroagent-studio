@@ -44,11 +44,10 @@ export async function runRustLib(
 
   const mod = await loadRustModule(wasmUrl)
 
-  const fn = (mod.instance.exports as any)[fnName]
+  const wasmExports = mod.instance.exports as Record<string, unknown>
+  const fn = wasmExports[fnName]
   if (typeof fn !== 'function') {
-    const available = Object.keys(mod.instance.exports).filter(
-      (k) => typeof (mod.instance.exports as any)[k] === 'function'
-    )
+    const available = Object.keys(wasmExports).filter((k) => typeof wasmExports[k] === 'function')
     throw new Error(`Function "${fnName}" not found. Available: ${available.join(', ')}`)
   }
 

@@ -4,18 +4,26 @@ const NSPELL_URL = 'https://esm.sh/nspell@2.1.5'
 const DICT_AFF_URL = 'https://unpkg.com/dictionary-en@3.0.0/index.aff'
 const DICT_DIC_URL = 'https://unpkg.com/dictionary-en@3.0.0/index.dic'
 
-let spell: any = null
+interface SpellChecker {
+  correct: (word: string) => boolean
+  suggest: (word: string) => string[]
+}
 
-async function loadDict(): Promise<any> {
+let spell: SpellChecker | null = null
+
+async function loadDict(): Promise<SpellChecker> {
   if (spell) return spell
-  const nspellMod = await import(/* @vite-ignore */ NSPELL_URL)
-  const nspell = nspellMod.default ?? nspellMod
+  const nspellMod = (await import(/* @vite-ignore */ NSPELL_URL)) as {
+    default?: (aff: string, dic: string) => SpellChecker
+  }
+  const nspell = nspellMod.default
 
   const affRes = await fetch(DICT_AFF_URL)
   const dicRes = await fetch(DICT_DIC_URL)
   const aff = await affRes.text()
   const dic = await dicRes.text()
 
+  if (typeof nspell !== 'function') throw new Error('nspell failed to load from CDN')
   spell = nspell(aff, dic)
   return spell
 }

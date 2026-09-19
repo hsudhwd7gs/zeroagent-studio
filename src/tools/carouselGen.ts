@@ -70,12 +70,12 @@ function renderSlide(slide: Slide, style: string, width: number, height: number)
   ctx.font = `bold ${Math.round(width / 14)}px Inter, Arial, sans-serif`
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
-  wrapAndDraw(ctx, slide.title.toUpperCase(), width / 2, height / 2 - 80, width - 120, width / 12, titleColor)
+  wrapAndDraw(ctx, slide.title.toUpperCase(), width / 2, height / 2 - 80, width - 120, width / 12)
 
   // Body
   ctx.font = `400 ${Math.round(width / 28)}px Inter, Arial, sans-serif`
   ctx.fillStyle = style === 'corporate' ? '#475569' : '#cbd5e1'
-  wrapAndDraw(ctx, slide.body, width / 2, height / 2 + 200, width - 200, width / 26, style === 'corporate' ? '#475569' : '#cbd5e1')
+  wrapAndDraw(ctx, slide.body, width / 2, height / 2 + 200, width - 200, width / 26)
 
   return canvas.toDataURL('image/png')
 }
@@ -87,7 +87,6 @@ function wrapAndDraw(
   startCy: number,
   maxWidth: number,
   lineHeight: number,
-  _color: string,
 ): void {
   const words = text.split(' ')
   const lines: string[] = []

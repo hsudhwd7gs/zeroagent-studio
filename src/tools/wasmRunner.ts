@@ -27,14 +27,17 @@ interface WasmResult {
   memorySize?: number
 }
 
+// Shared handle to the most recently instantiated module's memory, so imported
+// helpers like console_log_string can read strings from linear memory.
+let activeMemory: WebAssembly.Memory | undefined
+
 const DEFAULT_IMPORTS: WebAssembly.Imports = {
   env: {
     // Console logging from WASM (if the module imports it)
     console_log: (value: number) => console.log('[WASM]', value),
     console_log_string: (ptr: number, len: number) => {
-      const memory = (window as any).__wasm_memory as WebAssembly.Memory | undefined
-      if (!memory) return
-      const bytes = new Uint8Array(memory.buffer, ptr, len)
+      if (!activeMemory) return
+      const bytes = new Uint8Array(activeMemory.buffer, ptr, len)
       console.log('[WASM]', new TextDecoder().decode(bytes))
     },
     // Math functions (commonly imported)
@@ -99,7 +102,7 @@ async function loadWasm(wasmUrl: string): Promise<WasmInstance> {
   }
 
   const memory = (instance.exports.memory as WebAssembly.Memory) || DEFAULT_IMPORTS.env!.memory as WebAssembly.Memory
-  ;(window as any).__wasm_memory = memory
+  activeMemory = memory
 
   return {
     exports: instance.exports as unknown as WasmExport,

@@ -1644,7 +1644,8 @@ body {
   border: 1px solid var(--glass-border);
   border-radius: 6px;
   padding: 4px 10px;
-  color: var(--text-muted);
+  /* text-secondary keeps this small control readable against the dark panel */
+  color: var(--text-secondary);
   font-size: 11px;
   cursor: pointer;
   font-family: inherit;
@@ -3331,7 +3332,8 @@ body {
   align-items: center;
   gap: 10px;
   font-size: 11px;
-  color: var(--text-muted);
+  /* text-secondary (not muted) keeps small hint text above WCAG AA contrast */
+  color: var(--text-secondary);
   margin: 0;
 }
 .inspector-empty-tip-row kbd {

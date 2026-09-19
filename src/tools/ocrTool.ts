@@ -3,10 +3,25 @@
 
 const TESSERACT_URL = 'https://esm.sh/tesseract.js@5.1.1'
 
-let TesseractRef: any | null = null
-async function loadTesseract(): Promise<any> {
+interface TesseractResultData {
+  text: string
+  confidence: number
+  words?: unknown[]
+}
+
+interface TesseractModule {
+  recognize: (
+    url: string,
+    lang: string,
+    options?: { logger?: (m: { status: string; progress: number }) => void }
+  ) => Promise<{ data: TesseractResultData }>
+}
+
+let TesseractRef: TesseractModule | null = null
+async function loadTesseract(): Promise<TesseractModule> {
   if (TesseractRef) return TesseractRef
-  TesseractRef = await import(/* @vite-ignore */ TESSERACT_URL)
+  const mod = (await import(/* @vite-ignore */ TESSERACT_URL)) as unknown as TesseractModule
+  TesseractRef = mod
   return TesseractRef
 }
 

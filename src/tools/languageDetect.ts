@@ -3,10 +3,21 @@
 
 const FRANC_URL = 'https://esm.sh/franc@6.2.0'
 
-let francRef: any | null = null
-async function loadFranc(): Promise<any> {
+interface FrancOptions {
+  only?: string[]
+  minLength?: number
+}
+
+interface FrancModule {
+  franc: (text: string, options?: FrancOptions) => string
+  francAll: (text: string, options?: FrancOptions) => Array<[string, number]>
+}
+
+let francRef: FrancModule | null = null
+async function loadFranc(): Promise<FrancModule> {
   if (francRef) return francRef
-  francRef = await import(/* @vite-ignore */ FRANC_URL)
+  const mod = (await import(/* @vite-ignore */ FRANC_URL)) as unknown as FrancModule
+  francRef = mod
   return francRef
 }
 
@@ -37,7 +48,7 @@ export async function runLanguageDetect(
     language: code,
     languageName: languageNames[code] ?? code,
     alternatives: Array.isArray(all)
-      ? all.map(([lang, score]: [string, number]) => ({
+      ? all.map(([lang, score]) => ({
           code: lang,
           name: languageNames[lang] ?? lang,
           score: Math.round(score * 1000) / 1000,

@@ -103,17 +103,27 @@ export default function CommandPalette({ open, onClose }: { open: boolean; onClo
       .slice(0, 50)
   }, [items, query])
 
-  useEffect(() => {
+  // Reset search state whenever the palette opens (adjust-during-render pattern).
+  const [prevOpen, setPrevOpen] = useState(open)
+  if (open !== prevOpen) {
+    setPrevOpen(open)
     if (open) {
       setQuery('')
       setActiveIndex(0)
-      setTimeout(() => inputRef.current?.focus(), 50)
+    }
+  }
+
+  useEffect(() => {
+    if (open) {
+      const t = setTimeout(() => inputRef.current?.focus(), 50)
+      return () => clearTimeout(t)
     }
   }, [open])
 
-  useEffect(() => {
+  const handleQueryChange = (value: string) => {
+    setQuery(value)
     setActiveIndex(0)
-  }, [query])
+  }
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -164,7 +174,7 @@ export default function CommandPalette({ open, onClose }: { open: boolean; onClo
                 className="cmdk-input"
                 placeholder="Search tools and actions…"
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={(e) => handleQueryChange(e.target.value)}
                 onKeyDown={handleKeyDown}
                 disabled={isRunning}
               />
