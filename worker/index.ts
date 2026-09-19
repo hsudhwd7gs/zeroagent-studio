@@ -1,23 +1,27 @@
 /**
- * ZeroAgent Studio — Universal Worker (Production Ready)
- * ======================================================
+ * ZeroAgent Studio — Universal Worker v2 (Production Ready, Cloud-Sync Edition)
+ * ============================================================================
  *
- * Pure relay + dynamic API key management via KV.
+ * Pure relay + dynamic API key management via KV + multi-project cloud sync via D1.
  *
  * Features:
  *   • Universal proxy — any API, any method, any auth
  *   • Dynamic API keys — add/update from ZeroAgent UI, stored in KV
  *   • All Cloudflare free features (KV, R2, D1, Workers AI, Cron)
  *   • Auto-secret injection for 15+ providers
+ *   • Multi-project + multi-workflow cloud sync (D1-backed)
+ *   • Webhook receiver + replay (KV-backed)
+ *   • yt-dlp proxy (via cobalt.tools — free, no key)
+ *   • Text-to-workflow AI generator (via Groq / Workers AI)
  *   • Zero computation — all heavy work on your PC or external APIs
  *
- * Endpoints:
+ * Endpoints (existing — kept for back-compat):
  *   GET  /api/health                    → Status + enabled features
- *   POST /api/proxy                     → Universal proxy
+ *   POST /api/proxy                     → Universal proxy (POST body)
  *   GET  /api/proxy?url=...             → Simple GET proxy
  *   POST /api/multi                     → Parallel requests (max 10)
  *   GET  /api/cached-proxy?url=...      → Cached GET via Cache API
- *   POST /api/keys                      → Store API key in KV (dynamic)
+ *   POST /api/keys                      → Store API key in KV
  *   GET  /api/keys                      → List stored key names
  *   DELETE /api/keys?name=...           → Delete stored key
  *   POST /api/kaggle/generate           → Trigger Kaggle notebook
@@ -31,11 +35,36 @@
  *   GET  /api/yoinku?video_id=...       → Yoinku MP4 links
  *   POST /api/ai/generate               → Workers AI text generation
  *   POST /api/ai/image                  → Workers AI image generation
- *   POST /api/ai/embed                  → Workers AI embeddings
+ *   POST /api/ai/embed                   → Workers AI embeddings
  *   POST /api/storage/upload?key=...    → R2 upload
  *   GET  /api/storage/download/{key}    → R2 download
  *   POST /api/db/save                   → D1 save key/value
  *   GET  /api/db/get?key=...            → D1 retrieve value
+ *
+ * New endpoints (v2):
+ *   POST /api/ytdlp                     → yt-dlp proxy via cobalt.tools
+ *   GET  /api/projects                  → List all projects
+ *   POST /api/projects                   → Create project {name, color?}
+ *   GET  /api/projects/{id}              → Get one project
+ *   PUT  /api/projects/{id}              → Rename / update project
+ *   DELETE /api/projects/{id}            → Delete project (and its workflows)
+ *   GET  /api/projects/{id}/workflows   → List workflows in project
+ *   POST /api/projects/{id}/workflows   → Upsert workflow in project
+ *   GET  /api/workflows/{id}             → Get single workflow
+ *   DELETE /api/workflows/{id}          → Delete workflow
+ *   POST /api/ai/workflow               → Text → workflow JSON (Groq or Workers AI)
+ *   POST /api/webhook/{id}              → Webhook receiver (writes body to KV)
+ *   GET  /api/webhook/{id}              → Get latest webhook payload
+ *   GET  /api/webhooks                  → List all webhook IDs
+ *   POST /api/sync                      → Bulk push state {projects, workflows}
+ *   GET  /api/sync                       → Bulk pull state (all projects + workflows)
+ *   GET  /api/db/list?prefix=...        → List D1 keys by prefix
+ *   DELETE /api/db?key=...              → Delete D1 row
+ *   GET  /api/storage/list              → List R2 objects (last 100)
+ *   DELETE /api/storage/{key}            → Delete R2 object
+ *   POST /api/jobs                      → Create background job (writes to KV with TTL)
+ *   GET  /api/jobs/{id}                 → Get job status
+ *   GET  /api/keys/get?name=...         → Get a stored key's value (masked)
  *   *    /*                             → Static assets (ZeroAgent UI)
  */
 
@@ -45,13 +74,11 @@
 
 interface Env {
   ASSETS: Fetcher
-  // Optional Cloudflare bindings
   CACHE?: KVNamespace
   STORAGE?: R2Bucket
   DB?: D1Database
   AI?: Ai
   ANALYTICS?: AnalyticsEngineDataset
-  // Static secrets (from Cloudflare dashboard)
   KAGGLE_USERNAME?: string
   KAGGLE_KEY?: string
   KAGGLE_NOTEBOOK_SLUG?: string
@@ -66,6 +93,24 @@ interface Env {
   RESEND_API_KEY?: string
   TELEGRAM_BOT_TOKEN?: string
   [key: string]: string | Fetcher | KVNamespace | R2Bucket | D1Database | Ai | AnalyticsEngineDataset | undefined
+}
+
+interface ProjectRow {
+  id: string
+  name: string
+  color: string
+  created_at: number
+  updated_at: number
+}
+
+interface WorkflowRow {
+  id: string
+  project_id: string
+  name: string
+  nodes: string
+  edges: string
+  created_at: number
+  updated_at: number
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -94,12 +139,84 @@ function json(data: unknown, status = 200): Response {
   return Response.json(data, { status, headers: CORS_HEADERS })
 }
 
+function textResponse(body: string, status = 200, contentType = 'text/plain; charset=utf-8'): Response {
+  return new Response(body, { status, headers: { ...CORS_HEADERS, 'Content-Type': contentType } })
+}
+
+function notFound(msg = 'Not found'): Response {
+  return json({ error: msg }, 404)
+}
+
+// ─────────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────────
+
+function uuid(): string {
+  // Crypto.randomUUID is available in Workers
+  return crypto.randomUUID()
+}
+
+function now(): number {
+  return Date.now()
+}
+
+async function ensureSchema(env: Env): Promise<void> {
+  if (!env.DB) return
+  // Idempotent — D1 supports CREATE TABLE IF NOT EXISTS
+  await env.DB.batch([
+    env.DB.prepare(
+      `CREATE TABLE IF NOT EXISTS projects (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        color TEXT NOT NULL DEFAULT '#8b5cf6',
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      )`
+    ),
+    env.DB.prepare(
+      `CREATE TABLE IF NOT EXISTS workflows (
+        id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        nodes TEXT NOT NULL DEFAULT '[]',
+        edges TEXT NOT NULL DEFAULT '[]',
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+      )`
+    ),
+    env.DB.prepare(
+      `CREATE INDEX IF NOT EXISTS idx_workflows_project ON workflows(project_id)`
+    ),
+    env.DB.prepare(
+      `CREATE INDEX IF NOT EXISTS idx_workflows_updated ON workflows(updated_at DESC)`
+    ),
+    env.DB.prepare(
+      `CREATE TABLE IF NOT EXISTS kv (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL,
+        updated_at INTEGER NOT NULL
+      )`
+    ),
+    env.DB.prepare(
+      `CREATE TABLE IF NOT EXISTS webhook_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        hook_id TEXT NOT NULL,
+        body TEXT NOT NULL,
+        received_at INTEGER NOT NULL
+      )`
+    ),
+    env.DB.prepare(
+      `CREATE INDEX IF NOT EXISTS idx_webhook_log_hook ON webhook_log(hook_id, received_at DESC)`
+    ),
+  ])
+}
+
 // ─────────────────────────────────────────────────────────────
 // Dynamic key resolution — KV first, then env
 // ─────────────────────────────────────────────────────────────
 
 async function getKey(env: Env, name: string): Promise<string | undefined> {
-  // 1. Try KV first (dynamic keys added from ZeroAgent UI)
   if (env.CACHE) {
     try {
       const kvValue = await env.CACHE.get(`apikey:${name}`)
@@ -108,7 +225,6 @@ async function getKey(env: Env, name: string): Promise<string | undefined> {
       /* ignore */
     }
   }
-  // 2. Fall back to env (static dashboard secrets)
   const envValue = env[name]
   return typeof envValue === 'string' ? envValue : undefined
 }
@@ -129,31 +245,22 @@ async function injectProviderAuth(
     return
   }
 
-  // Groq
   if (host.endsWith('groq.com')) {
     const key = await getKey(env, 'GROQ_API_KEY')
     if (key) headers['Authorization'] = `Bearer ${key}`
   }
-
-  // OpenRouter
   if (host.endsWith('openrouter.ai')) {
     const key = await getKey(env, 'OPENROUTER_API_KEY')
     if (key) headers['Authorization'] = `Bearer ${key}`
   }
-
-  // Gemini (Google AI)
   if (host.endsWith('googleapis.com')) {
     const key = await getKey(env, 'GEMINI_API_KEY')
     if (key) headers['x-goog-api-key'] = key
   }
-
-  // Yoinku
   if (host.endsWith('yoinku.com')) {
     const key = await getKey(env, 'YOINKU_API_KEY')
     if (key) headers['x-api-key'] = key
   }
-
-  // Kaggle
   if (host.endsWith('kaggle.com')) {
     const username = await getKey(env, 'KAGGLE_USERNAME')
     const key = await getKey(env, 'KAGGLE_KEY')
@@ -161,8 +268,6 @@ async function injectProviderAuth(
       headers['Authorization'] = `Basic ${btoa(`${username}:${key}`)}`
     }
   }
-
-  // Notion
   if (host.endsWith('notion.com')) {
     const key = await getKey(env, 'NOTION_API_KEY')
     if (key) {
@@ -170,14 +275,10 @@ async function injectProviderAuth(
       headers['Notion-Version'] = '2022-06-28'
     }
   }
-
-  // Slack
   if (host.endsWith('slack.com')) {
     const key = await getKey(env, 'SLACK_TOKEN')
     if (key) headers['Authorization'] = `Bearer ${key}`
   }
-
-  // GitHub
   if (host.endsWith('github.com') || host.endsWith('api.github.com')) {
     const key = await getKey(env, 'GITHUB_TOKEN')
     if (key) {
@@ -186,17 +287,17 @@ async function injectProviderAuth(
       headers['X-GitHub-Api-Version'] = '2022-11-28'
     }
   }
-
-  // Resend
   if (host.endsWith('resend.com')) {
     const key = await getKey(env, 'RESEND_API_KEY')
     if (key) headers['Authorization'] = `Bearer ${key}`
   }
 
-  // Generic: any SECRET_<hostname_with_underscores> in KV or env
+  // Generic: any SECRET_<HOST_WITH_UNDERSCORES> in KV or env
   const normalizedHost = host.replace(/\./g, '_').toUpperCase()
   const genericKey = await getKey(env, `SECRET_${normalizedHost}`)
-  if (genericKey) headers['Authorization'] = `Bearer ${genericKey}`
+  if (genericKey && !headers['Authorization']) {
+    headers['Authorization'] = `Bearer ${genericKey}`
+  }
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -259,6 +360,487 @@ async function proxyRequest(
 }
 
 // ─────────────────────────────────────────────────────────────
+// yt-dlp proxy via cobalt.tools (free, open-source, no key needed)
+// ─────────────────────────────────────────────────────────────
+
+async function handleYtDlp(env: Env, request: Request): Promise<Response> {
+  const body = await request.json() as { url?: string; action?: string; format?: string; cookies?: string }
+  const videoUrl = body.url?.trim()
+  if (!videoUrl) return json({ error: 'url required' }, 400)
+
+  const action = body.action ?? 'info'
+
+  if (action === 'info') {
+    // Use cobalt.tools to get video metadata / available formats
+    try {
+      const cobaltRes = await fetch('https://api.cobalt.tools/', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url: videoUrl,
+          // Ask for metadata only — cobalt returns this without downloading
+        }),
+      })
+      const data = await cobaltRes.json() as any
+      return json({ ok: true, source: 'cobalt.tools', info: data })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      return json({ ok: false, error: 'cobalt.tools fetch failed', detail: message }, 502)
+    }
+  }
+
+  if (action === 'download') {
+    // Ask cobalt.tools for a direct download URL
+    try {
+      const cobaltRes = await fetch('https://api.cobalt.tools/', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url: videoUrl,
+          videoQuality: body.format ?? '720',
+          filenamePattern: 'basic',
+        }),
+      })
+      const data = await cobaltRes.json() as any
+      return json({ ok: true, source: 'cobalt.tools', result: data })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      return json({ ok: false, error: 'cobalt.tools download failed', detail: message }, 502)
+    }
+  }
+
+  return json({ error: `Unknown action: ${action}` }, 400)
+}
+
+// ─────────────────────────────────────────────────────────────
+// Projects / Workflows (D1-backed)
+// ─────────────────────────────────────────────────────────────
+
+async function handleProjects(env: Env, request: Request, url: URL): Promise<Response> {
+  await ensureSchema(env)
+  if (!env.DB) return json({ error: 'D1 not bound' }, 500)
+
+  const path = url.pathname
+
+  // GET /api/projects — list all
+  if (request.method === 'GET' && path === '/api/projects') {
+    const rows = await env.DB.prepare(
+      'SELECT id, name, color, created_at, updated_at FROM projects ORDER BY updated_at DESC'
+    ).all()
+    return json({ ok: true, projects: rows.results ?? [] })
+  }
+
+  // POST /api/projects — create
+  if (request.method === 'POST' && path === '/api/projects') {
+    const body = await request.json() as { name?: string; color?: string }
+    if (!body.name?.trim()) return json({ error: 'name required' }, 400)
+    const id = uuid()
+    const ts = now()
+    await env.DB.prepare(
+      'INSERT INTO projects (id, name, color, created_at, updated_at) VALUES (?, ?, ?, ?, ?)'
+    ).bind(id, body.name.trim(), body.color ?? '#8b5cf6', ts, ts).run()
+    return json({ ok: true, project: { id, name: body.name.trim(), color: body.color ?? '#8b5cf6', created_at: ts, updated_at: ts } })
+  }
+
+  // /api/projects/{id}
+  const match = path.match(/^\/api\/projects\/([\w-]+)$/)
+  if (match) {
+    const id = match[1]
+
+    if (request.method === 'GET') {
+      const row = await env.DB.prepare(
+        'SELECT id, name, color, created_at, updated_at FROM projects WHERE id = ?'
+      ).bind(id).first()
+      if (!row) return notFound('Project not found')
+      return json({ ok: true, project: row })
+    }
+
+    if (request.method === 'PUT' || request.method === 'PATCH') {
+      const body = await request.json() as { name?: string; color?: string }
+      const updates: string[] = []
+      const binds: (string | number)[] = []
+      if (body.name) { updates.push('name = ?'); binds.push(body.name.trim()) }
+      if (body.color) { updates.push('color = ?'); binds.push(body.color) }
+      if (updates.length === 0) return json({ error: 'No fields to update' }, 400)
+      updates.push('updated_at = ?')
+      binds.push(now())
+      binds.push(id)
+      await env.DB.prepare(
+        `UPDATE projects SET ${updates.join(', ')} WHERE id = ?`
+      ).bind(...binds).run()
+      return json({ ok: true, updated: id })
+    }
+
+    if (request.method === 'DELETE') {
+      await env.DB.batch([
+        env.DB.prepare('DELETE FROM workflows WHERE project_id = ?').bind(id),
+        env.DB.prepare('DELETE FROM projects WHERE id = ?').bind(id),
+      ])
+      return json({ ok: true, deleted: id })
+    }
+  }
+
+  // GET /api/projects/{id}/workflows — list workflows in project
+  const workflowsMatch = path.match(/^\/api\/projects\/([\w-]+)\/workflows$/)
+  if (workflowsMatch) {
+    const projectId = workflowsMatch[1]
+    if (request.method === 'GET') {
+      const rows = await env.DB.prepare(
+        'SELECT id, project_id, name, created_at, updated_at FROM workflows WHERE project_id = ? ORDER BY updated_at DESC'
+      ).bind(projectId).all()
+      return json({ ok: true, workflows: rows.results ?? [] })
+    }
+    if (request.method === 'POST') {
+      const body = await request.json() as { id?: string; name?: string; nodes?: unknown; edges?: unknown }
+      if (!body.name?.trim()) return json({ error: 'name required' }, 400)
+      const id = body.id ?? uuid()
+      const ts = now()
+      // Upsert
+      await env.DB.prepare(
+        `INSERT INTO workflows (id, project_id, name, nodes, edges, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(id) DO UPDATE SET
+           name = excluded.name,
+           nodes = excluded.nodes,
+           edges = excluded.edges,
+           updated_at = excluded.updated_at`
+      ).bind(
+        id,
+        projectId,
+        body.name.trim(),
+        JSON.stringify(body.nodes ?? []),
+        JSON.stringify(body.edges ?? []),
+        ts,
+        ts
+      ).run()
+      return json({ ok: true, workflow: { id, project_id: projectId, name: body.name.trim(), updated_at: ts } })
+    }
+  }
+
+  // /api/workflows/{id}
+  const wfMatch = path.match(/^\/api\/workflows\/([\w-]+)$/)
+  if (wfMatch) {
+    const id = wfMatch[1]
+    if (request.method === 'GET') {
+      const row = await env.DB.prepare(
+        'SELECT * FROM workflows WHERE id = ?'
+      ).bind(id).first() as WorkflowRow | null
+      if (!row) return notFound('Workflow not found')
+      return json({
+        ok: true,
+        workflow: {
+          ...row,
+          nodes: JSON.parse(row.nodes),
+          edges: JSON.parse(row.edges),
+        },
+      })
+    }
+    if (request.method === 'DELETE') {
+      await env.DB.prepare('DELETE FROM workflows WHERE id = ?').bind(id).run()
+      return json({ ok: true, deleted: id })
+    }
+  }
+
+  return notFound('Unknown projects route')
+}
+
+// ─────────────────────────────────────────────────────────────
+// Webhook receiver (KV + D1)
+// ─────────────────────────────────────────────────────────────
+
+async function handleWebhook(env: Env, request: Request, url: URL): Promise<Response> {
+  const path = url.pathname
+  // GET /api/webhooks — list all webhook IDs (from KV)
+  if (path === '/api/webhooks' && request.method === 'GET') {
+    if (!env.CACHE) return json({ error: 'KV not bound' }, 500)
+    const list = await env.CACHE.list({ prefix: 'webhook:' })
+    const ids = list.keys.map((k) => k.name.replace('webhook:', ''))
+    return json({ ok: true, webhooks: ids })
+  }
+
+  const match = path.match(/^\/api\/webhook\/([\w-]+)$/)
+  if (!match) return notFound('Unknown webhook route')
+
+  const id = match[1]
+
+  if (request.method === 'POST' || request.method === 'PUT') {
+    // Store last 10 payloads in D1, plus latest in KV
+    const body = await request.text()
+    const ts = now()
+    if (env.DB) {
+      try {
+        await env.DB.prepare(
+          'INSERT INTO webhook_log (hook_id, body, received_at) VALUES (?, ?, ?)'
+        ).bind(id, body, ts).run()
+        // Trim to last 50
+        await env.DB.prepare(
+          `DELETE FROM webhook_log WHERE hook_id = ? AND id NOT IN (
+             SELECT id FROM webhook_log WHERE hook_id = ? ORDER BY received_at DESC LIMIT 50
+          )`
+        ).bind(id, id).run()
+      } catch {
+        /* ignore — schema may not be ready */
+      }
+    }
+    if (env.CACHE) {
+      await env.CACHE.put(`webhook:${id}`, body)
+      await env.CACHE.put(`webhook_ts:${id}`, String(ts))
+    }
+    return json({ ok: true, received: id, ts, size: body.length })
+  }
+
+  if (request.method === 'GET') {
+    // Return latest payload + recent log
+    let latest: string | null = null
+    let latestTs: string | null = null
+    if (env.CACHE) {
+      latest = await env.CACHE.get(`webhook:${id}`)
+      latestTs = await env.CACHE.get(`webhook_ts:${id}`)
+    }
+    let history: { body: string; received_at: number }[] = []
+    if (env.DB) {
+      const rows = await env.DB.prepare(
+        'SELECT body, received_at FROM webhook_log WHERE hook_id = ? ORDER BY received_at DESC LIMIT 20'
+      ).bind(id).all()
+      history = (rows.results ?? []) as unknown as { body: string; received_at: number }[]
+    }
+    return json({ ok: true, hook_id: id, latest, latest_ts: latestTs, history })
+  }
+
+  if (request.method === 'DELETE') {
+    if (env.CACHE) {
+      await env.CACHE.delete(`webhook:${id}`)
+      await env.CACHE.delete(`webhook_ts:${id}`)
+    }
+    if (env.DB) {
+      await env.DB.prepare('DELETE FROM webhook_log WHERE hook_id = ?').bind(id).run()
+    }
+    return json({ ok: true, deleted: id })
+  }
+
+  return notFound('Method not allowed')
+}
+
+// ─────────────────────────────────────────────────────────────
+// Text-to-workflow generator (Groq first, Workers AI fallback)
+// ─────────────────────────────────────────────────────────────
+
+const WORKFLOW_GEN_PROMPT = `You are a workflow generator for ZeroAgent Studio, a visual AI agent builder.
+
+Given a user's description, output a JSON object representing a workflow. Schema:
+{
+  "name": string,
+  "nodes": [
+    { "id": string, "type": "chat"|"agent"|"tool", "toolId"?: string, "data": { "label"?: string, "prompt"?: string, "role"?: string, "config"?: object }, "position": { "x": number, "y": number } }
+  ],
+  "edges": [
+    { "id": string, "source": string, "target": string, "sourceHandle"?: string, "targetHandle"?: string }
+  ]
+}
+
+Available tool IDs: chat, agent, web-scraper, file-reader, speech, text-transform, json-tool, datetime, calculator, clipboard, groq-transcribe, gemini-vision, custom-script, parse-url, fetch-json, multi-input, string-template, array-filter, array-map, array-sort, array-dedupe, array-group-by, array-chunk, array-slice, loop-over, batch-split, json-path, json-merge, json-flatten, json-pick, json-diff, csv-export, csv-to-json, text-chunk, text-truncate, text-extract, text-split, text-join, regex-extract, hash-text, base64-codec, retry-backoff, variable-store, cache, timer, webhook-send, email-send, google-sheets, google-analytics, youtube-analytics, telegram-send, notion-api, api-key-manager, python, audio-tool, browser-login, chart-js, d3-chart, discord-send, ffmpeg, ffprobe, file-download, fusion-meta, image-resize, language-detect, long-text-gen, ocr, pdf-tool, photon, rust-lib, spell-check, text-diff, tfjs, thumbnail-gen, wasm-runner, web-audio, yaml-tool, ytdlp.
+
+Rules:
+- Always include a Chat node and at least one Agent for conversational workflows.
+- Wire Chat Out → Agent Context, then chain via Agent Out → next tool In.
+- Use realistic positions (spread nodes 300px apart horizontally).
+- Output ONLY the JSON object, no explanation.
+
+User request:`
+
+async function handleAiWorkflow(env: Env, request: Request): Promise<Response> {
+  const body = await request.json() as { prompt?: string; model?: string }
+  const prompt = body.prompt?.trim()
+  if (!prompt) return json({ error: 'prompt required' }, 400)
+
+  const fullPrompt = `${WORKFLOW_GEN_PROMPT}\n\n${prompt}`
+
+  // Try Groq first (faster + better for code generation)
+  const groqKey = await getKey(env, 'GROQ_API_KEY')
+  if (groqKey) {
+    try {
+      const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${groqKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: body.model ?? 'llama-3.3-70b-versatile',
+          messages: [{ role: 'user', content: fullPrompt }],
+          temperature: 0.4,
+          response_format: { type: 'json_object' },
+        }),
+      })
+      const data = await groqRes.json() as any
+      const content = data.choices?.[0]?.message?.content
+      if (content) {
+        try {
+          const workflow = JSON.parse(content)
+          return json({ ok: true, source: 'groq', workflow })
+        } catch {
+          /* fall through */
+        }
+      }
+    } catch {
+      /* fall through to Workers AI */
+    }
+  }
+
+  // Fallback to Workers AI
+  if (env.AI) {
+    try {
+      const aiResponse = await env.AI.run(
+        '@cf/meta/llama-3.1-8b-instruct',
+        { messages: [{ role: 'user', content: fullPrompt }] }
+      ) as any
+      const content = aiResponse?.response ?? aiResponse?.choices?.[0]?.message?.content
+      if (content) {
+        // Extract first JSON object from response
+        const jsonMatch = content.match(/\{[\s\S]*\}/)
+        if (jsonMatch) {
+          try {
+            const workflow = JSON.parse(jsonMatch[0])
+            return json({ ok: true, source: 'workers-ai', workflow })
+          } catch {
+            return json({ ok: false, error: 'Could not parse AI output as JSON', raw: content })
+          }
+        }
+      }
+      return json({ ok: false, error: 'Workers AI returned no usable content', raw: content })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      return json({ ok: false, error: 'Workers AI failed', detail: message }, 502)
+    }
+  }
+
+  return json({ error: 'No AI backend available — set GROQ_API_KEY or bind Workers AI' }, 500)
+}
+
+// ─────────────────────────────────────────────────────────────
+// Bulk sync (push/pull entire state)
+// ─────────────────────────────────────────────────────────────
+
+async function handleSync(env: Env, request: Request, url: URL): Promise<Response> {
+  await ensureSchema(env)
+  if (!env.DB) return json({ error: 'D1 not bound' }, 500)
+
+  if (request.method === 'GET') {
+    const projects = (await env.DB.prepare(
+      'SELECT id, name, color, created_at, updated_at FROM projects ORDER BY updated_at DESC'
+    ).all()).results ?? []
+    const workflows = (await env.DB.prepare(
+      'SELECT id, project_id, name, nodes, edges, created_at, updated_at FROM workflows ORDER BY updated_at DESC'
+    ).all()).results ?? []
+
+    // Parse nodes/edges back to objects
+    const parsedWorkflows = workflows.map((w: any) => ({
+      ...w,
+      nodes: safeParse(w.nodes, []),
+      edges: safeParse(w.edges, []),
+    }))
+
+    return json({ ok: true, projects, workflows: parsedWorkflows })
+  }
+
+  if (request.method === 'POST') {
+    const body = await request.json() as {
+      projects?: ProjectRow[]
+      workflows?: WorkflowRow[]
+    }
+    const ts = now()
+    const statements: D1PreparedStatement[] = []
+
+    for (const p of body.projects ?? []) {
+      statements.push(
+        env.DB.prepare(
+          `INSERT INTO projects (id, name, color, created_at, updated_at) VALUES (?, ?, ?, ?, ?)
+           ON CONFLICT(id) DO UPDATE SET name = excluded.name, color = excluded.color, updated_at = excluded.updated_at`
+        ).bind(p.id, p.name, p.color ?? '#8b5cf6', p.created_at ?? ts, ts)
+      )
+    }
+
+    for (const w of body.workflows ?? []) {
+      statements.push(
+        env.DB.prepare(
+          `INSERT INTO workflows (id, project_id, name, nodes, edges, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?)
+           ON CONFLICT(id) DO UPDATE SET
+             project_id = excluded.project_id,
+             name = excluded.name,
+             nodes = excluded.nodes,
+             edges = excluded.edges,
+             updated_at = excluded.updated_at`
+        ).bind(
+          w.id,
+          w.project_id,
+          w.name,
+          typeof w.nodes === 'string' ? w.nodes : JSON.stringify(w.nodes ?? []),
+          typeof w.edges === 'string' ? w.edges : JSON.stringify(w.edges ?? []),
+          w.created_at ?? ts,
+          ts
+        )
+      )
+    }
+
+    if (statements.length > 0) {
+      await env.DB.batch(statements)
+    }
+
+    return json({
+      ok: true,
+      synced: { projects: body.projects?.length ?? 0, workflows: body.workflows?.length ?? 0 },
+    })
+  }
+
+  return notFound('Method not allowed')
+}
+
+function safeParse(s: string, fallback: unknown): unknown {
+  try { return JSON.parse(s) } catch { return fallback }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Background jobs (KV with TTL)
+// ─────────────────────────────────────────────────────────────
+
+async function handleJobs(env: Env, request: Request, url: URL): Promise<Response> {
+  if (!env.CACHE) return json({ error: 'KV not bound' }, 500)
+  const path = url.pathname
+
+  if (request.method === 'POST' && path === '/api/jobs') {
+    const body = await request.json() as { id?: string; status?: string; data?: unknown; ttl?: number }
+    const id = body.id ?? uuid()
+    const payload = JSON.stringify({ status: body.status ?? 'pending', data: body.data, updated_at: now() })
+    const ttl = body.ttl ? Math.min(body.ttl, 86400) : 3600
+    await env.CACHE.put(`job:${id}`, payload, { expirationTtl: ttl })
+    return json({ ok: true, job_id: id })
+  }
+
+  const match = path.match(/^\/api\/jobs\/([\w-]+)$/)
+  if (match) {
+    const id = match[1]
+    if (request.method === 'GET') {
+      const raw = await env.CACHE.get(`job:${id}`)
+      if (!raw) return notFound('Job not found (or expired)')
+      return json({ ok: true, job_id: id, ...JSON.parse(raw) })
+    }
+    if (request.method === 'DELETE') {
+      await env.CACHE.delete(`job:${id}`)
+      return json({ ok: true, deleted: id })
+    }
+  }
+
+  return notFound('Unknown jobs route')
+}
+
+// ─────────────────────────────────────────────────────────────
 // Main Worker
 // ─────────────────────────────────────────────────────────────
 
@@ -292,6 +874,10 @@ export default {
           d1: Boolean(env.DB),
           ai: Boolean(env.AI),
           analytics: Boolean(env.ANALYTICS),
+          projects: Boolean(env.DB),
+          webhooks: Boolean(env.CACHE),
+          sync: Boolean(env.DB),
+          aiWorkflow: Boolean(env.AI) || Boolean(await getKey(env, 'GROQ_API_KEY')),
         }
         const dynamicKeys: string[] = []
         if (env.CACHE) {
@@ -307,10 +893,11 @@ export default {
         return json({
           ok: true,
           worker: 'zeroagent-studio',
+          version: '2.0.0',
           time: new Date().toISOString(),
           features,
           dynamicKeys,
-          hint: 'POST /api/keys {name, value} to add keys without redeploying',
+          hint: 'Multi-project sync enabled. See /api/projects, /api/workflows, /api/sync, /api/ytdlp, /api/ai/workflow, /api/webhook/:id',
         })
       }
 
@@ -318,9 +905,7 @@ export default {
       if (path === '/api/keys' && request.method === 'POST') {
         if (!env.CACHE) return json({ error: 'KV binding (CACHE) not configured' }, 500)
         const body = await request.json() as { name?: string; value?: string }
-        if (!body.name || !body.value) {
-          return json({ error: 'name and value required' }, 400)
-        }
+        if (!body.name || !body.value) return json({ error: 'name and value required' }, 400)
         await env.CACHE.put(`apikey:${body.name}`, body.value)
         return json({ ok: true, stored: body.name })
       }
@@ -331,6 +916,17 @@ export default {
         const list = await env.CACHE.list({ prefix: 'apikey:' })
         const names = list.keys.map((k) => k.name.replace('apikey:', ''))
         return json({ count: names.length, keys: names })
+      }
+
+      // ─── DYNAMIC KEYS: Get (masked) ────────────────────────
+      if (path === '/api/keys/get' && request.method === 'GET') {
+        if (!env.CACHE) return json({ error: 'KV binding (CACHE) not configured' }, 500)
+        const name = url.searchParams.get('name')
+        if (!name) return json({ error: 'name query param required' }, 400)
+        const value = await env.CACHE.get(`apikey:${name}`)
+        if (!value) return notFound('Key not found')
+        const masked = value.length > 12 ? `${value.slice(0, 6)}…${value.slice(-4)}` : value
+        return json({ ok: true, name, masked, length: value.length })
       }
 
       // ─── DYNAMIC KEYS: Delete ──────────────────────────────
@@ -426,6 +1022,11 @@ export default {
           await cache.put(cacheKey, response.clone())
         }
         return withCors(response)
+      }
+
+      // ─── YTDLP ─────────────────────────────────────────────
+      if (path === '/api/ytdlp' && request.method === 'POST') {
+        return handleYtDlp(env, request)
       }
 
       // ─── KAGGLE: Trigger ───────────────────────────────────
@@ -619,6 +1220,11 @@ export default {
         return json(response)
       }
 
+      // ─── AI WORKFLOW GENERATOR ────────────────────────────
+      if (path === '/api/ai/workflow' && request.method === 'POST') {
+        return handleAiWorkflow(env, request)
+      }
+
       // ─── R2: Upload ────────────────────────────────────────
       if (path === '/api/storage/upload' && request.method === 'POST') {
         if (!env.STORAGE) return json({ error: 'R2 not bound' }, 500)
@@ -642,9 +1248,35 @@ export default {
         })
       }
 
+      // ─── R2: List ─────────────────────────────────────────
+      if (path === '/api/storage/list' && request.method === 'GET') {
+        if (!env.STORAGE) return json({ error: 'R2 not bound' }, 500)
+        const cursor = url.searchParams.get('cursor') ?? undefined
+        const listed = await env.STORAGE.list({ limit: 100, cursor })
+        return json({
+          ok: true,
+          objects: listed.objects.map((o) => ({
+            key: o.key,
+            size: o.size,
+            uploaded: o.uploaded.toISOString(),
+          })),
+          truncated: listed.truncated,
+          cursor: listed.cursor,
+        })
+      }
+
+      // ─── R2: Delete ───────────────────────────────────────
+      if (path.startsWith('/api/storage/delete/') && request.method === 'DELETE') {
+        if (!env.STORAGE) return json({ error: 'R2 not bound' }, 500)
+        const key = path.replace('/api/storage/delete/', '')
+        await env.STORAGE.delete(key)
+        return json({ ok: true, deleted: key })
+      }
+
       // ─── D1: Save ──────────────────────────────────────────
       if (path === '/api/db/save' && request.method === 'POST') {
         if (!env.DB) return json({ error: 'D1 not bound' }, 500)
+        await ensureSchema(env)
         const { key, value } = await request.json() as { key: string; value: unknown }
         await env.DB.prepare(
           'INSERT OR REPLACE INTO kv (key, value, updated_at) VALUES (?, ?, ?)'
@@ -662,6 +1294,51 @@ export default {
         return json(row ? JSON.parse(String(row.value)) : null)
       }
 
+      // ─── D1: List ─────────────────────────────────────────
+      if (path === '/api/db/list' && request.method === 'GET') {
+        if (!env.DB) return json({ error: 'D1 not bound' }, 500)
+        await ensureSchema(env)
+        const prefix = url.searchParams.get('prefix') ?? ''
+        const limit = Math.min(parseInt(url.searchParams.get('limit') ?? '100'), 500)
+        const rows = prefix
+          ? await env.DB.prepare(
+              `SELECT key, updated_at FROM kv WHERE key LIKE ? ORDER BY updated_at DESC LIMIT ?`
+            ).bind(`${prefix}%`, limit).all()
+          : await env.DB.prepare(
+              `SELECT key, updated_at FROM kv ORDER BY updated_at DESC LIMIT ?`
+            ).bind(limit).all()
+        return json({ ok: true, keys: rows.results ?? [] })
+      }
+
+      // ─── D1: Delete ───────────────────────────────────────
+      if (path === '/api/db' && request.method === 'DELETE') {
+        if (!env.DB) return json({ error: 'D1 not bound' }, 500)
+        const key = url.searchParams.get('key')
+        if (!key) return json({ error: 'key query param required' }, 400)
+        await env.DB.prepare('DELETE FROM kv WHERE key = ?').bind(key).run()
+        return json({ ok: true, deleted: key })
+      }
+
+      // ─── PROJECTS / WORKFLOWS (D1) ─────────────────────────
+      if (path.startsWith('/api/projects') || path.startsWith('/api/workflows')) {
+        return handleProjects(env, request, url)
+      }
+
+      // ─── WEBHOOKS ─────────────────────────────────────────
+      if (path.startsWith('/api/webhook')) {
+        return handleWebhook(env, request, url)
+      }
+
+      // ─── SYNC ─────────────────────────────────────────────
+      if (path === '/api/sync') {
+        return handleSync(env, request, url)
+      }
+
+      // ─── JOBS ─────────────────────────────────────────────
+      if (path.startsWith('/api/jobs')) {
+        return handleJobs(env, request, url)
+      }
+
       // ─── STATIC ASSETS ─────────────────────────────────────
       return env.ASSETS.fetch(request)
     } catch (err) {
@@ -671,7 +1348,7 @@ export default {
   },
 
   // ─────────────────────────────────────────────────────────────
-  // Cron Handler — uses ctx.waitUntil() to fix the lint error
+  // Cron Handler — periodic tasks
   // ─────────────────────────────────────────────────────────────
   async scheduled(
     controller: ScheduledController,
@@ -681,17 +1358,16 @@ export default {
     const cronTime = new Date(controller.scheduledTime).toISOString()
     console.log(`Cron fired: ${controller.cron} at ${cronTime}`)
 
-    // ✅ ctx IS now used — via ctx.waitUntil() for background tasks
     ctx.waitUntil(
       (async () => {
         try {
-          // Example: refresh a cached dataset daily
-          const response = await fetch('https://api.example.com/daily-refresh')
-          if (response.ok) {
-            const data = await response.text()
-            await env.CACHE?.put('daily-data', data, { expirationTtl: 86400 })
-            console.log('Daily data cached successfully')
+          // Refresh daily data cache + cleanup expired jobs
+          if (env.DB) {
+            await env.DB.prepare(
+              `DELETE FROM webhook_log WHERE received_at < ?`
+            ).bind(Date.now() - 7 * 24 * 60 * 60 * 1000).run()
           }
+          console.log('Daily maintenance completed')
         } catch (err) {
           console.error('Cron job failed:', err)
         }

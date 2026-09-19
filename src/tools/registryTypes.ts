@@ -33,6 +33,8 @@ export type BrowserSubcategory =
   | 'csv'
   | 'compare'
   | 'curated'
+  | 'media'
+  | 'ai'
 
 export interface ToolAutoRunConfig {
   defaultEnabled: boolean

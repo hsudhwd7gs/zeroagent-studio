@@ -33,7 +33,7 @@ async function loadRustModule(url: string): Promise<RustModule> {
 }
 
 export async function runRustLib(
-  input: string,
+  _input: string,
   config: Record<string, string>
 ): Promise<string> {
   const wasmUrl = config.wasmUrl?.trim()

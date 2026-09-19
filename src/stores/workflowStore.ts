@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import type { Node, Edge, OnNodesChange, OnEdgesChange, OnConnect, Connection } from '@xyflow/react'
 import { applyNodeChanges, applyEdgeChanges, addEdge } from '@xyflow/react'
 import type { AgentNodeData, ToolNodeData, ChatNodeData } from '../types'
-import { saveWorkflow, loadWorkflows, deleteWorkflow } from '../db'
+import { saveWorkflow, loadWorkflows, loadWorkflowsByProject, deleteWorkflow } from '../db'
 import { migrateWorkflow } from '../lib/workflowMigration'
 import {
   applyImportedWorkflow,
@@ -23,6 +23,7 @@ import {
 } from '../lib/nodeCanvasLock'
 import { useConnectionStore } from './connectionStore'
 import { useDebugStore } from './debugStore'
+import { useProjectStore } from './projectStore'
 import { fitWorkflowView } from '../lib/flowCanvasRegistry'
 
 interface WorkflowState {
@@ -31,6 +32,8 @@ interface WorkflowState {
   workflowId: number | null
   workflowName: string
   isDirty: boolean
+  lastSavedAt: number | null
+  autosaveEnabled: boolean
   onNodesChange: OnNodesChange
   onEdgesChange: OnEdgesChange
   onConnect: OnConnect
@@ -43,7 +46,7 @@ interface WorkflowState {
   saveCurrentWorkflow: () => Promise<void>
   loadWorkflow: (id: number) => Promise<void>
   newWorkflow: () => void
-  getWorkflowList: () => Promise<{ id: number; name: string; updatedAt: number }[]>
+  getWorkflowList: () => Promise<{ id: number; name: string; updatedAt: number; projectId?: string }[]>
   removeWorkflow: (id: number) => Promise<void>
   deleteNode: (nodeId: string) => void
   toggleNodeLock: (nodeId: string) => void
@@ -51,6 +54,7 @@ interface WorkflowState {
   exportWorkflowFile: () => void
   importWorkflowDocument: (document: WorkflowExportDocument) => void
   hasCanvasWork: () => boolean
+  setAutosaveEnabled: (enabled: boolean) => void
 }
 
 export const useWorkflowStore = create<WorkflowState>((set, get) => ({
@@ -59,11 +63,14 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   workflowId: null,
   workflowName: 'Untitled Workflow',
   isDirty: false,
+  lastSavedAt: null,
+  autosaveEnabled: true,
 
   onNodesChange: (changes) => {
     const nodes = get().nodes
     const filtered = changes.filter((change) => !isLockedNodeChangeBlocked(change, nodes))
     set({ nodes: applyNodeChanges(filtered, nodes), isDirty: true })
+    void maybeAutosave(get)
   },
 
   onEdgesChange: (changes) => {
@@ -89,6 +96,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       })
     }
     set({ edges: applyEdgeChanges(filtered, edges), isDirty: true })
+    void maybeAutosave(get)
   },
 
   onConnect: (connection: Connection) => {
@@ -122,6 +130,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       edges: addEdge({ ...normalized, type: 'animated' }, edges),
       isDirty: true,
     })
+    void maybeAutosave(get)
   },
 
   setNodes: (nodes) => set({ nodes }),
@@ -129,6 +138,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
 
   addNode: (node) => {
     set({ nodes: [...get().nodes, withNodeCanvasLockFlags(node)], isDirty: true })
+    void maybeAutosave(get)
   },
 
   updateNodeData: (nodeId, data) => {
@@ -140,6 +150,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       }),
       isDirty: true,
     })
+    void maybeAutosave(get)
   },
 
   setWorkflowName: (name) => set({ workflowName: name, isDirty: true }),
@@ -147,6 +158,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
 
   saveCurrentWorkflow: async () => {
     const { nodes, edges, workflowId, workflowName } = get()
+    const projectId = useProjectStore.getState().currentProjectId
     let createdAt = Date.now()
     if (workflowId != null) {
       const existing = (await loadWorkflows()).find((w) => w.id === workflowId)
@@ -159,8 +171,9 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       edges: edges as never[],
       createdAt,
       updatedAt: Date.now(),
+      projectId,
     })
-    set({ workflowId: id, isDirty: false })
+    set({ workflowId: id, isDirty: false, lastSavedAt: Date.now() })
   },
 
   loadWorkflow: async (id) => {
@@ -175,7 +188,15 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
         workflowId: workflow.id ?? null,
         workflowName: workflow.name,
         isDirty: false,
+        lastSavedAt: workflow.updatedAt,
       })
+      // If the workflow belongs to a different project, switch to it
+      if (workflow.projectId) {
+        const projectStore = useProjectStore.getState()
+        if (projectStore.currentProjectId !== workflow.projectId) {
+          await projectStore.setCurrentProject(workflow.projectId)
+        }
+      }
       fitWorkflowView()
     }
   },
@@ -187,15 +208,18 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       workflowId: null,
       workflowName: 'Untitled Workflow',
       isDirty: false,
+      lastSavedAt: null,
     })
   },
 
   getWorkflowList: async () => {
-    const workflows = await loadWorkflows()
+    const projectId = useProjectStore.getState().currentProjectId
+    const workflows = await loadWorkflowsByProject(projectId)
     return workflows.map((w) => ({
       id: w.id!,
       name: w.name,
       updatedAt: w.updatedAt,
+      projectId: w.projectId,
     }))
   },
 
@@ -214,6 +238,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       edges: get().edges.filter((e) => e.source !== nodeId && e.target !== nodeId),
       isDirty: true,
     })
+    void maybeAutosave(get)
   },
 
   toggleNodeLock: (nodeId) => {
@@ -225,6 +250,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       }),
       isDirty: true,
     })
+    void maybeAutosave(get)
   },
 
   deleteSelectedNodes: () => {
@@ -239,12 +265,15 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       edges: get().edges.filter((e) => !ids.has(e.source) && !ids.has(e.target)),
       isDirty: true,
     })
+    void maybeAutosave(get)
   },
 
   hasCanvasWork: () => {
     const { nodes, isDirty } = get()
     return nodes.length > 0 || isDirty
   },
+
+  setAutosaveEnabled: (enabled) => set({ autosaveEnabled: enabled }),
 
   exportWorkflowFile: () => {
     const { nodes, edges, workflowName } = get()
@@ -274,3 +303,33 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
     fitWorkflowView()
   },
 }))
+
+// ────────────────────────────────────────────────────────────────────
+// Autosave — debounced. Triggers a save 4 seconds after the last change
+// when autosave is enabled and the canvas has work.
+// ────────────────────────────────────────────────────────────────────
+let autosaveTimer: ReturnType<typeof setTimeout> | null = null
+function maybeAutosave(get: () => WorkflowState): void {
+  const state = get()
+  if (!state.autosaveEnabled) return
+  if (autosaveTimer) clearTimeout(autosaveTimer)
+  autosaveTimer = setTimeout(async () => {
+    const s = get()
+    if (!s.isDirty) return
+    if (!s.hasCanvasWork()) return
+    try {
+      await s.saveCurrentWorkflow()
+      useDebugStore.getState().addLog({
+        level: 'info',
+        source: 'Autosave',
+        message: `Saved "${s.workflowName}"`,
+      })
+    } catch (err) {
+      useDebugStore.getState().addLog({
+        level: 'warn',
+        source: 'Autosave',
+        message: `Autosave failed: ${err instanceof Error ? err.message : String(err)}`,
+      })
+    }
+  }, 4000)
+}

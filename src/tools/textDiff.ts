@@ -1,7 +1,14 @@
-// Compare two texts and show differences (line/word/char level).
-// Uses the `diff` library.
+// Compare two texts and show differences (line/word/char/json level).
+// Uses the `diff` library — loaded dynamically from CDN.
 
-import * as Diff from 'diff'
+const DIFF_URL = 'https://esm.sh/diff@5.2.0'
+
+let DiffRef: any | null = null
+async function loadDiff(): Promise<any> {
+  if (DiffRef) return DiffRef
+  DiffRef = await import(/* @vite-ignore */ DIFF_URL)
+  return DiffRef
+}
 
 export async function runTextDiff(
   input: string,
@@ -14,9 +21,10 @@ export async function runTextDiff(
     throw new Error('Both oldText and newText required (or wire one, set other in config)')
   }
 
+  const Diff = await loadDiff()
   const mode = config.mode ?? 'lines'
 
-  let changes: Diff.Change[]
+  let changes: Array<{ added?: boolean; removed?: boolean; value: string; count?: number }>
   if (mode === 'words') {
     changes = Diff.diffWords(oldText, newText)
   } else if (mode === 'chars') {

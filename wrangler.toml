@@ -1,0 +1,74 @@
+name = "zeroagent-studio"
+main = "worker/index.ts"
+compatibility_date = "2024-11-01"
+compatibility_flags = ["nodejs_compat"]
+
+# ───────────────────────────────────────────────────────────────
+# Static assets — the built React/Vite bundle in ./dist
+# ───────────────────────────────────────────────────────────────
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+
+# ───────────────────────────────────────────────────────────────
+# Cloudflare bindings — free tier is enough for personal use
+# ───────────────────────────────────────────────────────────────
+
+# KV — dynamic API keys + webhook payloads + background jobs (TTL'd)
+[[kv_namespaces]]
+binding = "CACHE"
+id = "REPLACE_WITH_YOUR_KV_ID"            # wrangler kv:namespace create CACHE
+preview_id = "REPLACE_WITH_YOUR_KV_PREVIEW_ID"  # wrangler kv:namespace create CACHE --preview
+
+# R2 — uploaded files + generated media
+[[r2_buckets]]
+binding = "STORAGE"
+bucket_name = "zeroagent-studio-storage"
+
+# D1 — projects, workflows, kv, webhook_log
+[[d1_databases]]
+binding = "DB"
+database_name = "zeroagent-studio"
+database_id = "REPLACE_WITH_YOUR_D1_ID"   # wrangler d1 create zeroagent-studio
+
+# Workers AI — text/image/embedding generation + workflow generator fallback
+[ai]
+binding = "AI"
+
+# Analytics Engine (optional)
+[analytics_engine_datasets]
+binding = "ANALYTICS"
+dataset = "zeroagent-studio"
+
+# ───────────────────────────────────────────────────────────────
+# Static secrets (optional — set via dashboard or wrangler secret put)
+# ───────────────────────────────────────────────────────────────
+# Run `wrangler secret put <NAME>` for each one:
+#   KAGGLE_USERNAME, KAGGLE_KEY, KAGGLE_NOTEBOOK_SLUG
+#   GROQ_API_KEY, OPENROUTER_API_KEY, GEMINI_API_KEY
+#   YOUTUBE_API_KEY, YOINKU_API_KEY
+#   NOTION_API_KEY, GITHUB_TOKEN, SLACK_TOKEN, RESEND_API_KEY
+#   TELEGRAM_BOT_TOKEN
+#
+# Or skip these entirely — the worker also accepts keys via POST /api/keys
+# (stored in KV, takes effect immediately without redeploying).
+
+# ───────────────────────────────────────────────────────────────
+# Cron triggers (optional — keep disabled by default)
+# ───────────────────────────────────────────────────────────────
+# [triggers]
+# crons = ["0 3 * * *"]  # Daily cleanup at 03:00 UTC
+
+# ───────────────────────────────────────────────────────────────
+# Observability
+# ───────────────────────────────────────────────────────────────
+[observability]
+enabled = true
+head_sampling_rate = 1
+
+# ───────────────────────────────────────────────────────────────
+# Vars (non-secret, plain text)
+# ───────────────────────────────────────────────────────────────
+[vars]
+WORKER_VERSION = "2.0.0"

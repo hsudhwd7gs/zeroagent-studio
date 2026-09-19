@@ -1,12 +1,21 @@
 // Parse YAML → JSON, or generate YAML from JSON.
-// Uses js-yaml.
+// Uses js-yaml — loaded dynamically from CDN.
 
-import yaml from 'js-yaml'
+const YAML_URL = 'https://esm.sh/js-yaml@4.1.0'
+
+let YamlRef: any | null = null
+async function loadYaml(): Promise<any> {
+  if (YamlRef) return YamlRef
+  const mod = await import(/* @vite-ignore */ YAML_URL)
+  YamlRef = mod.default ?? mod
+  return YamlRef
+}
 
 export async function runYamlTool(
   input: string,
   config: Record<string, string>
 ): Promise<string> {
+  const yaml = await loadYaml()
   const mode = config.mode ?? 'parse'
 
   if (mode === 'parse') {

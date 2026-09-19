@@ -1,14 +1,18 @@
-// Spell checker with suggestions. Uses nspell + dictionary-en.
+// Spell checker with suggestions. Uses nspell + dictionary-en — loaded dynamically from CDN.
 
-import nspell from 'nspell'
+const NSPELL_URL = 'https://esm.sh/nspell@2.1.5'
+const DICT_AFF_URL = 'https://unpkg.com/dictionary-en@3.0.0/index.aff'
+const DICT_DIC_URL = 'https://unpkg.com/dictionary-en@3.0.0/index.dic'
 
 let spell: any = null
 
 async function loadDict(): Promise<any> {
   if (spell) return spell
+  const nspellMod = await import(/* @vite-ignore */ NSPELL_URL)
+  const nspell = nspellMod.default ?? nspellMod
 
-  const affRes = await fetch('https://unpkg.com/dictionary-en@3.0.0/index.aff')
-  const dicRes = await fetch('https://unpkg.com/dictionary-en@3.0.0/index.dic')
+  const affRes = await fetch(DICT_AFF_URL)
+  const dicRes = await fetch(DICT_DIC_URL)
   const aff = await affRes.text()
   const dic = await dicRes.text()
 
@@ -24,6 +28,7 @@ export async function runSpellCheck(
   if (!text) throw new Error('No text provided')
 
   const s = await loadDict()
+  void config // reserved for future language selection
 
   // Extract words (letters + apostrophes)
   const words = text.match(/[a-zA-Z']+/g) ?? []

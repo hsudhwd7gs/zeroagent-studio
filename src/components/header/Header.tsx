@@ -15,6 +15,7 @@ import {
   type ExampleWorkflowId,
 } from '../../lib/exampleWorkflows'
 import HeaderQuestMenu from './HeaderQuestMenu'
+import ProjectSwitcher from './ProjectSwitcher'
 
 export default function Header() {
   const workflowName = useWorkflowStore((s) => s.workflowName)
@@ -190,6 +191,11 @@ export default function Header() {
           placeholder="Workflow name"
         />
         {isDirty && <span className="dirty-indicator">•</span>}
+      </div>
+
+      <div className="header-center">
+        <ProjectSwitcher />
+        <kbd className="header-hint" title="Open command palette">⌘K</kbd>
       </div>
 
       <div className="header-actions">

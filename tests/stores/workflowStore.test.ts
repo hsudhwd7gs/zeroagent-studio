@@ -15,7 +15,24 @@ vi.mock('../../src/db', () => ({
       updatedAt: 100,
     },
   ]),
+  loadWorkflowsByProject: vi.fn(async () => [
+    {
+      id: 1,
+      name: 'Saved',
+      nodes: [{ id: 'n1', type: 'chat', position: { x: 0, y: 0 }, data: {} }],
+      edges: [],
+      createdAt: 1,
+      updatedAt: 100,
+      projectId: 'personal',
+    },
+  ]),
   deleteWorkflow: vi.fn(),
+}))
+
+vi.mock('../../src/stores/projectStore', () => ({
+  useProjectStore: {
+    getState: () => ({ currentProjectId: 'personal', setCurrentProject: vi.fn() }),
+  },
 }))
 
 describe('workflowStore — student saves homework between sessions', () => {

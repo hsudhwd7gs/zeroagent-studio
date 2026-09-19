@@ -1,35 +1,60 @@
-import { createFFmpeg, fetchFile } from '@ffmpeg/ffmpeg'
+// FFprobe — read media metadata via ffmpeg.wasm (v0.12 API).
+// Reuses the same loader as ffmpegTool.ts so we never load ffmpeg-core twice.
 
-let ffmpegInstance: any = null
+const FFMPEG_URL = 'https://esm.sh/@ffmpeg/ffmpeg@0.12.10'
+const FFMPEG_UTIL_URL = 'https://esm.sh/@ffmpeg/util@0.12.1'
 
-async function getFFmpeg() {
+interface FFmpegLike {
+  writeFile: (name: string, data: Uint8Array) => Promise<boolean>
+  exec: (args: string[]) => Promise<number>
+  readFile: (name: string) => Promise<Uint8Array | string>
+  deleteFile: (name: string) => Promise<boolean>
+  on: (event: string, cb: (e: unknown) => void) => void
+  load: (opts: { coreURL: string; wasmURL: string }) => Promise<boolean>
+}
+
+let ffmpegInstance: FFmpegLike | null = null
+
+async function loadFFmpeg(): Promise<FFmpegLike> {
   if (ffmpegInstance) return ffmpegInstance
-  ffmpegInstance = createFFmpeg({
-    log: false,
-    corePath: 'https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js',
+  const ffmpegMod = await import(/* @vite-ignore */ FFMPEG_URL)
+  const utilMod = await import(/* @vite-ignore */ FFMPEG_UTIL_URL)
+  const FFmpegCtor = ffmpegMod.FFmpeg
+  const toBlobURL = utilMod.toBlobURL
+  const fetchFile = utilMod.fetchFile
+  const ff = new FFmpegCtor()
+  const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd'
+  await ff.load({
+    coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
+    wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
   })
-  await ffmpegInstance.load()
-  return ffmpegInstance
+  ffmpegInstance = ff
+  // expose fetchFile globally for the run function
+  ;(loadFFmpeg as any).fetchFile = fetchFile
+  return ff
 }
 
 export async function runFFprobe(
   input: string,
   config: Record<string, string>
 ): Promise<string> {
+  const ff = await loadFFmpeg()
+  const fetchFile = (loadFFmpeg as any).fetchFile
   const url = config.url?.trim() || input.trim()
   if (!url) throw new Error('No input URL')
 
-  const ff = await getFFmpeg()
-  ff.FS('writeFile', 'input.mp4', await fetchFile(url))
+  await ff.writeFile('input.bin', await fetchFile(url))
 
   let metadata = ''
-  ff.setLogger(({ message }: { message: string }) => {
-    if (message.includes('Stream') || message.includes('Duration')) {
+  ff.on('log', (e: any) => {
+    const message: string = e?.message ?? ''
+    if (message.includes('Stream') || message.includes('Duration') || message.includes('Input')) {
       metadata += message + '\n'
     }
   })
 
-  await ff.run('-i', 'input.mp4', '-f', 'null', '-')
+  // -i prints metadata to stderr (captured by log handler); -f null - discards output
+  await ff.exec(['-i', 'input.bin', '-f', 'null', '-'])
 
   return JSON.stringify({ ok: true, metadata: metadata.trim() })
 }

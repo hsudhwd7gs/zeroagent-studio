@@ -75,6 +75,31 @@ export interface Workflow {
   edges: WorkflowEdge[]
   createdAt: number
   updatedAt: number
+  /** Phase C: links workflow to a project (local). Default 'personal'. */
+  projectId?: string
+}
+
+/** Phase C: a project = a workspace grouping multiple workflows + per-project settings. */
+export interface Project {
+  id: string
+  name: string
+  /** Hex color used for the project chip in the switcher. */
+  color: string
+  /** Optional emoji/letter shown in the chip. */
+  emoji?: string
+  createdAt: number
+  updatedAt: number
+}
+
+/** The default project that every user starts with. Cannot be deleted. */
+export const DEFAULT_PROJECT_ID = 'personal'
+export const DEFAULT_PROJECT: Project = {
+  id: DEFAULT_PROJECT_ID,
+  name: 'Personal',
+  color: '#8b5cf6',
+  emoji: '★',
+  createdAt: 0,
+  updatedAt: 0,
 }
 
 export interface ApiKeys {

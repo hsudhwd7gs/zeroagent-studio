@@ -1,7 +1,14 @@
 // Detect the language of any text (100+ languages).
-// Uses franc (lightweight, browser-friendly).
+// Uses franc (lightweight, browser-friendly) — loaded dynamically from CDN.
 
-import { franc, francAll } from 'franc'
+const FRANC_URL = 'https://esm.sh/franc@6.2.0'
+
+let francRef: any | null = null
+async function loadFranc(): Promise<any> {
+  if (francRef) return francRef
+  francRef = await import(/* @vite-ignore */ FRANC_URL)
+  return francRef
+}
 
 export async function runLanguageDetect(
   input: string,
@@ -10,10 +17,11 @@ export async function runLanguageDetect(
   const text = input.trim()
   if (!text) throw new Error('No text provided')
 
+  const franc = await loadFranc()
   const only = config.only?.split(',').map((s) => s.trim()).filter(Boolean)
 
-  const code = franc(text, { only, minLength: 3 })
-  const all = francAll(text, { only, minLength: 3 }).slice(0, 5)
+  const code = franc.franc(text, { only, minLength: 3 })
+  const all = franc.francAll(text, { only, minLength: 3 }).slice(0, 5)
 
   const languageNames: Record<string, string> = {
     eng: 'English', spa: 'Spanish', fra: 'French', deu: 'German',
@@ -28,10 +36,12 @@ export async function runLanguageDetect(
     ok: true,
     language: code,
     languageName: languageNames[code] ?? code,
-    alternatives: all.map(([lang, score]) => ({
-      code: lang,
-      name: languageNames[lang] ?? lang,
-      score: Math.round(score * 1000) / 1000,
-    })),
+    alternatives: Array.isArray(all)
+      ? all.map(([lang, score]: [string, number]) => ({
+          code: lang,
+          name: languageNames[lang] ?? lang,
+          score: Math.round(score * 1000) / 1000,
+        }))
+      : [],
   }, null, 2)
 }

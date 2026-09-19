@@ -11,7 +11,7 @@
 //   resultType  — "auto" | "i32" | "f64" | "string" | "json" (default: "auto")
 
 interface WasmExport {
-  (…args: unknown[]): unknown
+  (...args: unknown[]): unknown
   [key: string]: unknown
 }
 
