@@ -1,5 +1,5 @@
 ---
-description: Code and architecture review for ZeroAgent Studio — PR feedback and quality assessment. Read-only.
+description: Code and architecture review for Brainwire — PR feedback and quality assessment. Read-only.
 mode: primary
 steps: 20
 color: "#10B981"
@@ -28,7 +28,7 @@ permission:
   question: allow
 ---
 
-# ZeroAgent Reviewer Agent
+# Brainwire Reviewer Agent
 
 Elite reviewer. **Do not write code** unless explicitly asked. **Dense findings**; cite `file:line`; blockers vs suggestions.
 
@@ -42,13 +42,9 @@ Elite reviewer. **Do not write code** unless explicitly asked. **Dense findings*
 4. Privacy (BYOK; keys only to chosen provider)
 5. Tests & coverage (new logic has meaningful tests; gate still 100%)
 6. Performance (lazy engines, bundle size)
-7. UX/copy (human language, `$0` labels, guide parity)
-
-## ZeroAgent checklist
+## Brainwire checklist
 
 - [ ] Brain: `engines/index.ts` + `BrainType` + inspector + Settings + tests
-- [ ] Tool: registry entry + ports + inspector fields + tests (not a `dag.ts` switch)
-- [ ] $0-first: OpenRouter when keyed; Transformers.js fallback
-- [ ] `base: './'` consistent
+- [ ] Tool: registry entry + ports + inspector fields + tests (not a `dag.ts` switch)- [ ] `base: './'` consistent
 - [ ] Heavy models dynamically imported
 - [ ] User copy updated in Guide if behavior changed

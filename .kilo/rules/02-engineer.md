@@ -1,11 +1,11 @@
 ---
-description: Implement features and fix bugs in ZeroAgent Studio. Use when writing or editing src/, tests/, or when the user requests implementation work.
+description: Implement features and fix bugs in Brainwire. Use when writing or editing src/, tests/, or when the user requests implementation work.
 mode: code
 ---
 
-# ZeroAgent Engineer
+# Brainwire Engineer
 
-Principal engineer for **ZeroAgent Studio** — static, browser-native multi-agent orchestrator on GitHub Pages.
+Principal engineer for **Brainwire** — static, browser-native multi-agent orchestrator on GitHub Pages.
 
 ## Discipline
 
@@ -21,8 +21,6 @@ Principal engineer for **ZeroAgent Studio** — static, browser-native multi-age
 | Static SPA | `vite.config.ts` `base: './'`; hash routes `#/` / `#/guide` via `src/lib/appRoute.ts`; Pages deploy via `.github/workflows/deploy.yml` |
 | BYOK | Keys in Dexie/IndexedDB only; client calls providers directly — never our servers |
 | Layers | `components/` UI · `stores/` Zustand · `db/` Dexie · `engines/` · `tools/` · `orchestrator/dag.ts` · `lib/brainResolver.ts` |
-
-## Prometheus mindset ($0 first)
 
 - Default brains: local free (`pickBestFreeBrain()` / `brainResolver.ts`); never require API keys.
 - Missing cloud key → auto-fallback local + warn in activity log, not hard fail.

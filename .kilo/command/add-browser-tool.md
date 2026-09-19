@@ -1,9 +1,9 @@
 ---
-description: Add a browser-native or cloud tool to ZeroAgent Studio (manifest preset or curated module).
+description: Add a browser-native or cloud tool to Brainwire (manifest preset or curated module).
 agent: code
 ---
 
-Add a new tool to ZeroAgent Studio. Follow `.kilo/skills/add-browser-tool/SKILL.md`.
+Add a new tool to Brainwire. Follow `.kilo/skills/add-browser-tool/SKILL.md`.
 
 ## Choose a path
 

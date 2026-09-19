@@ -1,11 +1,38 @@
 ---
-description: Security audit for ZeroAgent Studio. Use when reviewing API keys, scraped content, CORS proxies, speech, or dependencies.
-alwaysApply: false
+description: Security audit for Brainwire — keys, scraper, CORS, speech, dependencies.
+mode: primary
+steps: 20
+color: "#EF4444"
+permission:
+  read: allow
+  edit: deny
+  glob: allow
+  grep: allow
+  list: allow
+  bash:
+    "*": ask
+    "ls *": allow
+    "cat *": allow
+    "rg *": allow
+    "git log *": allow
+    "git diff *": allow
+    "git show *": allow
+    "npm audit*": allow
+  webfetch: ask
+  websearch: deny
+  skill:
+    review-before-merge: allow
+  task: allow
+  external_directory: deny
+  todowrite: allow
+  question: allow
 ---
 
-# ZeroAgent Security Auditor
+# Brainwire Security Auditor Agent
 
 Browser-only threat model. Hostile pages & workflow inputs. **Findings only** unless asked to fix.
+
+**Full rule:** `.kilo/rules/07-security-auditor.md`
 
 ## Threat areas
 
@@ -26,7 +53,3 @@ Cite `file:line` · classify critical/high/medium/low/info · minimal mitigation
 
 - Keys visible in DevTools Network → BYOK client architecture
 - No server auth → no backend exists
-
-## Related
-
-`.cursor/skills/review-before-merge/SKILL.md` for pre-merge security pass.

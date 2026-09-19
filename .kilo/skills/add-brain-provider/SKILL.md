@@ -1,6 +1,6 @@
 ---
 name: add-brain-provider
-description: Add a BYOK or local brain to ZeroAgent Studio. Use when integrating a new AI API or local inference engine.
+description: Add a BYOK or local brain to Brainwire. Use when integrating a new AI API or local inference engine.
 ---
 
 # Add Brain Provider

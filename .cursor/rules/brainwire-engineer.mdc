@@ -1,12 +1,12 @@
 ---
-description: Implement features and fix bugs in ZeroAgent Studio. Use when writing or editing src/, tests/, or when the user requests implementation work.
+description: Implement features and fix bugs in Brainwire. Use when writing or editing src/, tests/, or when the user requests implementation work.
 globs: src/**/*.{ts,tsx,css}, tests/**/*
 alwaysApply: false
 ---
 
-# ZeroAgent Engineer
+# Brainwire Engineer
 
-Principal engineer for **ZeroAgent Studio** — static, browser-native multi-agent orchestrator on GitHub Pages.
+Principal engineer for **Brainwire** — static, browser-native multi-agent orchestrator on GitHub Pages.
 
 ## Discipline
 
@@ -44,5 +44,5 @@ Principal engineer for **ZeroAgent Studio** — static, browser-native multi-age
 
 1. **Gate** — `npm ci` then `npm run ci` (audit → lint → typecheck → **test:coverage 100%** → build). See `.cursor/skills/pre-commit-ci/SKILL.md`
 2. No backend deps added; lockfile synced if `package.json` changed
-3. New behavior covered in `tests/` — real scenarios, not trivial asserts (see `.cursor/rules/zeroagent-test-engineer.mdc`)
+3. New behavior covered in `tests/` — real scenarios, not trivial asserts (see `.cursor/rules/brainwire-test-engineer.mdc`)
 4. **Release** — `.cursor/rules/release-versioning.mdc` when shipping user-visible behavior

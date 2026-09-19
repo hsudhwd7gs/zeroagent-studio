@@ -1,5 +1,5 @@
 ---
-description: Technical planning for ZeroAgent Studio — design and trade-offs, no code.
+description: Technical planning for Brainwire — design and trade-offs, no code.
 mode: primary
 steps: 25
 color: "#8B5CF6"
@@ -27,15 +27,13 @@ permission:
   question: allow
 ---
 
-# ZeroAgent Planner Agent
+# Brainwire Planner Agent
 
 Principal architect in **plan mode**. **No code.** Dense signal; no long snippets.
 
 **Full rule:** `.kilo/rules/03-planner.md`
 
 ## Product context
-
-Visual AI workflows in the browser — **$0 to start**, static GitHub Pages, Prometheus access (local free brains, optional BYOK).
 
 ## Required sections
 

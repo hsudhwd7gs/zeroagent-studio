@@ -1,6 +1,6 @@
 ---
 name: ship-patch
-description: End-to-end patch workflow for ZeroAgent Studio — implement, test, review, version, commit. Use when shipping a fix or feature branch.
+description: End-to-end patch workflow for Brainwire — implement, test, review, version, commit. Use when shipping a fix or feature branch.
 ---
 
 # Ship Patch

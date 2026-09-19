@@ -1,6 +1,6 @@
 ---
 name: add-brain-provider
-description: Add a BYOK or local brain to ZeroAgent Studio. Use when integrating a new AI API or local inference engine.
+description: Add a BYOK or local brain to Brainwire. Use when integrating a new AI API or local inference engine.
 paths:
   - src/engines/**/*
   - src/lib/brainResolver.ts
@@ -57,4 +57,4 @@ npm run ci
 
 Manual: Demo workflow + agent node on new brain; verify activity log on fallback.
 
-**Rules:** `.cursor/rules/zeroagent-engineer.mdc` · `.cursor/rules/zeroagent-test-engineer.mdc`
+**Rules:** `.cursor/rules/brainwire-engineer.mdc` · `.cursor/rules/brainwire-test-engineer.mdc`

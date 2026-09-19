@@ -3,7 +3,7 @@ description: End-to-end patch workflow — implement, test, review, version, com
 agent: code
 ---
 
-End-to-end patch workflow for ZeroAgent Studio. Follow these steps in order.
+End-to-end patch workflow for Brainwire. Follow these steps in order.
 
 ## Steps
 

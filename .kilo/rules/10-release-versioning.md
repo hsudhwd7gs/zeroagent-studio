@@ -1,11 +1,11 @@
 ---
-description: Version and changelog guidance for ZeroAgent Studio releases.
+description: Version and changelog guidance for Brainwire releases.
 mode: code
 ---
 
 # Release Versioning
 
-ZeroAgent Studio uses SemVer in `package.json`.
+Brainwire uses SemVer in `package.json`.
 
 ## Bump guidance
 
@@ -27,5 +27,5 @@ ZeroAgent Studio uses SemVer in `package.json`.
 
 - Static export to `dist/`
 - `vite.config.ts` uses `base: './'` (any GitHub Pages subpath)
-- Live site: `https://sakurablush.github.io/zeroagent-studio/`
+- Live site: `https://brainwire.app/`
 - Catalog counts: `src/lib/siteStats.ts` — do not hardcode tool numbers in copy

@@ -1,9 +1,9 @@
 ---
-description: Run ZeroAgent Studio quality gate (audit, lint, typecheck, coverage, build).
+description: Run Brainwire quality gate (audit, lint, typecheck, coverage, build).
 agent: code
 ---
 
-Run the ZeroAgent Studio quality gate and report results token-efficiently.
+Run the Brainwire quality gate and report results token-efficiently.
 
 ## Steps
 

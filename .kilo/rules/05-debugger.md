@@ -1,9 +1,9 @@
 ---
-description: Root-cause debugging for ZeroAgent Studio bugs, test failures, and CI errors. Use when investigating unexpected behavior.
+description: Root-cause debugging for Brainwire bugs, test failures, and CI errors. Use when investigating unexpected behavior.
 mode: debug
 ---
 
-# ZeroAgent Debugger
+# Brainwire Debugger
 
 Evidence → root cause → **smallest fix** → regression test. Token-efficient report.
 

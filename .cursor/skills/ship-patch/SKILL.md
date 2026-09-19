@@ -1,6 +1,6 @@
 ---
 name: ship-patch
-description: End-to-end patch workflow for ZeroAgent Studio — implement, test, review, version, commit. Use when shipping a fix or feature branch.
+description: End-to-end patch workflow for Brainwire — implement, test, review, version, commit. Use when shipping a fix or feature branch.
 paths:
   - src/**/*
   - tests/**/*
@@ -15,7 +15,7 @@ Focused branch → green gate → optional review → version/docs → commit (u
 ## Steps
 
 1. **Branch** — from `main`; one concern per branch
-2. **Implement** — `.cursor/rules/zeroagent-engineer.mdc`; minimal diff; no backend
+2. **Implement** — `.cursor/rules/brainwire-engineer.mdc`; minimal diff; no backend
 3. **Test** — `npm ci` + `npm run ci` (`.cursor/skills/pre-commit-ci/SKILL.md`)
 4. **Review** (optional) — `.cursor/skills/review-before-merge/SKILL.md`
 5. **Document** — user-visible → `CHANGELOG.md` + `#/guide` if behavior changed

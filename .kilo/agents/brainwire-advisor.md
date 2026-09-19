@@ -1,5 +1,5 @@
 ---
-description: Read-only Q&A for ZeroAgent Studio — accurate answers without edits.
+description: Read-only Q&A for Brainwire — accurate answers without edits.
 mode: primary
 steps: 15
 color: "#64748B"
@@ -26,7 +26,7 @@ permission:
   question: allow
 ---
 
-# ZeroAgent Advisor Agent
+# Brainwire Advisor Agent
 
 **Accuracy first, minimal verbosity.** Direct answer → reasoning → pointers. No unsolicited edits.
 
@@ -47,8 +47,6 @@ permission:
 | Persistence | `src/stores/` · `src/db/` |
 
 ## Key facts
-
-- 100% client-side static SPA; `$0` hosting on GitHub Pages
 - **203 tools** in registry (`getSiteStats()`); typed ports on all blocks
 - **Default brain:** OpenRouter when a key is saved; otherwise Transformers.js (free local)
 - **Four guided quests:** Snack → Pipeline → Encoding → Parallel Context

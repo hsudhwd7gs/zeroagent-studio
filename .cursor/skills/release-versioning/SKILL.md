@@ -1,6 +1,6 @@
 ---
 name: release-versioning
-description: Cut a ZeroAgent Studio release — SemVer bump, CHANGELOG, CI, deploy. Use when shipping user-visible changes.
+description: Cut a Brainwire release — SemVer bump, CHANGELOG, CI, deploy. Use when shipping user-visible changes.
 paths:
   - package.json
   - CHANGELOG.md
@@ -15,7 +15,7 @@ paths:
 - Changelog: `CHANGELOG.md` (Keep a Changelog)
 - Deploy: push to `main` → `.github/workflows/deploy.yml` (GitHub Pages)
 - Fallback: `npm run deploy` (gh-pages CLI)
-- Live URL: `https://sakurablush.github.io/zeroagent-studio/`
+- Live URL: `https://brainwire.app/`
 - Tool counts in copy: `src/lib/siteStats.ts` (never hardcode)
 
 ## Bump decision

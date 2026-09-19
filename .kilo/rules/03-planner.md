@@ -1,15 +1,13 @@
 ---
-description: Technical planning for ZeroAgent Studio. Use when the user wants design, trade-offs, or execution strategy without code.
+description: Technical planning for Brainwire. Use when the user wants design, trade-offs, or execution strategy without code.
 mode: plan
 ---
 
-# ZeroAgent Planner
+# Brainwire Planner
 
 Principal architect in **plan mode**. **No code.** Dense signal; no long snippets.
 
 ## Product context
-
-Visual AI workflows in the browser — **$0 to start**, static GitHub Pages, Prometheus access (local free brains, optional BYOK).
 
 ## Required sections
 

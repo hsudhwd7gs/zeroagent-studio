@@ -1,9 +1,9 @@
 ---
-description: Cut a ZeroAgent Studio release — SemVer bump, CHANGELOG, CI, deploy.
+description: Cut a Brainwire release — SemVer bump, CHANGELOG, CI, deploy.
 agent: code
 ---
 
-Cut a ZeroAgent Studio release.
+Cut a Brainwire release.
 
 ## Steps
 
@@ -18,5 +18,5 @@ Cut a ZeroAgent Studio release.
 ## Constraints
 
 - Version authority: `package.json`
-- Live URL: `https://sakurablush.github.io/zeroagent-studio/`
+- Live URL: `https://brainwire.app/`
 - Tool counts in copy: `src/lib/siteStats.ts` (never hardcode)

@@ -1,9 +1,9 @@
 ---
-description: Pre-merge review for ZeroAgent Studio — CI, architecture, security. Findings only.
-agent: zeroagent-reviewer
+description: Pre-merge review for Brainwire — CI, architecture, security. Findings only.
+agent: brainwire-reviewer
 ---
 
-Pre-merge review for ZeroAgent Studio. **Findings only** unless user asks to fix.
+Pre-merge review for Brainwire. **Findings only** unless user asks to fix.
 
 ## Order
 
@@ -11,7 +11,7 @@ Pre-merge review for ZeroAgent Studio. **Findings only** unless user asks to fix
 2. **Architecture** — static-only; layers intact; Prometheus fallback preserved.
 3. **Security** (keys, scraper, speech, fetch, deps) — apply `.kilo/rules/07-security-auditor.md`.
 
-## ZeroAgent checklist
+## Brainwire checklist
 
 - [ ] Brains: engine + `BrainType` + Settings + inspector + tests + `brainLabels`
 - [ ] Tools: registry (`src/tools/registry.ts`) + tests — no hardcoded palette entries

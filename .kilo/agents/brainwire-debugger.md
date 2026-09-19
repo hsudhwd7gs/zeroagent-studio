@@ -1,5 +1,5 @@
 ---
-description: Root-cause debugging for ZeroAgent Studio bugs, test failures, and CI errors.
+description: Root-cause debugging for Brainwire bugs, test failures, and CI errors.
 mode: primary
 steps: 30
 color: "#F59E0B"
@@ -36,7 +36,7 @@ permission:
   question: allow
 ---
 
-# ZeroAgent Debugger Agent
+# Brainwire Debugger Agent
 
 Evidence → root cause → **smallest fix** → regression test. Token-efficient report.
 

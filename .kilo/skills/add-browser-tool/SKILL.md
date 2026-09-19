@@ -1,6 +1,6 @@
 ---
 name: add-browser-tool
-description: Add a browser-native or cloud tool to ZeroAgent Studio. Use for file, network, speech, provider APIs, custom script capabilities, or manifest presets.
+description: Add a browser-native or cloud tool to Brainwire. Use for file, network, speech, provider APIs, custom script capabilities, or manifest presets.
 ---
 
 # Add Tool (registry)

@@ -1,5 +1,5 @@
 ---
-description: Run npm run ci before commit, PR readiness, or fixing CI in ZeroAgent Studio. Use when implementing, committing, or marking merge-ready.
+description: Run npm run ci before commit, PR readiness, or fixing CI in Brainwire. Use when implementing, committing, or marking merge-ready.
 mode: code
 ---
 

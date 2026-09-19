@@ -1,6 +1,6 @@
 ---
 name: pre-commit-ci
-description: Run ZeroAgent Studio quality gate (audit, lint, typecheck, coverage, build) before commit or merge. Use when committing, fixing CI, or finishing implementation.
+description: Run Brainwire quality gate (audit, lint, typecheck, coverage, build) before commit or merge. Use when committing, fixing CI, or finishing implementation.
 paths:
   - package.json
   - package-lock.json

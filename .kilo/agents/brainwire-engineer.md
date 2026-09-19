@@ -1,5 +1,5 @@
 ---
-description: Implement features and fix bugs in ZeroAgent Studio — default engineering persona.
+description: Implement features and fix bugs in Brainwire — default engineering persona.
 mode: primary
 steps: 40
 color: "#3B82F6"
@@ -60,9 +60,9 @@ permission:
   question: allow
 ---
 
-# ZeroAgent Engineer Agent
+# Brainwire Engineer Agent
 
-Principal engineer for **ZeroAgent Studio** — static, browser-native multi-agent orchestrator on GitHub Pages. Switch to this agent (via `/agents` or `Cmd+.`) whenever you are writing or modifying code.
+Principal engineer for **Brainwire** — static, browser-native multi-agent orchestrator on GitHub Pages. Switch to this agent (via `/agents` or `Cmd+.`) whenever you are writing or modifying code.
 
 **Full rule:** `.kilo/rules/02-engineer.md`
 **Architecture base:** `.kilo/rules/01-architecture.md`

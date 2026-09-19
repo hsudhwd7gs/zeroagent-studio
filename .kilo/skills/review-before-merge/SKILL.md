@@ -1,6 +1,6 @@
 ---
 name: review-before-merge
-description: Pre-merge review for ZeroAgent Studio — CI, architecture, security. Use before PR, release, or when user asks for merge review.
+description: Pre-merge review for Brainwire — CI, architecture, security. Use before PR, release, or when user asks for merge review.
 ---
 
 # Review Before Merge
@@ -13,7 +13,7 @@ Structured review. Fix blockers before commit. **Findings only** unless user ask
 2. **Architecture** — static-only; layers intact; Prometheus fallback preserved
 3. **Security** (keys, scraper, speech, fetch, deps) — `.kilo/rules/07-security-auditor.md`
 
-## ZeroAgent checklist
+## Brainwire checklist
 
 - [ ] Brains: engine + `BrainType` + Settings + inspector + tests + `brainLabels`
 - [ ] Tools: registry (`src/tools/registry.ts`) + tests — no hardcoded palette entries

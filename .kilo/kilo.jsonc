@@ -1,6 +1,6 @@
 {
   // ===========================================================================
-  // kilo.jsonc — ZeroAgent Studio
+  // kilo.jsonc — Brainwire
   // ===========================================================================
   // Central config for Kilo Code (VS Code extension, CLI, Cloud).
   // Precedence: env < remote < global < project kilo.json < .kilo/kilo.json
@@ -13,7 +13,7 @@
   // ---------------------------------------------------------------------------
   // Default agent — `code` is the built-in engineer. Switch with /agents.
   // `plan` (architecture), `ask` (read-only Q&A), `debug` (root-cause) are
-  // also built-in. Our custom ZeroAgent personas live in .kilo/agents/*.md.
+  // also built-in. Our custom Brainwire personas live in .kilo/agents/*.md.
   // ---------------------------------------------------------------------------
   "default_agent": "code",
 

@@ -1,11 +1,11 @@
 ---
-description: Architecture overview, layer boundaries, and ground rules for ZeroAgent Studio. Always loaded — base context for every Kilo session.
+description: Architecture overview, layer boundaries, and ground rules for Brainwire. Always loaded — base context for every Kilo session.
 mode: all
 ---
 
-# ZeroAgent Architecture (Base Rule)
+# Brainwire Architecture (Base Rule)
 
-ZeroAgent Studio — static, browser-native multi-agent orchestrator on GitHub Pages.
+Brainwire — static, browser-native multi-agent orchestrator on GitHub Pages.
 
 ## Non-negotiable architecture
 

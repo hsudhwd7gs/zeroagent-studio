@@ -1,9 +1,9 @@
 ---
-description: Add a BYOK or local brain provider to ZeroAgent Studio.
+description: Add a BYOK or local brain provider to Brainwire.
 agent: code
 ---
 
-Add a new brain provider to ZeroAgent Studio. Follow `.kilo/skills/add-brain-provider/SKILL.md`.
+Add a new brain provider to Brainwire. Follow `.kilo/skills/add-brain-provider/SKILL.md`.
 
 ## Files (in order)
 

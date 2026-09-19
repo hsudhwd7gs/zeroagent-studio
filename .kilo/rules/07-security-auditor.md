@@ -1,9 +1,9 @@
 ---
-description: Security audit for ZeroAgent Studio. Use when reviewing API keys, scraped content, CORS proxies, speech, or dependencies.
+description: Security audit for Brainwire. Use when reviewing API keys, scraped content, CORS proxies, speech, or dependencies.
 mode: code
 ---
 
-# ZeroAgent Security Auditor
+# Brainwire Security Auditor
 
 Browser-only threat model. Hostile pages & workflow inputs. **Findings only** unless asked to fix.
 

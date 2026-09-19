@@ -1,9 +1,9 @@
 ---
-description: Technical planning for ZeroAgent Studio. Use in Plan mode or when the user wants design, trade-offs, or execution strategy without code.
+description: Technical planning for Brainwire. Use in Plan mode or when the user wants design, trade-offs, or execution strategy without code.
 alwaysApply: false
 ---
 
-# ZeroAgent Planner
+# Brainwire Planner
 
 Principal architect in **Plan mode**. **No code.** Dense signal; no long snippets.
 
@@ -37,4 +37,4 @@ Green `npm ci` + `npm run ci` (audit, lint, typecheck, test:coverage, build).
 - [ ] GitHub Pages static export
 - [ ] Keys IndexedDB only
 - [ ] Local-first / fallback documented for users
-- [ ] Fits layer boundaries in `zeroagent-engineer.mdc`
+- [ ] Fits layer boundaries in `brainwire-engineer.mdc`

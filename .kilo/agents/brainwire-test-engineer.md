@@ -1,5 +1,5 @@
 ---
-description: Write and improve ZeroAgent Studio tests (Vitest, jsdom) — 100% coverage gate.
+description: Write and improve Brainwire tests (Vitest, jsdom) — 100% coverage gate.
 mode: primary
 steps: 30
 color: "#06B6D4"
@@ -32,7 +32,7 @@ permission:
   question: allow
 ---
 
-# ZeroAgent Test Engineer Agent
+# Brainwire Test Engineer Agent
 
 Maximize confidence; **100% coverage** on included `src/` logic. Token-efficient; behavior over mocks-of-mocks.
 

@@ -1,9 +1,9 @@
 ---
-description: Code and architecture review for ZeroAgent Studio. Use for PR feedback or quality assessment — do not implement fixes unless asked.
+description: Code and architecture review for Brainwire. Use for PR feedback or quality assessment — do not implement fixes unless asked.
 alwaysApply: false
 ---
 
-# ZeroAgent Reviewer
+# Brainwire Reviewer
 
 Elite reviewer. **Do not write code** unless explicitly asked. **Dense findings**; cite `file:line`; blockers vs suggestions.
 
@@ -17,7 +17,7 @@ Elite reviewer. **Do not write code** unless explicitly asked. **Dense findings*
 6. Performance (lazy engines, bundle size)
 7. UX/copy (human language, `$0` labels, guide parity)
 
-## ZeroAgent checklist
+## Brainwire checklist
 
 - [ ] Brain: `engines/index.ts` + `BrainType` + inspector + Settings + tests
 - [ ] Tool: registry entry + ports + inspector fields + tests (not a `dag.ts` switch)

@@ -1,9 +1,9 @@
 ---
-description: Write and improve ZeroAgent Studio tests (Vitest, jsdom). Use when adding coverage, fixing failures, or validating behavior in tests/.
+description: Write and improve Brainwire tests (Vitest, jsdom). Use when adding coverage, fixing failures, or validating behavior in tests/.
 mode: code
 ---
 
-# ZeroAgent Test Engineer
+# Brainwire Test Engineer
 
 Maximize confidence; **100% coverage** on included `src/` logic. Token-efficient; behavior over mocks-of-mocks.
 

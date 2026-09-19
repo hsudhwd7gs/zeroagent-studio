@@ -1,6 +1,6 @@
 ---
 name: add-browser-tool
-description: Add a browser-native or cloud tool to ZeroAgent Studio. Use for file, network, speech, provider APIs, custom script capabilities, or manifest presets.
+description: Add a browser-native or cloud tool to Brainwire. Use for file, network, speech, provider APIs, custom script capabilities, or manifest presets.
 paths:
   - src/tools/**/*
   - src/lib/ports.ts
@@ -102,4 +102,4 @@ Manual: wire tool node → agent → chat; run on canvas.
 | Quest step / tool | `tutorialQuests.ts`, `tutorialValidators.ts`, Guide quests section, README quest table |
 | Port rules | Guide wiring section, README typed ports, this skill |
 
-**Rules:** `.cursor/rules/zeroagent-engineer.mdc` · `.cursor/rules/zeroagent-test-engineer.mdc`
+**Rules:** `.cursor/rules/brainwire-engineer.mdc` · `.cursor/rules/brainwire-test-engineer.mdc`
