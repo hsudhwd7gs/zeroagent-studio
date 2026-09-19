@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Header from './components/header/Header'
 import NodePalette from './components/sidebar/NodePalette'
@@ -22,6 +22,11 @@ import { useProjectStore } from './stores/projectStore'
 import { useTutorialStore } from './stores/tutorialStore'
 import { usePanelCollapseStore } from './stores/panelCollapseStore'
 import { useAppRoute } from './hooks/useAppRoute'
+import {
+  canvasSelectionKey,
+  initialInspectorPanelMemory,
+  resolveInspectorPanel,
+} from './lib/inspectorPanelPolicy'
 import {
   APP_STORAGE_CLEARED_EVENT,
   WELCOME_DISMISSED_KEY,
@@ -59,6 +64,7 @@ export default function App() {
   const showLaunchSplash = useTutorialStore((s) => s.showLaunchSplash)
   const showLaunchSplashAction = useTutorialStore((s) => s.showLaunchSplashAction)
   const nodes = useWorkflowStore((s) => s.nodes)
+  const edges = useWorkflowStore((s) => s.edges)
   const saveCurrentWorkflow = useWorkflowStore((s) => s.saveCurrentWorkflow)
   const newWorkflow = useWorkflowStore((s) => s.newWorkflow)
   const undo = useWorkflowStore((s) => s.undo)
@@ -72,23 +78,21 @@ export default function App() {
   const closeAllMobile = usePanelCollapseStore((s) => s.closeAllMobile)
   const settingsOpen = useSettingsStore((s) => s.isSettingsOpen)
 
-  // Combined side-panel state machine.
-  // Rules (evaluated top-to-bottom, first match wins):
-  //   1. If settings panel is open → inspector must be collapsed (avoid overlap).
-  //   2. If a node is selected → inspector must be expanded (so user sees settings).
-  //   3. Otherwise leave the inspector in its current state.
-  // This is a single effect to avoid two effects fighting each other and
-  // causing an infinite render loop.
+  // Combined side-panel state machine — see src/lib/inspectorPanelPolicy.ts
+  // for the rules and their rationale. The policy is a pure function so the
+  // behaviour (especially "manual collapse must win") is unit-tested.
+  const panelMemoryRef = useRef(initialInspectorPanelMemory())
   useEffect(() => {
-    if (settingsOpen && !inspectorCollapsed) {
-      setCollapsedPanel('inspector', true)
-      return
+    const selectedKey = canvasSelectionKey(nodes, edges)
+    const { collapsed, memory } = resolveInspectorPanel(
+      { settingsOpen, inspectorCollapsed, selectedKey },
+      panelMemoryRef.current
+    )
+    panelMemoryRef.current = memory
+    if (collapsed !== null && collapsed !== inspectorCollapsed) {
+      setCollapsedPanel('inspector', collapsed)
     }
-    if (!settingsOpen && nodes.some((n) => n.selected) && inspectorCollapsed) {
-      setCollapsedPanel('inspector', false)
-      return
-    }
-  }, [settingsOpen, inspectorCollapsed, setCollapsedPanel, nodes])
+  }, [settingsOpen, inspectorCollapsed, setCollapsedPanel, nodes, edges])
 
   const [welcomeDismissed, setWelcomeDismissed] = useState(
     () => localStorage.getItem(WELCOME_DISMISSED_KEY) === '1'

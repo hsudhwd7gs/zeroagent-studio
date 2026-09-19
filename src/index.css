@@ -3894,7 +3894,7 @@ body {
 .sidebar.is-collapsed .palette-search,
 .sidebar.is-collapsed .palette-items,
 .sidebar.is-collapsed .inspector-fields,
-.sidebar.is-collapsed .inspector-header-row,
+.sidebar.is-collapsed .inspector-type-badge,
 .sidebar.is-collapsed .inspector-summary,
 .sidebar.is-collapsed .port-legend,
 .sidebar.is-collapsed .inspector-hint,
@@ -3902,10 +3902,22 @@ body {
 .sidebar.is-collapsed .inspector-checkbox-label,
 .sidebar.is-collapsed .inspector-preview,
 .sidebar.is-collapsed .inspector-delete-btn,
+.sidebar.is-collapsed .inspector-empty-state,
+.sidebar.is-collapsed .inspector-empty-tips,
+.sidebar.is-collapsed .edge-inspector-status,
+.sidebar.is-collapsed .edge-inspector-route,
+.sidebar.is-collapsed .edge-inspector-payload,
 .sidebar.is-collapsed .settings-body,
 .sidebar.is-collapsed .settings-header,
 .sidebar.is-collapsed .debug-terminal,
 .sidebar.is-collapsed .palette-group {
+  display: none !important;
+}
+
+/* Future-proof catch-all: ANY other direct child of a collapsed panel also
+   hides, except the header rows that host the expand button (the button is
+   absolutely positioned into the rail, so its parent row must stay rendered). */
+.sidebar.is-collapsed > *:not(.sidebar-header-row):not(.inspector-header-row) {
   display: none !important;
 }
 
