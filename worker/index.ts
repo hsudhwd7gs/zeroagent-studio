@@ -1120,7 +1120,9 @@ export default {
         const cacheKey = new Request(`https://cache.internal/${encodeURIComponent(target)}`)
         let response = await cache.match(cacheKey)
         if (!response) {
-          const upstream = await fetch(target)
+          const upstream = await fetch(target, {
+            headers: { 'User-Agent': 'Brainwire-Studio/3.0' },
+          })
           response = new Response(upstream.body, {
             status: upstream.status,
             statusText: upstream.statusText,
