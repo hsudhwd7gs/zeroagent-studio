@@ -8,7 +8,7 @@ import {
 
 export { OPENROUTER_FREE_ROUTER, AUTO_ROTATE_MODEL }
 
-export const OPENROUTER_MODELS_CACHE_KEY = 'zeroagent-or-free-models'
+export const OPENROUTER_MODELS_CACHE_KEY = 'brainwire-or-free-models'
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000
 
 /** Curated fallback list — refreshed periodically via fetchOpenRouterFreeModels */
@@ -118,7 +118,7 @@ async function callOpenRouter(
       'Content-Type': 'application/json',
       Authorization: `Bearer ${apiKey}`,
       'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : '',
-      'X-Title': 'ZeroAgent Studio',
+      'X-Title': 'Brainwire',
     },
     body: JSON.stringify({
       model,

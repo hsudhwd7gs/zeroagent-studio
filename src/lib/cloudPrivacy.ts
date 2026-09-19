@@ -8,7 +8,7 @@ export type CloudProviderId = 'openrouter' | 'groq' | 'gemini'
 export interface ProviderPrivacyGuide {
   id: CloudProviderId
   name: string
-  /** What ZeroAgent Studio sends when you use this provider */
+  /** What Brainwire sends when you use this provider */
   whatWeSend: string[]
   /** Honest risks — no marketing spin */
   risks: string[]
@@ -126,13 +126,13 @@ export const LOCAL_PRIVACY_SUMMARY = {
   ],
 }
 
-export const ZEROAGENT_PRIVACY_TRUTH = {
-  title: 'What ZeroAgent Studio does NOT do',
+export const BRAINWIRE_PRIVACY_TRUTH = {
+  title: 'What Brainwire does NOT do',
   bullets: [
     'We have no servers that receive your chat, files, or keys.',
     'No analytics SDK or telemetry endpoint — we cannot measure or monetize your usage.',
     'Workflows and keys stay in your browser — tags in Privacy & keys show when each goes away.',
-    'Export (.zeroagent.json) never includes API keys; it can still contain chat text — treat exports like sharing a diary.',
+    'Export (.brainwire.json) never includes API keys; it can still contain chat text — treat exports like sharing a diary.',
   ],
   chatWarning:
     'When you press send, your message flows through every wired block. If an Agent uses a cloud brain or a cloud tool runs, that text (and upstream file/web/audio content) leaves your browser to the provider you configured.',

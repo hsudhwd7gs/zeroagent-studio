@@ -1,4 +1,4 @@
-name = "zeroagent-studio"
+name = "brainwire"
 main = "worker/index.ts"
 compatibility_date = "2024-11-01"
 compatibility_flags = ["nodejs_compat"]
@@ -22,15 +22,15 @@ id = "61d56978d1244e59bfe5e6dde6ed7440"            # bootstrap via scripts/boots
 preview_id = "61d56978d1244e59bfe5e6dde6ed7440"  # same namespace for preview
 
 # R2 — uploaded files + generated media (optional — enable R2 in dashboard first,
-# then uncomment and run `wrangler r2 bucket create zeroagent-studio-storage`)
+# then uncomment and run `wrangler r2 bucket create brainwire-storage`)
 # [[r2_buckets]]
 # binding = "STORAGE"
-# bucket_name = "zeroagent-studio-storage"
+# bucket_name = "brainwire-storage"
 
 # D1 — projects, workflows, kv, webhook_log
 [[d1_databases]]
 binding = "DB"
-database_name = "zeroagent-studio"
+database_name = "brainwire"
 database_id = "278f9e36-61c7-47ab-9eab-b49471fae9f3"  # bootstrap via scripts/bootstrap_cf_resources.py
 
 # Workers AI — text/image/embedding generation + workflow generator fallback
@@ -67,4 +67,4 @@ head_sampling_rate = 1
 # Vars (non-secret, plain text)
 # ───────────────────────────────────────────────────────────────
 [vars]
-WORKER_VERSION = "2.0.0"
+WORKER_VERSION = "3.0.0"

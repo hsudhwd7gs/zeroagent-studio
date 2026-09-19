@@ -56,10 +56,18 @@ export function ToolInspectorFields({
   nodeId,
   data,
   updateNodeData,
+  collapsed = false,
+  onToggleCollapse,
+  mobileOpen = false,
+  onCloseMobile,
 }: {
   nodeId: string
   data: ToolNodeData
   updateNodeData: (id: string, data: Partial<ToolNodeData>) => void
+  collapsed?: boolean
+  onToggleCollapse?: () => void
+  mobileOpen?: boolean
+  onCloseMobile?: () => void
 }) {
   const apiKeys = useSettingsStore((s) => s.apiKeys)
   const openSettings = useSettingsStore((s) => s.openSettings)
@@ -156,7 +164,7 @@ export function ToolInspectorFields({
   }
 
   const handlePlay = async () => {
-    const text = data.config?.previewText?.trim() || 'Hello from ZeroAgent Studio'
+    const text = data.config?.previewText?.trim() || 'Hello from Brainwire'
     setSpeechSpeaking(true)
     try {
       await previewSpeak(text, data.config?.language ?? 'en-US')
@@ -211,6 +219,10 @@ export function ToolInspectorFields({
       nodeType="tool"
       label={data.label}
       onLabelChange={(label) => updateNodeData(nodeId, { label })}
+      collapsed={collapsed}
+      onToggleCollapse={onToggleCollapse}
+      mobileOpen={mobileOpen}
+      onCloseMobile={onCloseMobile}
     >
         <label>
           Tool type

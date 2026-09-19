@@ -44,7 +44,7 @@ const NOTICES: Record<string, ToolSafetyNotice> = {
   'file-reader': {
     level: 'privacy',
     title: 'Local files stay in your browser',
-    summary: 'Files are read on your device — we never upload them to a ZeroAgent server.',
+    summary: 'Files are read on your device — we never upload them to a Brainwire server.',
     bullets: [
       'If you connect this block to an Agent with a cloud AI key, file contents are sent to that provider.',
       'Do not load passwords, medical records, or secrets you would not paste into a third-party chat.',

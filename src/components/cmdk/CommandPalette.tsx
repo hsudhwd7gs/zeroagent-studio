@@ -49,7 +49,7 @@ export default function CommandPalette({ open, onClose }: { open: boolean; onClo
       },
       {
         id: 'action-export',
-        label: 'Export workflow as .zeroagent.json',
+        label: 'Export workflow as .brainwire.json',
         group: 'Actions',
         icon: '📤',
         description: 'Download current canvas as a portable file',

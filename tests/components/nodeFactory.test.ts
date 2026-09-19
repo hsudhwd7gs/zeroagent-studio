@@ -9,7 +9,7 @@ vi.mock('../../src/lib/brainResolver', () => ({
 }))
 
 describe('nodeFactory — defaults favor free local brains', () => {
-  it('creates agent with $0 brain defaults', () => {
+  it('creates agent with free brain defaults', () => {
     const node = createAgentNode({ x: 10, y: 20 })
     expect(node.type).toBe('agent')
     expect(node.data.brain).toBe('transformers')

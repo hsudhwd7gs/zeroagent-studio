@@ -1,14 +1,14 @@
 # Documentation
 
-**ZeroAgent Studio** docs — for people who use the app, ship a PR, or fork and host their own copy.
+**Brainwire** docs — for people who use the app, ship a PR, or fork and host their own copy.
 
-Looking for the **visual AI agent builder** itself? Open the [live app](https://sakurablush.github.io/zeroagent-studio/) or read the [project README](../README.md) for quick start, tool reference, and privacy in plain language.
+Looking for the **visual AI agent builder** itself? Open the [live app](https://sakurablush.github.io/brainwire/) or read the [project README](../README.md) for quick start, tool reference, and privacy in plain language.
 
 ## Users
 
 | Doc | Description |
 | --- | ----------- |
-| [In-app Guide](https://sakurablush.github.io/zeroagent-studio/#/guide) | Full manual inside the live app |
+| [In-app Guide](https://sakurablush.github.io/brainwire/#/guide) | Full manual inside the live app |
 | [README](../README.md) | Project overview, quick start, tool reference |
 
 ## Contributors

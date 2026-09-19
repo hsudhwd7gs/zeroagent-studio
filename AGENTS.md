@@ -1,8 +1,8 @@
 # Agent instructions
 
 This file is the single landing page for coding assistants (Cursor, Kilo
-Code, Claude Code, Aider, …) working on **ZeroAgent Studio** — a
-$0-hosting, browser-native AI workflow editor on GitHub Pages.
+Code, Claude Code, Aider, …) working on **Brainwire** — a
+free-hosting, browser-native AI workflow editor on GitHub Pages.
 
 The authoritative source for humans is
 [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md). When anything below
@@ -21,7 +21,7 @@ conflicts with `CONTRIBUTING.md`, **the docs win**.
 2. **No backend.** No Express, no DB server, no API routes, no env secrets in the repo.
 3. **Registry-driven.** Tools in `src/tools/registry.ts` + manifests — never hardcode in `dag.ts` or palette.
 4. **Honest brain guidance.** OpenRouter recommended when users can paste a free key; Transformers.js is the no-key local path (`brainResolver.ts`, `brainChoiceGuidance.ts`).
-5. **100 % test coverage** on included `src/` (`vite.config.ts` excludes UI shells). Catalog count `203` is test-enforced.
+5. **100 % test coverage** on included `src/` (`vite.config.ts` excludes UI shells). Catalog count is dynamic via `getSiteStats()`.
 6. **Quality gate:** `npm ci` + `npm run ci` — must be green before any commit or PR.
 7. **Never commit** plans, secrets, build artifacts, or hardcoded catalog numbers.
 8. **Ask the user** before: adding a dependency, bumping `package.json` / lockfile, deploying, tagging a release, or pushing.
@@ -45,7 +45,7 @@ conflicts with `CONTRIBUTING.md`, **the docs win**.
 | Canvas / UI shells | `src/components/` | Excluded from coverage; test logic in `src/lib` |
 | Workflows (state + I/O) | `src/stores/workflowStore.ts`, `src/lib/workflowIo.ts` | API keys never in exports or URLs; canvas lock in `nodeCanvasLock.ts` |
 | Orchestrator | `src/orchestrator/dag.ts` | Registry-driven, no per-tool `switch` |
-| **Catalog counts** | `src/lib/siteStats.ts` | **Test-enforced** — never hardcode "203" or any tool total in copy |
+| **Catalog counts** | `src/lib/siteStats.ts` | **Test-enforced** — never hardcode any tool total in copy |
 | **Privacy copy** | `src/lib/cloudPrivacy.ts`, `src/lib/brainChoiceGuidance.ts` | Single source of truth for cloud + brain onboarding copy |
 
 ## Before you change code
@@ -53,7 +53,7 @@ conflicts with `CONTRIBUTING.md`, **the docs win**.
 1. **Read** [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — first time or after a long break.
 2. **Match existing patterns** in the file you edit. Smallest correct diff. No unrelated refactors.
 3. **Run the gate** before any commit: `npm ci && npm run ci` (audit → lint → typecheck → test:coverage 100 % → build). Never commit on red.
-4. **Cover new behavior** in `tests/` — real scenarios, not trivial `expect(true)`. See `.kilo/rules/06-test-engineer.md` (Kilo) or `.cursor/rules/zeroagent-test-engineer.mdc` (Cursor).
+4. **Cover new behavior** in `tests/` — real scenarios, not trivial `expect(true)`. See `.kilo/rules/06-test-engineer.md` (Kilo) or `.cursor/rules/brainwire-test-engineer.mdc` (Cursor).
 5. **Update user-facing docs in the same PR** when behavior changes: README, in-app **Guide** (`src/components/guide/GuidePage.tsx`), [docs/SECURITY.md](docs/SECURITY.md), [docs/TOOL-SAFETY.md](docs/TOOL-SAFETY.md), and [CHANGELOG.md](CHANGELOG.md) for user-visible changes.
 6. **Use the PR template** at [.github/pull_request_template.md](.github/pull_request_template.md). CODEOWNERS routes review at [.github/CODEOWNERS](.github/CODEOWNERS).
 7. **Never commit, push, deploy, or tag a release** without explicit user confirmation. See `.kilo/kilo.jsonc` `permission.edit` for the supply-chain-guarded paths.
@@ -81,16 +81,16 @@ permissions and an optimal model override.
 
 | Persona | Mode | Use for | Model |
 |---------|------|---------|-------|
-| `zeroagent-engineer` | primary | Implement features, fix bugs (default engineering) | Sonnet |
-| `zeroagent-planner` | primary | Design + trade-offs, no code | Sonnet |
-| `zeroagent-reviewer` | primary | PR review, quality, blockers (read-only) | Sonnet |
-| `zeroagent-debugger` | primary | Root-cause analysis + smallest fix | Sonnet |
-| `zeroagent-test-engineer` | primary | Vitest + 100 % coverage gate | Sonnet |
-| `zeroagent-security-auditor` | primary | Threat model + secret/key review | Sonnet |
-| `zeroagent-advisor` | primary | Read-only Q&A (no subagents) | Haiku (fast) |
+| `brainwire-engineer` | primary | Implement features, fix bugs (default engineering) | Sonnet |
+| `brainwire-planner` | primary | Design + trade-offs, no code | Sonnet |
+| `brainwire-reviewer` | primary | PR review, quality, blockers (read-only) | Sonnet |
+| `brainwire-debugger` | primary | Root-cause analysis + smallest fix | Sonnet |
+| `brainwire-test-engineer` | primary | Vitest + 100 % coverage gate | Sonnet |
+| `brainwire-security-auditor` | primary | Threat model + secret/key review | Sonnet |
+| `brainwire-advisor` | primary | Read-only Q&A (no subagents) | Haiku (fast) |
 
 The built-in Kilo agents (`code`, `plan`, `ask`, `debug`) are still
-available — the ZeroAgent personas add project-specific knowledge on top.
+available — the Brainwire personas add project-specific knowledge on top.
 
 ## Quick commands (Kilo)
 
@@ -113,8 +113,8 @@ Type the slash command in chat to invoke a multi-step workflow.
 | New file / network / cloud / sandbox tool (curated) | [`.kilo/skills/add-browser-tool/SKILL.md`](.kilo/skills/add-browser-tool/SKILL.md) |
 | New AI provider (BYOK or local) | [`.kilo/skills/add-brain-provider/SKILL.md`](.kilo/skills/add-brain-provider/SKILL.md) |
 | New guided quest | `src/lib/quests/` + `tutorialValidators.ts` + `GuidePage.tsx` + `README.md` (sync all) |
-| New shared rule | Copy [`.kilo/rules/02-engineer.md`](.kilo/rules/02-engineer.md) and the matching `.cursor/rules/zeroagent-engineer.mdc` |
-| New agent persona | Copy [`.kilo/agents/zeroagent-engineer.md`](.kilo/agents/zeroagent-engineer.md) and adjust the `permission` block |
+| New shared rule | Copy [`.kilo/rules/02-engineer.md`](.kilo/rules/02-engineer.md) and the matching `.cursor/rules/brainwire-engineer.mdc` |
+| New agent persona | Copy [`.kilo/agents/brainwire-engineer.md`](.kilo/agents/brainwire-engineer.md) and adjust the `permission` block |
 | New slash command | Copy [`.kilo/command/pre-commit-ci.md`](.kilo/command/pre-commit-ci.md) and set the `agent:` frontmatter |
 | Connection rules | `src/lib/ports.ts` + `src/lib/nodePorts.ts` + `src/lib/connectionValidation.ts` (with tests) |
 
@@ -151,7 +151,7 @@ coverage before opening a PR.
 | **Secrets & credentials** | `.env*`, `*.pem`, `*.key`, `*id_rsa*`, `*.gpg`, `.netrc`, `.aws/`, `.gcp/`, `.azure/`, `.ssh/`, `credentials/`, `secrets/` | all four ignore files |
 | **Build & test artifacts** | `dist/`, `coverage/`, `node_modules/`, `*.map`, `*.tsbuildinfo`, `playwright-report/`, `test-results/`, `lcov.info` | [`.gitignore`](.gitignore) |
 | **Lockfile drift** | `package-lock.json` without matching `package.json` (or vice versa) | convention |
-| **Hardcoded catalog numbers** | "203 tools", "16 curated", "187 manifest" anywhere in copy — use `getSiteStats()` or `siteStats.ts` instead | test-enforced |
+| **Hardcoded catalog numbers** | "300+ tools" or any specific count anywhere in copy — use `getSiteStats()` or `siteStats.ts` instead | test-enforced |
 | **Personal editor noise** | `.vscode/*` (keep only `extensions.json` + `settings.json`), `.idea/` | [`.gitignore`](.gitignore) |
 | **Debug noise** | `console.log`, `debugger;`, `// TODO: remove` in committed code | convention |
 
@@ -163,7 +163,7 @@ coverage before opening a PR.
 - **Speech / mic:** activate only on explicit tool run; handle permission errors gracefully.
 - **Model downloads:** WebLLM and Transformers.js pull from third-party CDNs (Hugging Face, …). It is a download, not us receiving your chat — but pin versions and treat as supply-chain.
 - **Dependencies:** `npm audit --audit-level=moderate` is part of `npm run ci`; Dependabot PRs grouped weekly; review every engine bump; dependency review on PRs when lockfile changes.
-- **Export redaction:** `.zeroagent.json` strips common API-key patterns in all string fields (config, prompts, chat messages). Prevention is still better.
+- **Export redaction:** `.brainwire.json` strips common API-key patterns in all string fields (config, prompts, chat messages). Prevention is still better.
 - **Docs must match code** — if behavior changes (privacy UI, locked tools, export redaction, safety notices), update README, **Guide**, [docs/SECURITY.md](docs/SECURITY.md), and [docs/TOOL-SAFETY.md](docs/TOOL-SAFETY.md) in the **same PR**.
 
 We are a **trusted educator**, not a token funnel: no analytics, no
@@ -176,5 +176,5 @@ Full model: [docs/SECURITY.md](docs/SECURITY.md). Per-tool warnings:
 ---
 
 **Quality gate:** `npm ci && npm run ci` — green only.
-**Live site:** <https://sakurablush.github.io/zeroagent-studio/>
+**Live site:** <https://sakurablush.github.io/brainwire/>
 **Tone:** plain language, explain jargon, no shame, no "just buy a better machine" — see "Empathy in copy" in [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md).

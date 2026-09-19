@@ -19,7 +19,7 @@ export async function runPdfTool(
   if (mode === 'create') {
     const doc = await PDFDocument.create()
     const page = doc.addPage([600, 400])
-    page.drawText(config.text || input || 'Hello from ZeroAgent!', { x: 50, y: 350, size: 16 })
+    page.drawText(config.text || input || 'Hello from Brainwire!', { x: 50, y: 350, size: 16 })
     const bytes = await doc.save()
     const blob = new Blob([bytes as ArrayBuffer], { type: 'application/pdf' })
     const outputUrl = URL.createObjectURL(blob)

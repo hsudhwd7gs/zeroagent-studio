@@ -4,11 +4,11 @@ import type { BrainType } from '../types'
 export function getBrainDisplayName(brain: BrainType): string {
   switch (brain) {
     case 'transformers':
-      return 'Transformers.js — $0 local (first run downloads a model)'
+      return 'Transformers.js — local (first run downloads a model)'
     case 'local':
       return 'WebLLM — slow local fallback (large download)'
     case 'openrouter':
-      return 'OpenRouter — recommended ($0 with free key)'
+      return 'OpenRouter — recommended (free with key)'
     case 'groq':
       return 'Groq — fast free tier'
     case 'gemini':

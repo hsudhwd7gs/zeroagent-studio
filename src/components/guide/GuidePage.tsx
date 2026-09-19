@@ -90,12 +90,12 @@ export default function GuidePage() {
           transition={{ duration: 0.5 }}
         >
           <span className="guide-hero-badge">Free · In your browser · Nothing to install</span>
-          <h1>How to use ZeroAgent Studio</h1>
+          <h1>How to use Brainwire</h1>
           <p className="guide-lead">
             Imagine a flowchart where each box can do something useful — read your notes, open a web
             page, listen to you speak, or ask an AI a question. You draw the chart, connect the boxes
             with typed ports (colored dots), and the app runs them in order. All of this happens in your
-            browser. You can start for <strong>$0</strong>: no credit card, no API key, no new computer.
+            browser. You can start for <strong>free</strong>: no credit card, no API key, no new computer.
             <strong>{stats.guidedQuests} guided quests</strong> walk you through real workflows if you prefer learning
             by doing.
           </p>
@@ -223,7 +223,7 @@ export default function GuidePage() {
                 at the top to find one by name (e.g. &ldquo;Base64&rdquo; or &ldquo;Slug&rdquo;). Browser
                 tools are grouped into sub-sections: Output, Essentials, Text, Encoding &amp; Hash, JSON, Lists,
                 Math, Date &amp; Time, Validate, and Flow. Cloud and Custom groups sit below. Badges show{' '}
-                <code>$0</code>, <code>locked</code>, <code>key ✓</code>, or{' '}
+                <code>free</code>, <code>locked</code>, <code>key ✓</code>, or{' '}
                 <code>sandbox</code>. Cloud tools without a matching key appear <strong>locked</strong>{' '}
                 (dashed border, 🔒) — you cannot drag them until you paste the key in{' '}
                 <strong>Privacy &amp; keys</strong>. Unlocked cloud tools sort to the top of the Cloud group. The
@@ -594,7 +594,7 @@ export default function GuidePage() {
                   <strong>OpenRouter</strong>
                 </td>
                 <td>
-                  <span className="guide-tag guide-tag--cyan">$0 models</span>
+                  <span className="guide-tag guide-tag--cyan">free models</span>
                 </td>
                 <td>
                   <strong>Best choice.</strong> Free key + auto-rotation across :free models. Fast,
@@ -606,7 +606,7 @@ export default function GuidePage() {
                   <strong>Transformers.js</strong>
                 </td>
                 <td>
-                  <span className="guide-tag guide-tag--green">$0</span>
+                  <span className="guide-tag guide-tag--green">free</span>
                 </td>
                 <td>
                   Offline / no signup. First use downloads a small model — can be slow on old hardware.
@@ -618,7 +618,7 @@ export default function GuidePage() {
                   <strong>WebLLM</strong>
                 </td>
                 <td>
-                  <span className="guide-tag guide-tag--green">$0</span>
+                  <span className="guide-tag guide-tag--green">free</span>
                 </td>
                 <td>
                   <strong>Slow local fallback only.</strong> Large download, needs WebGPU. Not
@@ -687,7 +687,7 @@ export default function GuidePage() {
             Each Web Scraper block shows a <strong>safety notice</strong> in the inspector with the
             full checklist. Maintainer docs:{' '}
             <a
-              href="https://github.com/sakurablush/zeroagent-studio/blob/main/docs/TOOL-SAFETY.md"
+              href="https://github.com/sakurablush/brainwire/blob/main/docs/TOOL-SAFETY.md"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -769,7 +769,7 @@ export default function GuidePage() {
         <section id="staying-safe" className="guide-section">
           <h2>Staying safe</h2>
           <p>
-            ZeroAgent Studio runs in <strong>your</strong> browser. We do not host your files, keys, or
+            Brainwire runs in <strong>your</strong> browser. We do not host your files, keys, or
             workflows on a central server — but some blocks still need care.
           </p>
           <div className="guide-callout guide-callout--warn">
@@ -813,7 +813,7 @@ export default function GuidePage() {
           <p>
             Full per-tool reference:{' '}
             <a
-              href="https://github.com/sakurablush/zeroagent-studio/blob/main/docs/TOOL-SAFETY.md"
+              href="https://github.com/sakurablush/brainwire/blob/main/docs/TOOL-SAFETY.md"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -821,7 +821,7 @@ export default function GuidePage() {
             </a>
             . Security model &amp; vulnerability reporting:{' '}
             <a
-              href="https://github.com/sakurablush/zeroagent-studio/blob/main/docs/SECURITY.md"
+              href="https://github.com/sakurablush/brainwire/blob/main/docs/SECURITY.md"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -834,7 +834,7 @@ export default function GuidePage() {
         <section id="privacy" className="guide-section">
           <h2>Privacy &amp; trust — no token games</h2>
           <p>
-            ZeroAgent Studio is <strong>static open-source code</strong> served from GitHub Pages (or
+            Brainwire is <strong>static open-source code</strong> served from GitHub Pages (or
             your own fork). We are not trying to resell AI credits or harvest your prompts.
           </p>
           <div className="guide-callout guide-callout--tip">
@@ -868,7 +868,7 @@ export default function GuidePage() {
           <p>
             Maintainer references:{' '}
             <a
-              href="https://github.com/sakurablush/zeroagent-studio/blob/main/docs/SECURITY.md"
+              href="https://github.com/sakurablush/brainwire/blob/main/docs/SECURITY.md"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -876,7 +876,7 @@ export default function GuidePage() {
             </a>
             {' · '}
             <a
-              href="https://github.com/sakurablush/zeroagent-studio/blob/main/docs/TOOL-SAFETY.md"
+              href="https://github.com/sakurablush/brainwire/blob/main/docs/TOOL-SAFETY.md"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -1006,11 +1006,11 @@ export default function GuidePage() {
               the current canvas has work on it).
             </li>
             <li>
-              <strong>Export</strong> — download the current canvas as a <code>.zeroagent.json</code>{' '}
+              <strong>Export</strong> — download the current canvas as a <code>.brainwire.json</code>{' '}
               file (share, backup, or open in another browser).
             </li>
             <li>
-              <strong>Import</strong> — load a <code>.zeroagent.json</code> file from disk. Invalid files
+              <strong>Import</strong> — load a <code>.brainwire.json</code> file from disk. Invalid files
               show a clear error; valid imports ask before replacing your canvas.
             </li>
             <li>
@@ -1051,7 +1051,7 @@ export default function GuidePage() {
               <h3>Payment / 402 error?</h3>
               <p>
                 On OpenRouter you probably hit a paid model. Pick one ending in <code>:free</code>, or
-                use a local brain for $0.
+                use a local brain for free.
               </p>
             </div>
             <div className="guide-card">
@@ -1089,18 +1089,18 @@ export default function GuidePage() {
         <section id="opensource" className="guide-section">
           <h2>Open source &amp; support</h2>
           <p className="guide-lead">
-            ZeroAgent Studio is free software. Fork it, host your own copy, or send improvements back.
+            Brainwire is free software. Fork it, host your own copy, or send improvements back.
           </p>
           <div className="guide-card-grid">
             <div className="guide-card">
               <h3>Source code</h3>
               <p>
                 <a
-                  href="https://github.com/sakurablush/zeroagent-studio"
+                  href="https://github.com/sakurablush/brainwire"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  github.com/sakurablush/zeroagent-studio
+                  github.com/sakurablush/brainwire
                 </a>{' '}
                 — MIT license. No npm package; deploy the static <code>dist/</code> folder to GitHub
                 Pages or any host.
@@ -1111,7 +1111,7 @@ export default function GuidePage() {
               <p>
                 This Guide is the user manual. Maintainers also publish{' '}
                 <a
-                  href="https://github.com/sakurablush/zeroagent-studio/blob/main/docs/ARCHITECTURE.md"
+                  href="https://github.com/sakurablush/brainwire/blob/main/docs/ARCHITECTURE.md"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -1119,7 +1119,7 @@ export default function GuidePage() {
                 </a>
                 ,{' '}
                 <a
-                  href="https://github.com/sakurablush/zeroagent-studio/blob/main/docs/DEPLOYMENT.md"
+                  href="https://github.com/sakurablush/brainwire/blob/main/docs/DEPLOYMENT.md"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -1127,7 +1127,7 @@ export default function GuidePage() {
                 </a>
                 ,{' '}
                 <a
-                  href="https://github.com/sakurablush/zeroagent-studio/blob/main/docs/TOOL-SAFETY.md"
+                  href="https://github.com/sakurablush/brainwire/blob/main/docs/TOOL-SAFETY.md"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -1135,7 +1135,7 @@ export default function GuidePage() {
                 </a>
                 ,{' '}
                 <a
-                  href="https://github.com/sakurablush/zeroagent-studio/blob/main/docs/SECURITY.md"
+                  href="https://github.com/sakurablush/brainwire/blob/main/docs/SECURITY.md"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -1143,7 +1143,7 @@ export default function GuidePage() {
                 </a>
                 , and{' '}
                 <a
-                  href="https://github.com/sakurablush/zeroagent-studio/blob/main/docs/CONTRIBUTING.md"
+                  href="https://github.com/sakurablush/brainwire/blob/main/docs/CONTRIBUTING.md"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -1157,7 +1157,7 @@ export default function GuidePage() {
               <p>
                 Use GitHub{' '}
                 <a
-                  href="https://github.com/sakurablush/zeroagent-studio/issues/new/choose"
+                  href="https://github.com/sakurablush/brainwire/issues/new/choose"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -1170,7 +1170,7 @@ export default function GuidePage() {
             <div className="guide-card guide-card--wide">
               <h3>Support the project</h3>
               <p>
-                ZeroAgent Studio is free — no paywall, no accounts, no ads. If it saved you time or
+                Brainwire is free — no paywall, no accounts, no ads. If it saved you time or
                 money and you want to help cover the next round of building, you can chip in via
                 crypto (optional). The app stays free either way.
               </p>
@@ -1249,11 +1249,11 @@ export default function GuidePage() {
             <dd>
               Open source at{' '}
               <a
-                href="https://github.com/sakurablush/zeroagent-studio"
+                href="https://github.com/sakurablush/brainwire"
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                github.com/sakurablush/zeroagent-studio
+                github.com/sakurablush/brainwire
               </a>
               . Run <code>npm run dev</code> locally or host <code>dist/</code> on GitHub Pages — see{' '}
               <button type="button" className="guide-inline-link" onClick={() => scrollToSection('opensource')}>

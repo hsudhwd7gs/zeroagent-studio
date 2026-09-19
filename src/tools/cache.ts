@@ -10,7 +10,7 @@
 //   ttlMs     — time-to-live in ms (default 24 hours)
 //   fallback  — for "get" mode: return this if key missing (default "")
 
-const STORAGE_PREFIX = 'zeroagent.cache.'
+const STORAGE_PREFIX = 'brainwire.cache.'
 
 interface CacheEntry {
   value: unknown

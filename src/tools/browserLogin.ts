@@ -10,7 +10,7 @@ interface StoredSession {
   createdAt: number
 }
 
-const STORAGE_KEY = 'zeroagent.session'
+const STORAGE_KEY = 'brainwire.session'
 
 function loadSession(): StoredSession | null {
   try {

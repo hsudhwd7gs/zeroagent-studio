@@ -34,10 +34,10 @@ export default function WelcomeBanner({ onDismiss }: WelcomeBannerProps) {
           <p className="welcome-text">
             <strong>Recommended:</strong> paste a free <strong>OpenRouter</strong> key for fast replies
             — no local model download, works on any computer with internet. Prefer no signup or fully
-            local inference? <strong>Transformers.js</strong> runs at $0 in your browser; the first
+            local inference? <strong>Transformers.js</strong> runs in your browser; the first
             reply may wait while a small model downloads and older hardware can feel sluggish. Try header{' '}
             <strong>Examples</strong> for ready-made flows, or pick a guided quest below — everything is
-            $0 to start.
+            free to start.
           </p>
         </div>
         <button type="button" className="welcome-close" onClick={onDismiss} aria-label="Dismiss welcome">

@@ -36,11 +36,11 @@ Extract notes locally: `node scripts/extract-changelog-section.mjs 0.1.0 --stdou
 
 ## GitHub repository (first publish)
 
-One-time settings on [github.com/sakurablush/zeroagent-studio](https://github.com/sakurablush/zeroagent-studio):
+One-time settings on [github.com/sakurablush/brainwire](https://github.com/sakurablush/brainwire):
 
 - [ ] **Settings → Pages → Source → GitHub Actions**
 - [ ] **Settings → General → Features** — enable **Discussions** (optional community hub)
-- [ ] **About** (right sidebar) — paste `description` from `package.json`; Website: `https://sakurablush.github.io/zeroagent-studio/`; topics (max 20): `ai-agents`, `visual-ai`, `workflow-builder`, `browser-ai`, `local-llm`, `openrouter`, `react`, `typescript`, `no-code`, `education`, `privacy-first`, `github-pages`, `open-source`, `transformers-js`, `webllm`, `agentic-ai`, `drag-and-drop`, `reactflow`, `huggingface`, `tutorial`
+- [ ] **About** (right sidebar) — paste `description` from `package.json`; Website: `https://sakurablush.github.io/brainwire/`; topics (max 20): `ai-agents`, `visual-ai`, `workflow-builder`, `browser-ai`, `local-llm`, `openrouter`, `react`, `typescript`, `no-code`, `education`, `privacy-first`, `github-pages`, `open-source`, `transformers-js`, `webllm`, `agentic-ai`, `drag-and-drop`, `reactflow`, `huggingface`, `tutorial`
 - [ ] **Settings → Branches** — protect `main`, require **CI** status check
 - [ ] Push all files, confirm **CI** + **Deploy** workflows are green
 

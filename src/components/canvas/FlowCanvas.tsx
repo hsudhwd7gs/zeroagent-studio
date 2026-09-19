@@ -14,6 +14,7 @@ import AgentNode from '../nodes/AgentNode'
 import ToolNode from '../nodes/ToolNode'
 import ChatNode from '../nodes/ChatNode'
 import LoopNode from '../nodes/LoopNode'
+import TerminalNode from '../nodes/TerminalNode'
 import AnimatedEdge from '../edges/AnimatedEdge'
 import { useWorkflowStore } from '../../stores/workflowStore'
 import { useConnectionStore } from '../../stores/connectionStore'
@@ -28,6 +29,7 @@ const nodeTypes = {
   tool: ToolNode,
   chat: ChatNode,
   loop: LoopNode,
+  terminal: TerminalNode,
 }
 
 const edgeTypes = {

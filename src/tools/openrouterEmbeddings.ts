@@ -1,6 +1,6 @@
 import { cosineSimilarity, summarizeVector } from '../lib/vectorMath'
 
-export const OPENROUTER_EMBEDDINGS_CACHE_KEY = 'zeroagent-or-embedding-models'
+export const OPENROUTER_EMBEDDINGS_CACHE_KEY = 'brainwire-or-embedding-models'
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000
 const DEFAULT_EMBEDDING_MODEL = 'openai/text-embedding-3-small'
 

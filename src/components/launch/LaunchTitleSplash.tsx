@@ -37,9 +37,9 @@ export default function LaunchTitleSplash({ onDone }: LaunchTitleSplashProps) {
       >
         <p className="launch-splash-welcome">Welcome to</p>
         <h1 id="launch-splash-title" className="launch-splash-title">
-          ZeroAgent Studio
+          Brainwire
         </h1>
-        <p className="launch-splash-tagline">$0 · runs in your browser · your workflows, your rules</p>
+        <p className="launch-splash-tagline">runs in your browser · your workflows, your rules</p>
       </motion.div>
     </motion.div>
   )

@@ -1,6 +1,6 @@
 # Contributors
 
-ZeroAgent Studio is built in the open. Thank you to everyone who reports bugs,
+Brainwire is built in the open. Thank you to everyone who reports bugs,
 sends pull requests, improves docs, or spreads the word.
 
 ## How to contribute
@@ -12,7 +12,7 @@ and PR expectations.
 
 Contributors are credited in:
 
-- Git commit history on [GitHub](https://github.com/sakurablush/zeroagent-studio/graphs/contributors)
+- Git commit history on [GitHub](https://github.com/sakurablush/brainwire/graphs/contributors)
 - Release notes in [CHANGELOG.md](CHANGELOG.md) for user-facing changes
 
 You do not need to add your name to this file for every PR — the GitHub

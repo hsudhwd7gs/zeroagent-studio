@@ -1,12 +1,12 @@
 /**
- * ZeroAgent Studio — Universal Worker v2 (Production Ready, Cloud-Sync Edition)
+ * Brainwire — Universal Worker v2 (Production Ready, Cloud-Sync Edition)
  * ============================================================================
  *
  * Pure relay + dynamic API key management via KV + multi-project cloud sync via D1.
  *
  * Features:
  *   • Universal proxy — any API, any method, any auth
- *   • Dynamic API keys — add/update from ZeroAgent UI, stored in KV
+ *   • Dynamic API keys — add/update from Brainwire UI, stored in KV
  *   • All Cloudflare free features (KV, R2, D1, Workers AI, Cron)
  *   • Auto-secret injection for 15+ providers
  *   • Multi-project + multi-workflow cloud sync (D1-backed)
@@ -65,7 +65,7 @@
  *   POST /api/jobs                      → Create background job (writes to KV with TTL)
  *   GET  /api/jobs/{id}                 → Get job status
  *   GET  /api/keys/get?name=...         → Get a stored key's value (masked)
- *   *    /*                             → Static assets (ZeroAgent UI)
+ *   *    /*                             → Static assets (Brainwire UI)
  */
 
 // ─────────────────────────────────────────────────────────────
@@ -327,7 +327,7 @@ async function proxyRequest(
     if (safeHeaders.includes(lower)) headers[key] = value
     if (lower.startsWith('x-') && !lower.startsWith('x-secret-')) headers[key] = value
   }
-  if (!headers['User-Agent']) headers['User-Agent'] = 'ZeroAgent-Studio/1.0'
+  if (!headers['User-Agent']) headers['User-Agent'] = 'Brainwire-Studio/1.0'
 
   await injectProviderAuth(env, targetUrl, headers)
 
@@ -382,7 +382,7 @@ async function handleYtDlp(env: Env, request: Request): Promise<Response> {
     // 1. noembed.com — works reliably from CF Workers IPs
     try {
       const noembedRes = await fetch(`https://noembed.com/embed?url=${encodedUrl}`, {
-        headers: { 'User-Agent': 'ZeroAgent-Studio/2.0' },
+        headers: { 'User-Agent': 'Brainwire-Studio/2.0' },
       })
       triedSources.push({ source: 'noembed.com', status: noembedRes.status })
       if (noembedRes.ok) {
@@ -411,7 +411,7 @@ async function handleYtDlp(env: Env, request: Request): Promise<Response> {
     // 2. Direct YouTube oEmbed
     try {
       const oembedRes = await fetch(`https://www.youtube.com/oembed?url=${encodedUrl}&format=json`, {
-        headers: { 'User-Agent': 'ZeroAgent-Studio/2.0' },
+        headers: { 'User-Agent': 'Brainwire-Studio/2.0' },
       })
       triedSources.push({ source: 'youtube-oembed', status: oembedRes.status })
       if (oembedRes.ok) {
@@ -694,7 +694,7 @@ async function handleWebhook(env: Env, request: Request, url: URL): Promise<Resp
 // Text-to-workflow generator (Groq first, Workers AI fallback)
 // ─────────────────────────────────────────────────────────────
 
-const WORKFLOW_GEN_PROMPT = `You are a workflow generator for ZeroAgent Studio. Output a JSON workflow ONLY.
+const WORKFLOW_GEN_PROMPT = `You are a workflow generator for Brainwire. Output a JSON workflow ONLY.
 
 Schema:
 {
@@ -968,7 +968,7 @@ export default {
         }
         return json({
           ok: true,
-          worker: 'zeroagent-studio',
+          worker: 'brainwire',
           version: '2.0.0',
           time: new Date().toISOString(),
           features,
@@ -1125,7 +1125,7 @@ export default {
           headers: { Authorization: `Basic ${auth}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({
             slug,
-            newTitle: `ZeroAgent ${Date.now()}`,
+            newTitle: `Brainwire ${Date.now()}`,
             text: '',
             language: 'python',
             kernelType: 'notebook',

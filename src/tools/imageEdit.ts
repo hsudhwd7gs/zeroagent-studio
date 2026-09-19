@@ -80,7 +80,7 @@ export async function runImageEdit(
     canvas.width = img.width
     canvas.height = img.height
     ctx.drawImage(img, 0, 0)
-    const text = config.text ?? (operation === 'watermark' ? '@ZeroAgent' : 'Hello')
+    const text = config.text ?? (operation === 'watermark' ? '@Brainwire' : 'Hello')
     const fontSize = parseInt(config.fontSize ?? '48', 10)
     const color = config.color ?? '#ffffff'
     ctx.font = `${operation === 'watermark' ? 'bold ' : ''}${fontSize}px Inter, Arial, sans-serif`

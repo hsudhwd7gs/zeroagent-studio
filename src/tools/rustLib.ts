@@ -1,7 +1,7 @@
 // Rust Library Runner — executes pre-compiled Rust WASM modules.
 //
 // Loads .wasm files compiled from Rust (via wasm-pack), exposes
-// their exported functions to ZeroAgent.
+// their exported functions to Brainwire.
 
 interface RustModule {
   instance: WebAssembly.Instance

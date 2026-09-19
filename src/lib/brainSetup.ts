@@ -12,8 +12,8 @@ export interface BrainOptionSetup {
 const BRAIN_ORDER: BrainType[] = ['openrouter', 'transformers', 'local', 'groq', 'gemini']
 
 const BRAIN_OPTION_LABELS: Record<BrainType, string> = {
-  openrouter: 'OpenRouter — recommended ($0 with free key)',
-  transformers: 'Transformers.js — $0 local (downloads on first use)',
+  openrouter: 'OpenRouter — recommended (free with key)',
+  transformers: 'Transformers.js — local (downloads on first use)',
   local: 'WebLLM — slow local fallback (large download)',
   groq: 'Groq — optional free cloud key',
   gemini: 'Gemini — optional free cloud key',
@@ -24,7 +24,7 @@ export function getBrainSetupMessage(brain: BrainType, apiKeys: ApiKeys = {}): s
 
   switch (brain) {
     case 'openrouter':
-      return 'No OpenRouter key saved. Open Privacy & keys and paste a free key from openrouter.ai/keys (recommended) — or choose Transformers.js for local $0 inference (downloads on first use).'
+      return 'No OpenRouter key saved. Open Privacy & keys and paste a free key from openrouter.ai/keys (recommended) — or choose Transformers.js for local inference (downloads on first use).'
     case 'groq':
       return 'No Groq key saved. Open Privacy & keys and paste one from console.groq.com (free tier).'
     case 'gemini':
@@ -67,8 +67,8 @@ export function getAgentBrainBadgeLabel(
       model === OPENROUTER_FREE_ROUTER || model === 'openrouter/free' || !model
     return { text: auto ? 'OR auto' : 'OR :free', locked: false }
   }
-  if (brain === 'transformers') return { text: 'Local $0', locked: false }
-  if (brain === 'local') return { text: 'WebLLM $0', locked: false }
+  if (brain === 'transformers') return { text: 'Local', locked: false }
+  if (brain === 'local') return { text: 'WebLLM', locked: false }
   if (brain === 'groq') return { text: 'Groq free', locked: false }
   if (brain === 'gemini') return { text: 'Gemini free', locked: false }
   return { text: brain, locked: false }

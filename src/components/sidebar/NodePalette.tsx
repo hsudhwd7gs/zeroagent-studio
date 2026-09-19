@@ -29,9 +29,10 @@ import { APP_STORAGE_CLEARED_EVENT } from '../../lib/appStorage'
 import { PaletteAccordionSection } from './PaletteAccordionSection'
 
 const CORE_ITEMS = [
-  { type: 'chat', icon: '💬', label: 'Chat', desc: 'Type here to start', badge: '$0', tier: 'legendary' as const },
-  { type: 'agent', icon: '🤖', label: 'Agent', desc: 'AI that reads & writes', badge: '$0', tier: 'legendary' as const },
-  { type: 'loop', icon: '🔁', label: 'Loop', desc: 'Repeat downstream for each item', badge: '$0', tier: 'epic' as const },
+  { type: 'chat', icon: '💬', label: 'Chat', desc: 'Type here to start', badge: 'free', tier: 'legendary' as const },
+  { type: 'agent', icon: '🤖', label: 'Agent', desc: 'AI that reads & writes', badge: 'free', tier: 'legendary' as const },
+  { type: 'loop', icon: '🔁', label: 'Loop', desc: 'Repeat downstream for each item', badge: 'free', tier: 'epic' as const },
+  { type: 'terminal', icon: '🖥️', label: 'Terminal', desc: 'Bash-like shell in your browser', badge: 'free', tier: 'epic' as const },
 ]
 
 const GROUP_LABELS: Record<string, string> = {
@@ -52,7 +53,14 @@ function matchesSearch(text: string, query: string): boolean {
   return text.toLowerCase().includes(query.toLowerCase())
 }
 
-export default function NodePalette() {
+interface NodePaletteProps {
+  collapsed?: boolean
+  onToggleCollapse?: () => void
+  mobileOpen?: boolean
+  onCloseMobile?: () => void
+}
+
+export default function NodePalette({ collapsed = false, onToggleCollapse, mobileOpen = false, onCloseMobile }: NodePaletteProps = {}) {
   const [search, setSearch] = useState('')
   const [collapsedSections, setCollapsedSections] = useState(readPaletteCollapsedSections)
   const stepIndex = useTutorialStore((s) => s.stepIndex)
@@ -211,11 +219,38 @@ export default function NodePalette() {
   }, [filteredTools])
 
   return (
-    <aside className="sidebar palette game-panel" data-tutorial-target="palette">
-      <h3 className="sidebar-title game-panel-title">
-        <span className="game-panel-title-icon" aria-hidden>⚡</span>
-        Building blocks
-      </h3>
+    <aside
+      className={`sidebar palette game-panel ${collapsed ? 'is-collapsed' : ''} ${mobileOpen ? 'is-mobile-open' : ''}`}
+      data-tutorial-target="palette"
+    >
+      <div className="sidebar-header-row">
+        <h3 className="sidebar-title game-panel-title">
+          <span className="game-panel-title-icon" aria-hidden>⚡</span>
+          Building blocks
+        </h3>
+        {onToggleCollapse && (
+          <button
+            type="button"
+            className={`sidebar-collapse-btn ${collapsed ? 'is-collapsed' : ''}`}
+            onClick={onToggleCollapse}
+            aria-label={collapsed ? 'Expand building blocks panel' : 'Collapse building blocks panel'}
+            title={collapsed ? 'Expand panel ([ to toggle)' : 'Collapse panel ([ to toggle)'}
+          >
+            <span className="chevron" aria-hidden>‹</span>
+          </button>
+        )}
+        {mobileOpen && onCloseMobile && (
+          <button
+            type="button"
+            className="sidebar-collapse-btn mobile-close-btn"
+            onClick={onCloseMobile}
+            aria-label="Close panel"
+            title="Close"
+          >
+            ✕
+          </button>
+        )}
+      </div>
       <p className="palette-intro">
         Drag onto the canvas, or double-click to add at center. Click category headers to fold sections.
       </p>

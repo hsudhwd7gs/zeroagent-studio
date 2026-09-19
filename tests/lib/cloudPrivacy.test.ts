@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   CLOUD_PROVIDER_GUIDES,
   getProviderGuide,
-  ZEROAGENT_PRIVACY_TRUTH,
+  BRAINWIRE_PRIVACY_TRUTH,
 } from '../../src/lib/cloudPrivacy'
 
 describe('cloudPrivacy', () => {
@@ -26,8 +26,8 @@ describe('cloudPrivacy', () => {
   })
 
   it('documents chat send behavior honestly', () => {
-    expect(ZEROAGENT_PRIVACY_TRUTH.chatWarning).toMatch(/press send/i)
-    expect(ZEROAGENT_PRIVACY_TRUTH.bullets.some((b) => /no servers/i.test(b))).toBe(true)
-    expect(ZEROAGENT_PRIVACY_TRUTH.bullets.some((b) => /analytics/i.test(b))).toBe(true)
+    expect(BRAINWIRE_PRIVACY_TRUTH.chatWarning).toMatch(/press send/i)
+    expect(BRAINWIRE_PRIVACY_TRUTH.bullets.some((b) => /no servers/i.test(b))).toBe(true)
+    expect(BRAINWIRE_PRIVACY_TRUTH.bullets.some((b) => /analytics/i.test(b))).toBe(true)
   })
 })

@@ -3,6 +3,7 @@ import type { Project } from '../types'
 import { DEFAULT_PROJECT, DEFAULT_PROJECT_ID } from '../types'
 import { listProjects, saveProject, deleteProject } from '../db'
 import { getMeta, setMeta } from '../db'
+import { migrateLegacyZeroAgentDb } from '../db'
 
 const LAST_PROJECT_KEY = 'meta:lastProjectId'
 
@@ -28,6 +29,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   isLoaded: false,
 
   init: async () => {
+    await migrateLegacyZeroAgentDb()
     await get().refresh()
     const lastId = await getMeta<string>(LAST_PROJECT_KEY, DEFAULT_PROJECT_ID)
     // Make sure the last project still exists

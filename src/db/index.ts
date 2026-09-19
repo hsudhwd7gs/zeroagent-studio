@@ -3,14 +3,14 @@ import type { Workflow, ApiKeys, Project } from '../types'
 
 const PERSONAL_PROJECT_ID = 'personal'
 
-class ZeroAgentDB extends Dexie {
+class BrainwireDB extends Dexie {
   workflows!: EntityTable<Workflow & { projectId?: string }, 'id'>
   settings!: EntityTable<{ id: string; apiKeys: ApiKeys }, 'id'>
   projects!: EntityTable<Project, 'id'>
   meta!: EntityTable<{ id: string; value: unknown }, 'id'>
 
   constructor() {
-    super('ZeroAgentStudio')
+    super('Brainwire')
     // v1: original schema
     this.version(1).stores({
       workflows: '++id, name, updatedAt',
@@ -23,10 +23,82 @@ class ZeroAgentDB extends Dexie {
       projects: 'id, name, updatedAt',
       meta: 'id',
     })
+    // v3: rename legacy "ZeroAgentStudio" IndexedDB → "Brainwire" with one-time
+    // data migration. Existing users keep their workflows + projects.
+    this.version(3).stores({
+      workflows: '++id, name, updatedAt, projectId',
+      settings: 'id',
+      projects: 'id, name, updatedAt',
+      meta: 'id',
+    })
   }
 }
 
-export const db = new ZeroAgentDB()
+export const db = new BrainwireDB()
+
+/**
+ * One-time migration: copy data from the legacy `ZeroAgentStudio` IndexedDB
+ * into the new `Brainwire` database. Idempotent — uses a `meta` flag so it
+ * only runs once. Safe to call on every boot.
+ */
+export async function migrateLegacyZeroAgentDb(): Promise<void> {
+  if (typeof indexedDB === 'undefined') return
+  const FLAG = 'legacy-zeroagent-migrated'
+  try {
+    const already = await db.meta.get(FLAG)
+    if (already?.value === true) return
+
+    // Probe for the legacy DB
+    const dbs = await indexedDB.databases?.()
+    const hasLegacy = dbs?.some((d) => d.name === 'ZeroAgentStudio')
+    if (!hasLegacy) {
+      await db.meta.put({ id: FLAG, value: true })
+      return
+    }
+
+    // Open legacy DB read-only and copy records
+    const legacy = await new Promise<IDBDatabase>((resolve, reject) => {
+      const req = indexedDB.open('ZeroAgentStudio')
+      req.onsuccess = () => resolve(req.result)
+      req.onerror = () => reject(req.error)
+      req.onupgradeneeded = (event) => {
+        // If the legacy DB doesn't exist, create an empty one to avoid errors
+        const ldb = (event.target as IDBOpenDBRequest).result
+        if (!ldb.objectStoreNames.contains('workflows')) ldb.createObjectStore('workflows', { keyPath: 'id', autoIncrement: true })
+        if (!ldb.objectStoreNames.contains('settings')) ldb.createObjectStore('settings', { keyPath: 'id' })
+        if (!ldb.objectStoreNames.contains('projects')) ldb.createObjectStore('projects', { keyPath: 'id' })
+        if (!ldb.objectStoreNames.contains('meta')) ldb.createObjectStore('meta', { keyPath: 'id' })
+      }
+    })
+
+    const copyStore = async (storeName: string) => {
+      try {
+        const tx = legacy.transaction(storeName, 'readonly')
+        const store = tx.objectStore(storeName)
+        const all = await new Promise<unknown[]>((res, rej) => {
+          const r = store.getAll()
+          r.onsuccess = () => res(r.result as unknown[])
+          r.onerror = () => rej(r.error)
+        })
+        if (Array.isArray(all) && all.length > 0) {
+          await db.table(storeName).bulkPut(all as never[])
+        }
+      } catch (err) {
+        console.warn(`[Brainwire] Skipping legacy store ${storeName}:`, err)
+      }
+    }
+
+    await copyStore('projects')
+    await copyStore('workflows')
+    await copyStore('settings')
+    await copyStore('meta')
+
+    await db.meta.put({ id: FLAG, value: true })
+    console.info('[Brainwire] Migrated legacy IndexedDB data to new Brainwire database.')
+  } catch (err) {
+    console.warn('[Brainwire] Legacy DB migration skipped:', err)
+  }
+}
 
 /** Ensure the user always has a default Personal project. Idempotent. */
 export async function ensureDefaultProject(): Promise<void> {

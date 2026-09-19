@@ -47,7 +47,7 @@ export const APP_STORAGE_QUEST_IDS = QUEST_IDS
 export const LOCAL_DATA_PRIVACY = {
   title: 'Your data stays in your browser',
   lead:
-    'ZeroAgent Studio has no accounts, no analytics, and no servers that store your workflows. Everything below lives only on this device until you clear it.',
+    'Brainwire has no accounts, no analytics, and no servers that store your workflows. Everything below lives only on this device until you clear it.',
 } as const
 
 export const APP_STORAGE_CATEGORIES: AppStorageCategory[] = [

@@ -10,7 +10,7 @@
 //   value     — value to store (for set/append; empty = use input)
 //   ttlMs     — optional expiry in ms (0 = never)
 
-const STORAGE_PREFIX = 'zeroagent.varstore.'
+const STORAGE_PREFIX = 'brainwire.varstore.'
 
 interface StoredEntry {
   value: unknown

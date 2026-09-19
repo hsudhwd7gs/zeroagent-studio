@@ -132,7 +132,7 @@ describe('workflowIo', () => {
     const doc = buildWorkflowExportDocument('Download Me', nodes, edges)
     downloadWorkflowExport(doc)
 
-    expect(anchor.download).toBe('Download-Me.zeroagent.json')
+    expect(anchor.download).toBe('Download-Me.brainwire.json')
     expect(click).toHaveBeenCalled()
     expect(revoke).toHaveBeenCalledWith('blob:mock')
 

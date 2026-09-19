@@ -12,7 +12,7 @@ For the overall security model (keys, storage, reporting bugs), see [SECURITY.md
 
 **Risk level:** Network — highest care required.
 
-You choose every URL. ZeroAgent Studio does not decide what is “allowed.”
+You choose every URL. Brainwire does not decide what is “allowed.”
 
 ### What you must check yourself
 
@@ -47,9 +47,9 @@ Scraped text is passed to later blocks. If you wire an **Agent** with a cloud AI
 
 **Risk level:** Privacy.
 
-- Files are read **only on your device** — ZeroAgent Studio has no upload server.
+- Files are read **only on your device** — Brainwire has no upload server.
 - If you connect File Reader → **Agent** with a cloud brain, **file contents leave your browser** and go to that AI provider.
-- Exported `.zeroagent.json` files contain block settings, **not** file contents.
+- Exported `.brainwire.json` files contain block settings, **not** file contents.
 - Do not load passwords, medical records, or secrets you would not paste into a third-party chat.
 
 ---
@@ -97,7 +97,7 @@ Applies to: **Groq Transcribe**, **Gemini Vision**, **Gemini Embeddings**, **Ope
 **Risk level:** Cloud — data leaves your browser.
 
 - Your browser sends data **directly** to the provider using **your** API key.
-- ZeroAgent Studio never sees your key or payload on a central server.
+- Brainwire never sees your key or payload on a central server.
 - Read each provider’s privacy policy before sending personal, confidential, or regulated data.
 - Delete keys in **Privacy & keys** when done on a shared computer.
 
@@ -156,7 +156,7 @@ This is education, not upsell: a free OpenRouter key is recommended for speed; T
 
 ## Export & import
 
-- `.zeroagent.json` exports include workflow structure and tool config strings.
+- `.brainwire.json` exports include workflow structure and tool config strings.
 - **Settings API keys are never exported.**
 - If you accidentally pasted a key into a script, agent prompt, chat message, or config field, export **redacts** common patterns (`sk-or-…`, `gsk_…`, `AIza…`) across all node data.
 - Still: **never store secrets in workflows.**

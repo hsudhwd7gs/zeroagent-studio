@@ -65,7 +65,7 @@ function ChatNodeComponent({ id, data, selected }: NodeProps) {
       const errorMsg = err instanceof Error ? err.message : String(err)
       const help =
         errorMsg.includes('key') || errorMsg.includes('Brain') || errorMsg.includes('OpenRouter')
-          ? '\n\nTip: For faster replies, add a free OpenRouter key in Privacy & keys (openrouter.ai/keys) — auto-rotates between $0 models. No key? Transformers.js runs locally at $0; the first reply may download a model.'
+          ? '\n\nTip: For faster replies, add a free OpenRouter key in Privacy & keys (openrouter.ai/keys) — auto-rotates between free models. No key? Transformers.js runs locally; the first reply may download a model.'
           : ''
       const freshNode = useWorkflowStore.getState().nodes.find((n) => n.id === id)
       const currentMessages = (freshNode?.data as ChatNodeData | undefined)?.messages ?? []

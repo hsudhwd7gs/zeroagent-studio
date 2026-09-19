@@ -22,8 +22,8 @@ describe('LaunchTitleSplash', () => {
   it('shows app title and calls onDone after timeout', async () => {
     const onDone = vi.fn()
     render(<LaunchTitleSplash onDone={onDone} />)
-    expect(screen.getByRole('dialog', { name: /ZeroAgent Studio/i })).toBeInTheDocument()
-    expect(screen.getByText('ZeroAgent Studio')).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: /Brainwire/i })).toBeInTheDocument()
+    expect(screen.getByText('Brainwire')).toBeInTheDocument()
     expect(onDone).not.toHaveBeenCalled()
     vi.advanceTimersByTime(2800)
     expect(onDone).toHaveBeenCalledTimes(1)

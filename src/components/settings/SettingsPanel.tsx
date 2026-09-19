@@ -150,7 +150,7 @@ export default function SettingsPanel() {
               </div>
 
               <section className="settings-section settings-free">
-                <h3>Runs on your device — $0 forever</h3>
+                <h3>Runs on your device — free forever</h3>
                 <p className="settings-hint">
                   Use this section when you cannot or will not use a cloud key. For most people we still
                   recommend a free OpenRouter key in the section below for speed.
@@ -178,7 +178,7 @@ export default function SettingsPanel() {
                     <span className="status-ok">Available — you can use the faster local AI</span>
                   ) : (
                     <span className="status-warn">
-                      Not available — use Transformers.js above (still $0)
+                      Not available — use Transformers.js above (still free)
                     </span>
                   )}
                 </div>
@@ -229,11 +229,11 @@ export default function SettingsPanel() {
                 <h3>API keys — optional cloud tiers</h3>
                 <p className="settings-hint">
                   {SETTINGS_SKIP_KEYS_NOTE} Keys are stored only in <em>your</em> browser and sent to the
-                  provider you chose when a cloud step runs — never to ZeroAgent Studio (we have no
+                  provider you chose when a cloud step runs — never to Brainwire (we have no
                   servers).
                 </p>
 
-                <h4 className="settings-subhead">OpenRouter — recommended ($0 with free key)</h4>
+                <h4 className="settings-subhead">OpenRouter — recommended (free with key)</h4>
                 <p className="settings-hint">
                   Free account at{' '}
                   <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer">

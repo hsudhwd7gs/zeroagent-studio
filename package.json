@@ -1,24 +1,22 @@
 {
-  "name": "zeroagent-studio",
-  "description": "Free visual AI agent builder in the browser. Draw workflows like a flowchart with 203 chainable tools and eight guided quests. Local models (Transformers.js, WebLLM) need no API key; OpenRouter, Groq, and Gemini are optional. No account, no analytics. MIT.",
+  "name": "brainwire",
+  "description": "Visual AI agent builder in the browser. Draw workflows like a flowchart with 300+ chainable tools and eight guided quests. Local models (Transformers.js, WebLLM) need no API key; OpenRouter, Groq, and Gemini are optional. No account, no analytics. MIT.",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "type": "module",
   "license": "MIT",
-  "author": "sakurablush (https://github.com/sakurablush)",
-  "homepage": "https://sakurablush.github.io/zeroagent-studio/",
+  "author": "Brainwire",
+  "homepage": "https://brainwire.app/",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/sakurablush/zeroagent-studio.git"
+    "url": "git+https://github.com/brainwire/brainwire.git"
   },
   "bugs": {
-    "url": "https://github.com/sakurablush/zeroagent-studio/issues"
+    "url": "https://github.com/brainwire/brainwire/issues"
   },
-  "funding": [
-    "https://github.com/sakurablush/zeroagent-studio#keep-building-optional"
-  ],
+  "funding": [],
   "keywords": [
-    "zeroagent-studio",
+    "brainwire",
     "visual-ai",
     "ai-agents",
     "agent-builder",

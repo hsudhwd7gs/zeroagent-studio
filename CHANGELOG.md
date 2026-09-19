@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to ZeroAgent Studio are documented in this file.
+All notable changes to Brainwire are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.0] - 2026-06-25
 
-First public open-source release of ZeroAgent Studio.
+First public open-source release of Brainwire.
 
 ### Added
 
@@ -24,7 +24,7 @@ First public open-source release of ZeroAgent Studio.
 - **Curated tools** — Parse URL, Fetch JSON, File Reader, Web Scraper, Speech, JSON Tool, and related browser essentials.
 - **AI engines** — OpenRouter (recommended), Transformers.js, WebLLM, Groq, and Gemini with auto-rotation on limits; shared `brainChoiceGuidance` for honest OpenRouter-first copy.
 - **Intelligent setup** — cloud engines, models, and palette tools stay visible but **locked** until configured; inspector **Setup required** banners with **Privacy & keys**.
-- **Import / export** — `.zeroagent.json` workflows with discard guards on destructive actions.
+- **Import / export** — `.brainwire.json` workflows with discard guards on destructive actions.
 - **API key storage** — session storage default (AES-GCM encrypted vault); opt-in persistent storage on device via IndexedDB.
 - **In-app Guide** — full manual at `#/guide`, including privacy, optional crypto support addresses, and staying-safe sections.
 - **Game-style palette** — legendary Chat/Agent glow, color-coded sub-groups, pulsing Quests menu.
@@ -56,7 +56,7 @@ First public open-source release of ZeroAgent Studio.
 - **SSRF protection** — Web Scraper validates URLs; blocks local/private hosts, strict Wikipedia hostname checks, and common rebinding patterns.
 - **Session API keys** — AES-GCM encrypted vault in `sessionStorage` (legacy plain JSON migrated on read).
 - **Safe HTML decode** — encoding tool decodes entities without `innerHTML`.
-- **Export redaction** — API-key-like strings redacted in `.zeroagent.json` exports.
+- **Export redaction** — API-key-like strings redacted in `.brainwire.json` exports.
 - **Custom Script sandbox** — blocks `fetch`, `import()`, `importScripts`, and nested Workers.
 - **Gemini keys** — sent via `x-goog-api-key` header, not URL query strings.
 - **Canvas lock badges** — agents and tools show 🔒 when not configured.

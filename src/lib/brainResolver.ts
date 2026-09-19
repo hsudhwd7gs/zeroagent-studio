@@ -81,7 +81,7 @@ export function resolveAgentBrain(
   let hint = ''
   switch (requested) {
     case 'openrouter':
-      hint = ' Add a free key at openrouter.ai/keys — their :free models cost $0.'
+      hint = ' Add a free key at openrouter.ai/keys — their :free models are free.'
       break
     case 'groq':
       hint = ' Groq offers a generous free tier at console.groq.com.'
@@ -109,11 +109,11 @@ export function resolveAgentBrain(
 export function getBrainCostLabel(brain: BrainType): string {
   switch (brain) {
     case 'local':
-      return '$0 · slow local fallback'
+      return 'slow local fallback'
     case 'transformers':
-      return '$0 · local'
+      return 'local'
     case 'openrouter':
-      return '$0 · recommended'
+      return 'recommended'
     case 'groq':
     case 'gemini':
       return 'free tier'

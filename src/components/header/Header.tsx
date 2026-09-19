@@ -159,7 +159,7 @@ export default function Header() {
       <input
         ref={importInputRef}
         type="file"
-        accept=".json,.zeroagent.json,application/json"
+        accept=".json,.brainwire.json,.zeroagent.json,application/json"
         className="sr-only"
         tabIndex={-1}
         aria-hidden
@@ -179,8 +179,8 @@ export default function Header() {
         >
           <span className="logo-icon">🔥</span>
           <div className="logo-stack">
-            <span className="logo-text">ZeroAgent Studio</span>
-            <span className="logo-tagline">$0 · runs in your browser</span>
+            <span className="logo-text">Brainwire</span>
+            <span className="logo-tagline">runs in your browser</span>
           </div>
         </motion.div>
         <input
@@ -242,7 +242,7 @@ export default function Header() {
             className="header-btn"
             onClick={handleImportClick}
             disabled={isRunning}
-            title="Import a .zeroagent.json workflow file"
+            title="Import a .brainwire.json workflow file"
           >
             Import
           </button>
@@ -250,7 +250,7 @@ export default function Header() {
             className="header-btn"
             onClick={handleExport}
             disabled={isRunning}
-            title="Download current canvas as .zeroagent.json"
+            title="Download current canvas as .brainwire.json"
           >
             Export
           </button>

@@ -115,7 +115,7 @@ describe('tool registry', () => {
     expect(getToolBadge(cloud, {})).toBe('locked')
     expect(getToolBadge(cloud, { gemini: 'key' })).toBe('key ✓')
     expect(getToolBadge(getTool('custom-script'), {})).toBe('sandbox')
-    expect(getToolBadge(getTool('file-reader'), {})).toBe('$0')
+    expect(getToolBadge(getTool('file-reader'), {})).toBe('free')
   })
 
   it('covers browser requirement messages', () => {

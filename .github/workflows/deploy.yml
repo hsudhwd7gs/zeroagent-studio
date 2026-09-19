@@ -1,4 +1,4 @@
-name: Deploy ZeroAgent Studio to GitHub Pages
+name: Deploy Brainwire to GitHub Pages
 
 on:
   push:

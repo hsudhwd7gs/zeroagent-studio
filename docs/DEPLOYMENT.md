@@ -1,6 +1,6 @@
-# Deploying ZeroAgent Studio
+# Deploying Brainwire
 
-ZeroAgent Studio is a **static SPA** — deploy the `dist/` folder anywhere that
+Brainwire is a **static SPA** — deploy the `dist/` folder anywhere that
 serves files. The recommended path is **GitHub Pages** with the included
 Actions workflow (no `gh-pages` branch, no npm publish).
 
@@ -27,7 +27,7 @@ It builds on every push to `main` and publishes `dist/` via OIDC.
 
 ### 2. First deploy
 
-1. Push to `main` (or run **Deploy ZeroAgent Studio to GitHub Pages** manually
+1. Push to `main` (or run **Deploy Brainwire to GitHub Pages** manually
    from the Actions tab).
 2. Wait 2–4 minutes. The live URL will be:
 
@@ -38,7 +38,7 @@ It builds on every push to `main` and publishes `dist/` via OIDC.
    For the canonical repo:
 
    ```
-   https://sakurablush.github.io/zeroagent-studio/
+   https://sakurablush.github.io/brainwire/
    ```
 
 ### 3. Branch protection (recommended)
@@ -93,7 +93,7 @@ Force-refresh (Ctrl/Cmd+Shift+R) if you see a stale bundle after deploy.
 ## Fork workflow
 
 ```bash
-git remote add upstream https://github.com/sakurablush/zeroagent-studio.git
+git remote add upstream https://github.com/sakurablush/brainwire.git
 git fetch upstream
 git merge upstream/main
 git push
@@ -102,4 +102,4 @@ git push
 Or use **Sync fork** on GitHub.
 
 Report deploy issues with host name, URL, and build log snippet in a
-[bug report issue](https://github.com/sakurablush/zeroagent-studio/issues/new/choose).
+[bug report issue](https://github.com/sakurablush/brainwire/issues/new/choose).

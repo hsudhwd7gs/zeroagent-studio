@@ -108,7 +108,7 @@ describe('brainResolver', () => {
 
   describe('getBrainCostLabel', () => {
     it('labels OpenRouter as recommended', () => {
-      expect(getBrainCostLabel('openrouter')).toBe('$0 · recommended')
+      expect(getBrainCostLabel('openrouter')).toBe('recommended')
     })
 
     it('labels WebLLM as slow fallback', () => {
@@ -116,7 +116,7 @@ describe('brainResolver', () => {
     })
 
     it('labels transformers as local', () => {
-      expect(getBrainCostLabel('transformers')).toBe('$0 · local')
+      expect(getBrainCostLabel('transformers')).toBe('local')
     })
 
     it('labels cloud tiers', () => {

@@ -4,7 +4,7 @@ export const PIPELINE_QUEST_STEPS: TutorialStep[] = [
   {
     id: 'pipeline-briefing',
     title: 'Pipeline Briefing',
-    body: 'Time to level up. You will chain **JSON Tool** and **Custom Script** between Chat and Agent — parse structured data, reshape it in a sandbox, then let the AI explain. Still $0. Still no server.',
+    body: 'Time to level up. You will chain **JSON Tool** and **Custom Script** between Chat and Agent — parse structured data, reshape it in a sandbox, then let the AI explain. Still free. Still no server.',
     placement: 'center',
     advance: 'manual',
   },

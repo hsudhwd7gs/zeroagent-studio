@@ -1,7 +1,7 @@
 const BROWSER_HEADERS = {
   Accept: 'text/html,application/xhtml+xml',
   'User-Agent':
-    'Mozilla/5.0 (compatible; ZeroAgentStudio/0.1; +https://github.com/sakurablush/zeroagent-studio)',
+    'Mozilla/5.0 (compatible; Brainwire/0.1; +https://github.com/sakurablush/brainwire)',
 }
 
 const CORS_PROXIES = [

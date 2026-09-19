@@ -116,6 +116,20 @@ import { runFileGenerator } from './fileGenerator'
 import { runReadFileContent } from './readFileContent'
 import { runImageToFile } from './imageToFile'
 import { runMarkdownToHtml } from './markdownToHtml'
+import { runSwitch } from './switchTool'
+import { runTryCatch } from './tryCatch'
+import { runDelay } from './delay'
+import { runThrottle } from './throttle'
+import { runRssMonitor } from './rssMonitor'
+import { runCronTrigger } from './cronTrigger'
+import { runWebhookReceiver } from './webhookReceiver'
+import { runJsonSchemaValidator } from './jsonSchemaValidator'
+import { runYamlLoader } from './yamlLoader'
+import { runEmbeddingsIndex } from './embeddingsIndex'
+import { runDiffViewer } from './diffViewer'
+import { runMermaidRenderer } from './mermaidRenderer'
+import { runCsvFromUrl } from './csvFromUrl'
+import { runMathLatex } from './mathLatex'
 import {
   isSpeechRecognitionAvailable,
   isSpeechSynthesisAvailable,
@@ -1659,6 +1673,189 @@ const CURATED_TOOLS: ToolDefinition[] = [
     ...DEFAULT_TOOL_IO,
     run: wrapLegacyRun(async (input, config) => runMarkdownToHtml(input, config)),
   },
+  // ─── Brainwire new tools (Phase 2) ───────────────────────────────
+  {
+    id: 'switch',
+    label: 'Switch / Case',
+    description: 'Branch on input value — exact, contains, or regex',
+    icon: '🔀',
+    paletteGroup: 'browser',
+    browserSubcategory: 'flow',
+    paletteDragType: 'tool-switch',
+    requirement: { kind: 'none' },
+    autoRun: { defaultEnabled: false, canRunWithoutInput: () => false },
+    ...DEFAULT_TOOL_IO,
+    run: wrapLegacyRun(async (input, config) => runSwitch(input, config)),
+  },
+  {
+    id: 'try-catch',
+    label: 'Try / Catch',
+    description: 'Safely evaluate a JS expression with fallback',
+    icon: '🛡️',
+    paletteGroup: 'browser',
+    browserSubcategory: 'flow',
+    paletteDragType: 'tool-try-catch',
+    requirement: { kind: 'none' },
+    autoRun: { defaultEnabled: false, canRunWithoutInput: () => false },
+    ...DEFAULT_TOOL_IO,
+    run: wrapLegacyRun(async (input, config) => runTryCatch(input, config)),
+  },
+  {
+    id: 'delay',
+    label: 'Delay',
+    description: 'Wait N ms then pass input through',
+    icon: '⏱️',
+    paletteGroup: 'browser',
+    browserSubcategory: 'flow',
+    paletteDragType: 'tool-delay',
+    requirement: { kind: 'none' },
+    autoRun: { defaultEnabled: false, canRunWithoutInput: () => false },
+    ...DEFAULT_TOOL_IO,
+    run: wrapLegacyRun(async (input, config) => runDelay(input, config)),
+  },
+  {
+    id: 'throttle',
+    label: 'Throttle',
+    description: 'Rate-limit messages — drop or queue',
+    icon: '🚦',
+    paletteGroup: 'browser',
+    browserSubcategory: 'flow',
+    paletteDragType: 'tool-throttle',
+    requirement: { kind: 'none' },
+    autoRun: { defaultEnabled: false, canRunWithoutInput: () => false },
+    ...DEFAULT_TOOL_IO,
+    run: wrapLegacyRun(async (input, config) => runThrottle(input, config)),
+  },
+  {
+    id: 'rss-monitor',
+    label: 'RSS Monitor',
+    description: 'Fetch and parse RSS/Atom feed → JSON items',
+    icon: '📰',
+    paletteGroup: 'browser',
+    browserSubcategory: 'curated',
+    paletteDragType: 'tool-rss-monitor',
+    requirement: { kind: 'none' },
+    autoRun: { defaultEnabled: true, canRunWithoutInput: (cfg = {}) => !!cfg.url },
+    ...DEFAULT_TOOL_IO,
+    run: wrapLegacyRun(async (input, config) => runRssMonitor(input, config)),
+  },
+  {
+    id: 'cron-trigger',
+    label: 'Cron Trigger',
+    description: 'Schedule workflow execution — local or worker mode',
+    icon: '⏰',
+    paletteGroup: 'browser',
+    browserSubcategory: 'flow',
+    paletteDragType: 'tool-cron-trigger',
+    requirement: { kind: 'none' },
+    autoRun: { defaultEnabled: true, canRunWithoutInput: (cfg = {}) => !!cfg.schedule },
+    ...DEFAULT_TOOL_IO,
+    run: wrapLegacyRun(async (input, config, ctx) => runCronTrigger(input, config, ctx.nodeId)),
+  },
+  {
+    id: 'webhook-receiver',
+    label: 'Webhook Receiver',
+    description: 'Generate a URL that triggers this workflow',
+    icon: '🪝',
+    paletteGroup: 'browser',
+    browserSubcategory: 'flow',
+    paletteDragType: 'tool-webhook-receiver',
+    requirement: { kind: 'none' },
+    autoRun: { defaultEnabled: true, canRunWithoutInput: () => true },
+    ...DEFAULT_TOOL_IO,
+    run: wrapLegacyRun(async (input, config) => runWebhookReceiver(input, config)),
+  },
+  {
+    id: 'json-schema-validator',
+    label: 'JSON Schema Validator',
+    description: 'Validate JSON against a JSON Schema',
+    icon: '✓',
+    paletteGroup: 'browser',
+    browserSubcategory: 'validate',
+    paletteDragType: 'tool-json-schema-validator',
+    requirement: { kind: 'none' },
+    autoRun: { defaultEnabled: false, canRunWithoutInput: () => false },
+    ...DEFAULT_TOOL_IO,
+    run: wrapLegacyRun(async (input, config) => runJsonSchemaValidator(input, config)),
+  },
+  {
+    id: 'yaml-loader',
+    label: 'YAML Loader',
+    description: 'Parse YAML config into JSON',
+    icon: '📄',
+    paletteGroup: 'browser',
+    browserSubcategory: 'json',
+    paletteDragType: 'tool-yaml-loader',
+    requirement: { kind: 'none' },
+    autoRun: { defaultEnabled: false, canRunWithoutInput: () => false },
+    ...DEFAULT_TOOL_IO,
+    run: wrapLegacyRun(async (input) => runYamlLoader(input)),
+  },
+  {
+    id: 'embeddings-index',
+    label: 'Embeddings Index',
+    description: 'Store & retrieve text by embedding similarity (RAG)',
+    icon: '📚',
+    paletteGroup: 'browser',
+    browserSubcategory: 'ai',
+    paletteDragType: 'tool-embeddings-index',
+    requirement: { kind: 'none' },
+    autoRun: { defaultEnabled: false, canRunWithoutInput: () => false },
+    ...DEFAULT_TOOL_IO,
+    run: wrapLegacyRun(async (input, config, ctx) => runEmbeddingsIndex(input, config, ctx.nodeId)),
+  },
+  {
+    id: 'diff-viewer',
+    label: 'Diff Viewer',
+    description: 'Line-by-line diff of two texts (unified/json/side-by-side)',
+    icon: '⚖️',
+    paletteGroup: 'browser',
+    browserSubcategory: 'compare',
+    paletteDragType: 'tool-diff-viewer',
+    requirement: { kind: 'none' },
+    autoRun: { defaultEnabled: false, canRunWithoutInput: () => false },
+    ...DEFAULT_TOOL_IO,
+    run: wrapLegacyRun(async (input, config) => runDiffViewer(input, config)),
+  },
+  {
+    id: 'mermaid-renderer',
+    label: 'Mermaid Render',
+    description: 'Render Mermaid diagram syntax → SVG data URL',
+    icon: '🌊',
+    paletteGroup: 'browser',
+    browserSubcategory: 'generate',
+    paletteDragType: 'tool-mermaid-renderer',
+    requirement: { kind: 'none' },
+    autoRun: { defaultEnabled: false, canRunWithoutInput: () => false },
+    ...DEFAULT_TOOL_IO,
+    run: wrapLegacyRun(async (input) => runMermaidRenderer(input)),
+  },
+  {
+    id: 'csv-from-url',
+    label: 'CSV from URL',
+    description: 'Fetch a CSV file and parse to JSON',
+    icon: '📊',
+    paletteGroup: 'browser',
+    browserSubcategory: 'csv',
+    paletteDragType: 'tool-csv-from-url',
+    requirement: { kind: 'none' },
+    autoRun: { defaultEnabled: true, canRunWithoutInput: (cfg = {}) => !!cfg.url },
+    ...DEFAULT_TOOL_IO,
+    run: wrapLegacyRun(async (input, config) => runCsvFromUrl(input, config)),
+  },
+  {
+    id: 'math-latex',
+    label: 'Math LaTeX',
+    description: 'Render LaTeX math expression → SVG',
+    icon: '∑',
+    paletteGroup: 'browser',
+    browserSubcategory: 'generate',
+    paletteDragType: 'tool-math-latex',
+    requirement: { kind: 'none' },
+    autoRun: { defaultEnabled: false, canRunWithoutInput: () => false },
+    ...DEFAULT_TOOL_IO,
+    run: wrapLegacyRun(async (input) => runMathLatex(input)),
+  },
 ]
 
 export const TOOL_REGISTRY: ToolDefinition[] = [
@@ -1876,7 +2073,7 @@ export function getToolBadge(
     return isToolRequirementMet(tool.requirement, apiKeys) ? 'key ✓' : 'locked'
   }
   if (tool.paletteGroup === 'custom') return 'sandbox'
-  return '$0'
+  return 'free'
 }
 
 export function paletteDragTypeToToolId(dragType: string): ToolType | null {

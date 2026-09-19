@@ -1,21 +1,21 @@
 # Architecture
 
-How ZeroAgent Studio is built, why it is built this way, and where to extend it.
+How Brainwire is built, why it is built this way, and where to extend it.
 For end users, start with the in-app **Guide** or [README](../README.md).
 
 ---
 
 ## Core principle: browser-first, zero backend
 
-There is **no ZeroAgent server**. Workflows, settings, and saved graphs live in
+There is **no Brainwire server**. Workflows, settings, and saved graphs live in
 the browser (IndexedDB + optional session/local storage for API keys). When you
 use cloud AI, the browser talks **directly** to OpenRouter, Groq, or Google.
 
 Why:
 
-- **$0 hosting** — static files on GitHub Pages.
+- **free hosting** — static files on GitHub Pages.
 - **Privacy by default** — files from File Reader never leave the device unless
-  you wire them into a cloud step yourself. No analytics SDK; no ZeroAgent backend.
+  you wire them into a cloud step yourself. No analytics SDK; no Brainwire backend.
 - **Forkability** — clone, `npm run build`, deploy `dist/`.
 - **Auditability** — TypeScript throughout; 100% test coverage on core logic.
 
@@ -94,7 +94,7 @@ Hash routes via `src/lib/appRoute.ts`:
 
 ## Import / export
 
-`.zeroagent.json` (v1) — portable workflow backup. API keys are **never**
+`.brainwire.json` (v1) — portable workflow backup. API keys are **never**
 included. Import confirms before replacing the canvas (`workflowGuard.ts`).
 
 ---

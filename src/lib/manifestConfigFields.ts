@@ -175,8 +175,8 @@ const FIELDS: Record<string, ManifestConfigField[]> = {
   ],
   'discord-send': [
     { key: 'webhookUrl', label: 'Discord webhook URL', placeholder: 'https://discord.com/api/webhooks/...', type: 'password' },
-    { key: 'content', label: 'Message content', placeholder: 'Hello from ZeroAgent!', type: 'textarea' },
-    { key: 'username', label: 'Bot username (optional)', placeholder: 'ZeroAgent Bot' },
+    { key: 'content', label: 'Message content', placeholder: 'Hello from Brainwire!', type: 'textarea' },
+    { key: 'username', label: 'Bot username (optional)', placeholder: 'Brainwire Bot' },
   ],
   'ffmpeg': [
     { key: 'url', label: 'Input media URL', placeholder: 'https://example.com/video.mp4' },
@@ -214,7 +214,7 @@ const FIELDS: Record<string, ManifestConfigField[]> = {
   ],
   'pdf-tool': [
     { key: 'mode', label: 'Mode', type: 'select', options: ['create', 'merge'] },
-    { key: 'text', label: 'Text (create mode)', placeholder: 'Hello from ZeroAgent!', type: 'textarea' },
+    { key: 'text', label: 'Text (create mode)', placeholder: 'Hello from Brainwire!', type: 'textarea' },
     { key: 'urls', label: 'PDF URLs (merge mode, comma-separated)', placeholder: 'https://a.pdf,https://b.pdf' },
   ],
   'photon': [
@@ -297,7 +297,7 @@ const FIELDS: Record<string, ManifestConfigField[]> = {
     { key: 'apiKey', label: 'Provider API key', placeholder: 're_xxx', type: 'password' },
     { key: 'from', label: 'From', placeholder: 'me@example.com' },
     { key: 'to', label: 'To', placeholder: 'you@example.com' },
-    { key: 'subject', label: 'Subject', placeholder: 'Hello from ZeroAgent' },
+    { key: 'subject', label: 'Subject', placeholder: 'Hello from Brainwire' },
     { key: 'body', label: 'Body (text)', placeholder: 'Message content', type: 'textarea' },
   ],
   'webhook-send': [

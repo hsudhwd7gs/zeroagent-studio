@@ -2,9 +2,10 @@ import type { Node } from '@xyflow/react'
 import { createAgentNode, createChatNode, createToolNode } from '../components/canvas/nodeFactory'
 import { paletteDragTypeToToolId } from '../tools/registry'
 import { useWorkflowStore } from '../stores/workflowStore'
-import type { LoopNodeData } from '../types'
+import type { LoopNodeData, TerminalNodeData } from '../types'
 
 let loopCounter = 0
+let terminalCounter = 0
 
 function createLoopNode(position: { x: number; y: number }): Node {
   loopCounter += 1
@@ -25,6 +26,26 @@ function createLoopNode(position: { x: number; y: number }): Node {
   }
 }
 
+function createTerminalNode(position: { x: number; y: number }): Node {
+  terminalCounter += 1
+  const id = `terminal-${Date.now()}-${terminalCounter}-${Math.random().toString(36).slice(2, 8)}`
+
+  const data: TerminalNodeData = {
+    label: 'Terminal',
+    history: [],
+    inputValue: '',
+  }
+
+  return {
+    id,
+    type: 'terminal',
+    position,
+    width: 420,
+    height: 280,
+    data,
+  }
+}
+
 export function createNodeFromPaletteType(
   type: string,
   position: { x: number; y: number }
@@ -36,6 +57,8 @@ export function createNodeFromPaletteType(
       return createChatNode(position)
     case 'loop':
       return createLoopNode(position)
+    case 'terminal':
+      return createTerminalNode(position)
     default: {
       const toolId = paletteDragTypeToToolId(type)
       if (!toolId) return null

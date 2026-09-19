@@ -1,7 +1,7 @@
 import {
   CLOUD_PROVIDER_GUIDES,
   LOCAL_PRIVACY_SUMMARY,
-  ZEROAGENT_PRIVACY_TRUTH,
+  BRAINWIRE_PRIVACY_TRUTH,
 } from '../../lib/cloudPrivacy'
 
 export function CloudPrivacyGuide() {
@@ -9,20 +9,20 @@ export function CloudPrivacyGuide() {
     <section className="settings-section settings-privacy" aria-labelledby="settings-privacy-title">
       <h3 id="settings-privacy-title">Privacy &amp; cloud providers — read this</h3>
       <p className="settings-privacy-lead">
-        ZeroAgent Studio is static code in your browser. <strong>We never receive your chat.</strong>{' '}
+        Brainwire is static code in your browser. <strong>We never receive your chat.</strong>{' '}
         If you paste a cloud API key, your browser talks <strong>directly</strong> to that company.
         What they do with your data is governed by <em>their</em> policies and the settings{' '}
         <em>you</em> control on their websites — verify the links below yourself.
       </p>
 
       <div className="settings-privacy-card settings-privacy-card--truth">
-        <h4>{ZEROAGENT_PRIVACY_TRUTH.title}</h4>
+        <h4>{BRAINWIRE_PRIVACY_TRUTH.title}</h4>
         <ul>
-          {ZEROAGENT_PRIVACY_TRUTH.bullets.map((b) => (
+          {BRAINWIRE_PRIVACY_TRUTH.bullets.map((b) => (
             <li key={b}>{b}</li>
           ))}
         </ul>
-        <p className="settings-hint">{ZEROAGENT_PRIVACY_TRUTH.chatWarning}</p>
+        <p className="settings-hint">{BRAINWIRE_PRIVACY_TRUTH.chatWarning}</p>
       </div>
 
       <div className="settings-privacy-card settings-privacy-card--local">
@@ -84,7 +84,7 @@ export function CloudPrivacyGuide() {
         Provider rules change. If something here disagrees with their docs, <strong>trust their docs</strong>.
         Full security model:{' '}
         <a
-          href="https://github.com/sakurablush/zeroagent-studio/blob/main/docs/SECURITY.md"
+          href="https://github.com/sakurablush/brainwire/blob/main/docs/SECURITY.md"
           target="_blank"
           rel="noopener noreferrer"
         >
@@ -92,7 +92,7 @@ export function CloudPrivacyGuide() {
         </a>
         {' · '}
         <a
-          href="https://github.com/sakurablush/zeroagent-studio/blob/main/docs/TOOL-SAFETY.md"
+          href="https://github.com/sakurablush/brainwire/blob/main/docs/TOOL-SAFETY.md"
           target="_blank"
           rel="noopener noreferrer"
         >

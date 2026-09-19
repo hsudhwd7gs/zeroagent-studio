@@ -1,29 +1,29 @@
-# ZeroAgent Studio
+# Brainwire
 
-[![CI](https://github.com/sakurablush/zeroagent-studio/actions/workflows/ci.yml/badge.svg)](https://github.com/sakurablush/zeroagent-studio/actions/workflows/ci.yml)
-[![Deploy](https://github.com/sakurablush/zeroagent-studio/actions/workflows/deploy.yml/badge.svg)](https://github.com/sakurablush/zeroagent-studio/actions/workflows/deploy.yml)
-[![CodeQL](https://github.com/sakurablush/zeroagent-studio/actions/workflows/codeql.yml/badge.svg)](https://github.com/sakurablush/zeroagent-studio/actions/workflows/codeql.yml)
-[![license](https://img.shields.io/github/license/sakurablush/zeroagent-studio)](./LICENSE)
+[![CI](https://github.com/sakurablush/brainwire/actions/workflows/ci.yml/badge.svg)](https://github.com/sakurablush/brainwire/actions/workflows/ci.yml)
+[![Deploy](https://github.com/sakurablush/brainwire/actions/workflows/deploy.yml/badge.svg)](https://github.com/sakurablush/brainwire/actions/workflows/deploy.yml)
+[![CodeQL](https://github.com/sakurablush/brainwire/actions/workflows/codeql.yml/badge.svg)](https://github.com/sakurablush/brainwire/actions/workflows/codeql.yml)
+[![license](https://img.shields.io/github/license/sakurablush/brainwire)](./LICENSE)
 [![version](https://img.shields.io/badge/version-0.1.0-8b5cf6?style=flat-square)](CHANGELOG.md)
 
-[![Live app](https://img.shields.io/badge/🌐_open_live_app-06b6d4?style=flat-square)](https://sakurablush.github.io/zeroagent-studio/)
+[![Live app](https://img.shields.io/badge/🌐_open_live_app-06b6d4?style=flat-square)](https://sakurablush.github.io/brainwire/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-6-3178c6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-19-61dafb?style=flat-square&logo=react&logoColor=15161f)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/Vite-8-646cff?style=flat-square&logo=vite&logoColor=white)](https://vite.dev/)
-[![tests](https://img.shields.io/badge/tests-1036_%7C_100%25_cov-10b981?style=flat-square)](https://github.com/sakurablush/zeroagent-studio/actions/workflows/ci.yml)
+[![tests](https://img.shields.io/badge/tests-1036_%7C_100%25_cov-10b981?style=flat-square)](https://github.com/sakurablush/brainwire/actions/workflows/ci.yml)
 [![telemetry](https://img.shields.io/badge/telemetry-none-8b5cf6?style=flat-square)](#privacy-in-plain-language)
 
 **Draw AI agent workflows in your browser — like a flowchart, except the boxes can read your files, fetch a web page, listen to your voice, and think.**
 
-Free **visual AI agent builder** for students, makers, and anyone who wants workflow automation without spinning up a server. **203 chainable tools**, **eight guided quests**, local models that work **without an API key**, and optional cloud tiers (OpenRouter, Groq, Gemini) only when *you* paste the key.
+Free **visual AI agent builder** for students, makers, and anyone who wants workflow automation without spinning up a server. **300+ chainable tools**, **eight guided quests**, local models that work **without an API key**, and optional cloud tiers (OpenRouter, Groq, Gemini) only when *you* paste the key.
 
 No install · No subscription · No account · No analytics SDK
 
-[Live app](https://sakurablush.github.io/zeroagent-studio/) · [In-app Guide](https://sakurablush.github.io/zeroagent-studio/#/guide) · [Report a bug](https://github.com/sakurablush/zeroagent-studio/issues/new/choose) · [Contributing](docs/CONTRIBUTING.md)
+[Live app](https://sakurablush.github.io/brainwire/) · [In-app Guide](https://sakurablush.github.io/brainwire/#/guide) · [Report a bug](https://github.com/sakurablush/brainwire/issues/new/choose) · [Contributing](docs/CONTRIBUTING.md)
 
-> **New here?** Open the [live app](https://sakurablush.github.io/zeroagent-studio/) and click **Guide** — or **Examples → Hello, Agent** and send your first message in about two minutes. Prefer learning by doing? Start **Snack Investigator** on the welcome screen.
+> **New here?** Open the [live app](https://sakurablush.github.io/brainwire/) and click **Guide** — or **Examples → Hello, Agent** and send your first message in about two minutes. Prefer learning by doing? Start **Snack Investigator** on the welcome screen.
 
-**Canonical repo:** [github.com/sakurablush/zeroagent-studio](https://github.com/sakurablush/zeroagent-studio)
+**Canonical repo:** [github.com/sakurablush/brainwire](https://github.com/sakurablush/brainwire)
 
 ## Safe to use (and safe to fork)
 
@@ -34,7 +34,7 @@ We built this as a **static site** — no backend that sees your chats, keys, or
 | **API keys** | Stored in *your* browser only. Default: forgotten when you close the tab. Never sent to us. |
 | **Custom Script** | Sandboxed Web Worker — no network, no `import`, no filesystem. |
 | **Web Scraper** | Blocks localhost and private IPs (SSRF guard). You choose every URL. |
-| **Export** | `.zeroagent.json` redacts key-like strings in block config. Settings keys are never included. |
+| **Export** | `.brainwire.json` redacts key-like strings in block config. Settings keys are never included. |
 | **Supply chain** | `npm audit` (moderate+) in CI, Dependabot (npm + Actions), PR dependency review, weekly CodeQL on the repo. |
 | **License** | MIT — fork, rename, host on your own Pages, give it away. |
 
@@ -61,7 +61,7 @@ Details for humans: [docs/SECURITY.md](docs/SECURITY.md) · risky tools: [docs/T
 - Anyone who cares about privacy and wants files to stay on their machine  
 - Developers who want a static, hackable orchestrator they can host for free on GitHub Pages  
 
-We built this with a simple rule: **the fire should be free.** Everything costs $0 to start. We recommend a free OpenRouter key for the best experience (fast, no local download); Transformers.js works without a key if you prefer local inference. We will never upsell you, sell your data, or run a backend that sees your chats. See [Privacy](#privacy-in-plain-language).
+We built this with a simple rule: **the fire should be free.** Everything costs free to start. We recommend a free OpenRouter key for the best experience (fast, no local download); Transformers.js works without a key if you prefer local inference. We will never upsell you, sell your data, or run a backend that sees your chats. See [Privacy](#privacy-in-plain-language).
 
 ---
 
@@ -93,7 +93,7 @@ We built this with a simple rule: **the fire should be free.** Everything costs 
 | Learn post-agent TTS | Header **Quests** → Voice booth |
 | Learn capture sinks (no chat) | Header **Quests** → Capture desk |
 
-All palette items are **$0** on-device or use your own free API keys. The left sidebar lists **203 tools** (live count via `getSiteStats()` in the in-app **Guide**) — search at the top, then browse **Browser** sub-groups (**Output**, Essentials, Text, Encoding, JSON, Lists, Math, Date, Validate, Flow, Regex, Generate, HTML, Markdown, CSV, Compare), **Cloud** (API tools), and **Custom Script**.
+All palette items are **free** on-device or use your own free API keys. The left sidebar lists **300+ tools** (live count via `getSiteStats()` in the in-app **Guide**) — search at the top, then browse **Browser** sub-groups (**Output**, Essentials, Text, Encoding, JSON, Lists, Math, Date, Validate, Flow, Regex, Generate, HTML, Markdown, CSV, Compare), **Cloud** (API tools), and **Custom Script**.
 
 ### Guided quests (recommended order)
 
@@ -139,15 +139,15 @@ See **Guide → Tools explained** in the app for per-tool details. Curated **JSO
 
 ## Quick start (users)
 
-1. Open the [live app](https://sakurablush.github.io/zeroagent-studio/) (or [local dev](http://localhost:5173/) after `npm run dev`).
-2. **Recommended:** click **Privacy & keys** and paste a free [OpenRouter](https://openrouter.ai/keys) key (`sk-or-…`). Agents auto-rotate between $0 models when one hits a limit.
-3. Click **Examples → Hello, Agent** — a Chat and Agent appear, already connected. Explore **203 tools** in the left palette (187 manifest presets + 16 curated modules).
+1. Open the [live app](https://sakurablush.github.io/brainwire/) (or [local dev](http://localhost:5173/) after `npm run dev`).
+2. **Recommended:** click **Privacy & keys** and paste a free [OpenRouter](https://openrouter.ai/keys) key (`sk-or-…`). Agents auto-rotate between free models when one hits a limit.
+3. Click **Examples → Hello, Agent** — a Chat and Agent appear, already connected. Explore **300+ tools** in the left palette (280+ manifest presets + 20+ curated modules).
 4. Type a question in the Chat box and press **Enter**.
 5. Read the reply in Chat. For a guided tour, try the eight quests from the welcome banner or header **Quests** (Snack → Pipeline → Encoding → Parallel, then Writer's room, URL detective, Voice booth, Capture desk) — or open **Guide** for the full manual.
 
 **First visit:** title splash → privacy notice → performance advice (WebLLM vs free API keys) → optional welcome banner.
 
-**No key?** Transformers.js runs locally at $0 but downloads a model on first use and can feel slow on weak hardware. WebLLM is a slow fallback — a free OpenRouter key is the best experience for most people.
+**No key?** Transformers.js runs locally free but downloads a model on first use and can feel slow on weak hardware. WebLLM is a slow fallback — a free OpenRouter key is the best experience for most people.
 
 **Optional:** Groq or Gemini keys also work with auto-rotation on rate limits. Keys stay in your browser; we never see them.
 
@@ -157,7 +157,7 @@ See **Guide → Tools explained** in the app for per-tool details. Curated **JSO
 |--------|-------|-------|
 | **Save** | Header | Stores the canvas in browser storage (IndexedDB). |
 | **Load** | Header → Load | Picks a saved workflow; confirms if you have unsaved canvas work. |
-| **Export** | Header | Downloads `.zeroagent.json` — portable backup or share. |
+| **Export** | Header | Downloads `.brainwire.json` — portable backup or share. |
 | **Import** | Header | Opens a file picker; validates format and confirms before replacing the canvas. |
 | **New** | Header | Clears the canvas after confirmation when work exists. |
 | **Canvas lock** | Selected block toolbar | Lock icon freezes move, resize, delete, and wire changes until unlocked; saved with workflows. |
@@ -172,7 +172,7 @@ Starting an **Example**, a **Quest**, or **Import** also warns when it would dis
 | **Forget when I close the browser** | Yes | Keys stay in encrypted session storage for this tab — cleared when the session ends. Good for shared computers. |
 | **Remember on this device** | Opt-in | Keys stay in browser storage until you clear site data. Fine on a laptop that is only yours. |
 
-Keys are never sent to ZeroAgent — only directly to OpenRouter, Groq, or Google when you run a cloud step. Do not paste keys into Custom Script blocks (they can end up in saved/exported workflows).
+Keys are never sent to Brainwire — only directly to OpenRouter, Groq, or Google when you run a cloud step. Do not paste keys into Custom Script blocks (they can end up in saved/exported workflows).
 
 ---
 
@@ -180,7 +180,7 @@ Keys are never sent to ZeroAgent — only directly to OpenRouter, Groq, or Googl
 
 | Document | Audience | Link |
 | -------- | -------- | ---- |
-| **In-app Guide** | Everyone | [#/guide](https://sakurablush.github.io/zeroagent-studio/#/guide) on the live site |
+| **In-app Guide** | Everyone | [#/guide](https://sakurablush.github.io/brainwire/#/guide) on the live site |
 | **Architecture** | Contributors | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | **Deployment** | Host your own copy | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) |
 | **Security** | Trust & keys | [docs/SECURITY.md](docs/SECURITY.md) |
@@ -199,7 +199,7 @@ GitHub Actions: **CI** on every PR, **Deploy** to Pages on `main`, **CodeQL** + 
 - Your workflows are saved **inside your browser** — not on our servers. There is no account, no analytics SDK, and no telemetry endpoint in this app.
 - **We never receive your chats, files, API keys, or prompts.** If you use cloud AI, your browser talks **directly** to that provider — we are not in the middle and cannot monetize your usage.
 - **API keys** default to **session storage** (AES-GCM encrypted, forgotten when you close the browser). You can opt in to **Remember on this device** in **Privacy & keys**.
-- **Export** downloads a `.zeroagent.json` file you can back up or share — keys from Settings are **not** included (accidental keys in block config are redacted).
+- **Export** downloads a `.brainwire.json` file you can back up or share — keys from Settings are **not** included (accidental keys in block config are redacted).
 - **Web Scraper** only fetches URLs you choose — respect site rules; see [docs/TOOL-SAFETY.md](docs/TOOL-SAFETY.md). Third-party CORS helpers may see the URL you requested.
 - **File Reader** never uploads your files to us — but if you wire it to a **cloud Agent**, file text goes to that provider under their terms.
 - **Local AI** runs on your device after model weights download from public CDNs (Hugging Face, MLC). That download is not private cloud inference, but your prompts stay on-device for those steps.
@@ -226,8 +226,8 @@ Provider rules change. If our in-app text disagrees with their documentation, **
 ### Run locally
 
 ```bash
-git clone https://github.com/sakurablush/zeroagent-studio.git
-cd zeroagent-studio
+git clone https://github.com/sakurablush/brainwire.git
+cd brainwire
 npm install
 npm run dev
 ```
@@ -309,7 +309,7 @@ skills in [`.cursor/`](.cursor/), Kilo mirror in [`.kilo/`](.kilo/).
 
 | Resource | Link |
 | -------- | ---- |
-| **Bug reports** | [Issue templates](https://github.com/sakurablush/zeroagent-studio/issues/new/choose) |
+| **Bug reports** | [Issue templates](https://github.com/sakurablush/brainwire/issues/new/choose) |
 | **Contributing** | [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) |
 | **Contributors** | [CONTRIBUTORS.md](CONTRIBUTORS.md) |
 | **Changelog** | [CHANGELOG.md](CHANGELOG.md) |
@@ -318,7 +318,7 @@ skills in [`.cursor/`](.cursor/), Kilo mirror in [`.kilo/`](.kilo/).
 | **Security** | [SECURITY.md](SECURITY.md) |
 | **Support the project** | [`.github/FUNDING.yml`](.github/FUNDING.yml) — crypto donation addresses |
 
-Forks welcome. If you ship something cool, open a PR or tell us in [Discussions](https://github.com/sakurablush/zeroagent-studio/discussions).
+Forks welcome. If you ship something cool, open a PR or tell us in [Discussions](https://github.com/sakurablush/brainwire/discussions).
 
 **First time publishing this repo?** See [docs/RELEASE-CHECKLIST.md](docs/RELEASE-CHECKLIST.md).
 
@@ -326,11 +326,11 @@ Forks welcome. If you ship something cool, open a PR or tell us in [Discussions]
 
 ## Keep building (optional)
 
-ZeroAgent Studio is free to use — no paywall, no accounts, no ads. Building and maintaining it
+Brainwire is free to use — no paywall, no accounts, no ads. Building and maintaining it
 takes real time and model tokens, from one self-funded stack.
 
-**Contribute in code** if that fits you: fork the [public repo](https://github.com/sakurablush/zeroagent-studio),
-open a pull request, or start a [Discussion](https://github.com/sakurablush/zeroagent-studio/discussions).
+**Contribute in code** if that fits you: fork the [public repo](https://github.com/sakurablush/brainwire),
+open a pull request, or start a [Discussion](https://github.com/sakurablush/brainwire/discussions).
 Run `npm run ci` locally before you push.
 
 **Chip in financially** only if the app saved you time or money and you want to help cover the next

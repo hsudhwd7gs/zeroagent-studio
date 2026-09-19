@@ -50,7 +50,7 @@ export default function SponsorCryptoTable() {
       <p className="guide-muted">
         Block explorer links:{' '}
         <a
-          href="https://github.com/sakurablush/zeroagent-studio/blob/main/.github/FUNDING.yml"
+          href="https://github.com/sakurablush/brainwire/blob/main/.github/FUNDING.yml"
           target="_blank"
           rel="noopener noreferrer"
         >

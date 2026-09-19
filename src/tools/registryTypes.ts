@@ -12,6 +12,8 @@ export type ToolRequirement =
 export interface ToolContext {
   apiKeys: ApiKeys
   log: (level: 'info' | 'warn' | 'error', message: string) => void
+  /** ID of the node currently being executed (used by per-node stateful tools like Embeddings Index, Cron, Terminal VFS). */
+  nodeId?: string
 }
 
 export type ToolType = string

@@ -17,7 +17,7 @@
 
 **Funding:** [`../FUNDING.yml`](../FUNDING.yml) — crypto donation links only
 
-There is **no npm publish workflow** — ZeroAgent Studio is a static browser app deployed to GitHub Pages only. Pushing a `v*` tag triggers **Release** (CI + GitHub Release notes from CHANGELOG).
+There is **no npm publish workflow** — Brainwire is a static browser app deployed to GitHub Pages only. Pushing a `v*` tag triggers **Release** (CI + GitHub Release notes from CHANGELOG).
 
 ## Action versions (pinned majors)
 

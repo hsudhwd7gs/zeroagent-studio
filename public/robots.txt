@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://sakurablush.github.io/zeroagent-studio/sitemap.xml
+Sitemap: https://sakurablush.github.io/brainwire/sitemap.xml

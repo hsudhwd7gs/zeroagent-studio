@@ -157,7 +157,7 @@ describe('registry tool runners', () => {
     expect(getToolIcon('speech')).toBe('🎤')
     expect(getToolLabel('speech')).toBe('Speech')
     expect(paletteDragTypeToToolId('tool-unknown')).toBeNull()
-    expect(getToolBadge(getTool('file-reader'), {})).toBe('$0')
+    expect(getToolBadge(getTool('file-reader'), {})).toBe('free')
 
     const speechReq = { kind: 'browser' as const, feature: 'speechRecognition' as const }
     expect(isBrowserFeatureAvailable(speechReq)).toBe(true)

@@ -65,7 +65,15 @@ export interface ChatMessage {
   timestamp: number
 }
 
-export type WorkflowNode = Node<AgentNodeData | ToolNodeData | ChatNodeData | LoopNodeData>
+export interface TerminalNodeData extends Record<string, unknown> {
+  label: string
+  history: string[]
+  inputValue?: string
+  lastOutput?: string
+  locked?: boolean
+}
+
+export type WorkflowNode = Node<AgentNodeData | ToolNodeData | ChatNodeData | LoopNodeData | TerminalNodeData>
 export type WorkflowEdge = Edge
 
 export interface Workflow {

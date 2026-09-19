@@ -1,6 +1,6 @@
 # Security
 
-ZeroAgent Studio’s security model, local data, and honest limitations.
+Brainwire’s security model, local data, and honest limitations.
 For per-tool warnings see [TOOL-SAFETY.md](TOOL-SAFETY.md). For architecture context see [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ---
@@ -14,7 +14,7 @@ A static React app that runs AI **workflows** you draw on a canvas. Tools may:
 - call cloud APIs with **your** API keys (browser → provider directly),
 - run sandboxed JavaScript in a Web Worker (Custom Script — network blocked).
 
-There is **no** ZeroAgent API, analytics endpoint, telemetry SDK, or account system.
+There is **no** Brainwire API, analytics endpoint, telemetry SDK, or account system.
 
 We are **not** a token reseller: we do not proxy your traffic, bill you, or train on your data. Optional cloud keys are **yours** — pasted in your browser, sent only to the provider you chose. We explain risks openly in **Privacy & keys → Privacy & cloud providers** and link to each vendor’s official policies.
 
@@ -31,7 +31,7 @@ Keys are sent only to the provider you chose (OpenRouter, Groq, Google Gemini)
 via HTTPS headers — not in URL query strings for Gemini.
 
 **Never** paste keys into Custom Script or workflow labels — they can end up in
-exported `.zeroagent.json` files (export redacts common patterns, but prevention is better).
+exported `.brainwire.json` files (export redacts common patterns, but prevention is better).
 
 Clear all keys: **Privacy & keys** → **Clear all keys** (with confirmation).
 
@@ -39,7 +39,7 @@ Clear all keys: **Privacy & keys** → **Clear all keys** (with confirmation).
 
 ## Cloud provider privacy (your responsibility)
 
-ZeroAgent Studio does **not** proxy cloud traffic. When you paste a key, the browser sends prompts,
+Brainwire does **not** proxy cloud traffic. When you paste a key, the browser sends prompts,
 files, audio, and images **directly** to OpenRouter, Groq, or Google under **their** terms.
 
 In the app: **Privacy & keys** → **Privacy & cloud providers** — per-provider checklist with official links.
@@ -67,7 +67,7 @@ Workflows with cloud Agents or cloud tools show a **Chat warning** before send (
 | Saved workflows | IndexedDB (Dexie) | Canvas nodes/edges — includes optional per-block `locked` canvas flag |
 | API keys (persistent mode) | IndexedDB | Opt-in only |
 | API keys (session mode) | sessionStorage | Default; AES-GCM vault (`src/lib/sessionKeyVault.ts`) |
-| Key save mode preference | localStorage | `zeroagent-key-persistence` |
+| Key save mode preference | localStorage | `brainwire-key-persistence` |
 | Tutorial progress | localStorage | Per-quest completion flags |
 | Welcome / canvas hints / palette | localStorage | UI preferences |
 | OpenRouter model caches | localStorage | Public model list names (24h TTL) |
@@ -77,7 +77,7 @@ Workflows with cloud Agents or cloud tools show a **Chat warning** before send (
 
 Manage or wipe categories in **Privacy & keys** (`src/lib/appStorage.ts`). **Clear everything** removes all of the above plus resets the canvas.
 
-**Export** (`.zeroagent.json`) contains workflow structure — **not** Settings keys.
+**Export** (`.brainwire.json`) contains workflow structure — **not** Settings keys.
 Config strings that look like API keys are **redacted** on export (all string fields in node data, including agent prompts and chat messages).
 
 ---

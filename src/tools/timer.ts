@@ -6,7 +6,7 @@
 //   action — start (default) | stop | reset
 //   key    — timer name (default "default")
 
-const PREFIX = 'zeroagent.timer.'
+const PREFIX = 'brainwire.timer.'
 
 export async function runTimer(
   _input: string,

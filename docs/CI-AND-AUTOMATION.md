@@ -44,7 +44,7 @@ Deploy trusts CI on `main` and only runs `npm run build` for defense-in-depth.
 See [DEPLOYMENT.md](DEPLOYMENT.md). Uses `actions/deploy-pages` + OIDC —
 no long-lived `GITHUB_TOKEN` in secrets for Pages.
 
-Live site (canonical): <https://sakurablush.github.io/zeroagent-studio/>
+Live site (canonical): <https://sakurablush.github.io/brainwire/>
 
 ---
 

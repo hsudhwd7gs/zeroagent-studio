@@ -25,6 +25,75 @@ import { useConnectionStore } from './connectionStore'
 import { useDebugStore } from './debugStore'
 import { useProjectStore } from './projectStore'
 import { fitWorkflowView } from '../lib/flowCanvasRegistry'
+import { toastEmitter } from '../components/feedback/ToastProvider'
+
+// ────────────────────────────────────────────────────────────────────
+// Workflow name validation
+// ────────────────────────────────────────────────────────────────────
+export const WORKFLOW_NAME_MAX = 80
+export const WORKFLOW_NAME_MIN = 1
+
+export function sanitizeWorkflowName(raw: string): { value: string; error: string | null } {
+  const trimmed = raw.replace(/\s+/g, ' ').trim()
+  if (trimmed.length === 0) {
+    return { value: '', error: 'Workflow name is required' }
+  }
+  if (trimmed.length > WORKFLOW_NAME_MAX) {
+    return { value: trimmed.slice(0, WORKFLOW_NAME_MAX), error: `Workflow name must be ${WORKFLOW_NAME_MAX} characters or fewer` }
+  }
+  return { value: trimmed, error: null }
+}
+
+// ────────────────────────────────────────────────────────────────────
+// Undo / redo history (snapshots of nodes + edges)
+// ────────────────────────────────────────────────────────────────────
+interface HistorySnapshot {
+  nodes: Node[]
+  edges: Edge[]
+  workflowName: string
+}
+
+const HISTORY_LIMIT = 50
+
+interface HistoryState {
+  past: HistorySnapshot[]
+  future: HistorySnapshot[]
+}
+
+let history: HistoryState = { past: [], future: [] }
+
+function snapshotState(state: WorkflowState): HistorySnapshot {
+  return {
+    nodes: state.nodes.map((n) => ({ ...n, data: { ...n.data } })),
+    edges: state.edges.map((e) => ({ ...e })),
+    workflowName: state.workflowName,
+  }
+}
+
+function pushHistory(state: WorkflowState): void {
+  const snap = snapshotState(state)
+  history.past.push(snap)
+  if (history.past.length > HISTORY_LIMIT) history.past.shift()
+  history.future = []
+}
+
+// Strip transient UI state from a node before persisting to IndexedDB.
+// We don't want to save `isThinking`, `isActive`, `lastOutput` (UI-only flags)
+// because reloading them would show stale "thinking..." badges forever.
+function stripTransientNodeState(nodes: Node[]): Node[] {
+  return nodes.map((n) => {
+    if (!n.data) return n
+    const data = n.data as Record<string, unknown>
+    const next: Record<string, unknown> = { ...data }
+    delete next.isThinking
+    delete next.isActive
+    delete next.lastOutput
+    delete next.outputLog
+    delete next.currentIteration
+    delete next.totalIterations
+    return { ...n, data: next as never }
+  })
+}
 
 interface WorkflowState {
   nodes: Node[]
@@ -34,6 +103,8 @@ interface WorkflowState {
   isDirty: boolean
   lastSavedAt: number | null
   autosaveEnabled: boolean
+  canUndo: boolean
+  canRedo: boolean
   onNodesChange: OnNodesChange
   onEdgesChange: OnEdgesChange
   onConnect: OnConnect
@@ -55,6 +126,8 @@ interface WorkflowState {
   importWorkflowDocument: (document: WorkflowExportDocument) => void
   hasCanvasWork: () => boolean
   setAutosaveEnabled: (enabled: boolean) => void
+  undo: () => void
+  redo: () => void
 }
 
 export const useWorkflowStore = create<WorkflowState>((set, get) => ({
@@ -65,11 +138,16 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   isDirty: false,
   lastSavedAt: null,
   autosaveEnabled: true,
+  canUndo: false,
+  canRedo: false,
 
   onNodesChange: (changes) => {
     const nodes = get().nodes
     const filtered = changes.filter((change) => !isLockedNodeChangeBlocked(change, nodes))
-    set({ nodes: applyNodeChanges(filtered, nodes), isDirty: true })
+    // Only push history for meaningful changes (not just position drags of selected nodes)
+    const hasRemovalOrAdd = changes.some((c) => c.type === 'remove' || c.type === 'add')
+    if (hasRemovalOrAdd) pushHistory(get())
+    set({ nodes: applyNodeChanges(filtered, nodes), isDirty: true, canUndo: history.past.length > 0, canRedo: history.future.length > 0 })
     void maybeAutosave(get)
   },
 
@@ -95,7 +173,9 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
         message: NODE_CANVAS_LOCK_HINT,
       })
     }
-    set({ edges: applyEdgeChanges(filtered, edges), isDirty: true })
+    const hasRemoval = changes.some((c) => c.type === 'remove')
+    if (hasRemoval) pushHistory(get())
+    set({ edges: applyEdgeChanges(filtered, edges), isDirty: true, canUndo: history.past.length > 0, canRedo: history.future.length > 0 })
     void maybeAutosave(get)
   },
 
@@ -126,9 +206,12 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       }
       return
     }
+    pushHistory(get())
     set({
       edges: addEdge({ ...normalized, type: 'animated' }, edges),
       isDirty: true,
+      canUndo: history.past.length > 0,
+      canRedo: history.future.length > 0,
     })
     void maybeAutosave(get)
   },
@@ -137,7 +220,8 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   setEdges: (edges) => set({ edges }),
 
   addNode: (node) => {
-    set({ nodes: [...get().nodes, withNodeCanvasLockFlags(node)], isDirty: true })
+    pushHistory(get())
+    set({ nodes: [...get().nodes, withNodeCanvasLockFlags(node)], isDirty: true, canUndo: history.past.length > 0, canRedo: history.future.length > 0 })
     void maybeAutosave(get)
   },
 
@@ -153,33 +237,46 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
     void maybeAutosave(get)
   },
 
-  setWorkflowName: (name) => set({ workflowName: name, isDirty: true }),
+  setWorkflowName: (name) => {
+    const sanitized = sanitizeWorkflowName(name)
+    set({ workflowName: sanitized.value, isDirty: true })
+  },
   markDirty: () => set({ isDirty: true }),
 
   saveCurrentWorkflow: async () => {
     const { nodes, edges, workflowId, workflowName } = get()
+    const sanitized = sanitizeWorkflowName(workflowName)
+    if (sanitized.error) {
+      toastEmitter.emit({ tone: 'warn', message: 'Cannot save', detail: sanitized.error })
+      return
+    }
     const projectId = useProjectStore.getState().currentProjectId
     let createdAt = Date.now()
     if (workflowId != null) {
       const existing = (await loadWorkflows()).find((w) => w.id === workflowId)
       if (existing) createdAt = existing.createdAt
     }
+    // Strip transient UI state before persisting
+    const persistableNodes = stripTransientNodeState(nodes)
     const id = await saveWorkflow({
       id: workflowId ?? undefined,
-      name: workflowName,
-      nodes: nodes as never[],
+      name: sanitized.value,
+      nodes: persistableNodes as never[],
       edges: edges as never[],
       createdAt,
       updatedAt: Date.now(),
       projectId,
     })
     set({ workflowId: id, isDirty: false, lastSavedAt: Date.now() })
+    toastEmitter.emit({ tone: 'success', message: 'Workflow saved', detail: sanitized.value })
   },
 
   loadWorkflow: async (id) => {
     const workflows = await loadWorkflows()
     const workflow = workflows.find((w) => w.id === id)
     if (workflow) {
+      // Reset history when loading a new workflow
+      history = { past: [], future: [] }
       const nodes = workflow.nodes as unknown as Node[]
       const migrated = migrateWorkflow(nodes, workflow.edges as Edge[])
       set({
@@ -189,6 +286,8 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
         workflowName: workflow.name,
         isDirty: false,
         lastSavedAt: workflow.updatedAt,
+        canUndo: false,
+        canRedo: false,
       })
       // If the workflow belongs to a different project, switch to it
       if (workflow.projectId) {
@@ -198,10 +297,12 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
         }
       }
       fitWorkflowView()
+      toastEmitter.emit({ tone: 'info', message: 'Workflow loaded', detail: workflow.name })
     }
   },
 
   newWorkflow: () => {
+    history = { past: [], future: [] }
     set({
       nodes: [],
       edges: [],
@@ -209,6 +310,8 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       workflowName: 'Untitled Workflow',
       isDirty: false,
       lastSavedAt: null,
+      canUndo: false,
+      canRedo: false,
     })
   },
 
@@ -233,10 +336,13 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   deleteNode: (nodeId) => {
     const node = get().nodes.find((n) => n.id === nodeId)
     if (isNodeCanvasLocked(node)) return
+    pushHistory(get())
     set({
       nodes: get().nodes.filter((n) => n.id !== nodeId),
       edges: get().edges.filter((e) => e.source !== nodeId && e.target !== nodeId),
       isDirty: true,
+      canUndo: history.past.length > 0,
+      canRedo: history.future.length > 0,
     })
     void maybeAutosave(get)
   },
@@ -260,10 +366,13 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
         .map((n) => n.id)
     )
     if (ids.size === 0) return
+    pushHistory(get())
     set({
       nodes: get().nodes.filter((n) => !ids.has(n.id)),
       edges: get().edges.filter((e) => !ids.has(e.source) && !ids.has(e.target)),
       isDirty: true,
+      canUndo: history.past.length > 0,
+      canRedo: history.future.length > 0,
     })
     void maybeAutosave(get)
   },
@@ -282,25 +391,64 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
     useDebugStore.getState().addLog({
       level: 'success',
       source: 'Workflow',
-      message: `Exported "${doc.workflow.name}" to .zeroagent.json`,
+      message: `Exported "${doc.workflow.name}" to .brainwire.json`,
     })
+    toastEmitter.emit({ tone: 'success', message: 'Workflow exported', detail: `${doc.workflow.name}.brainwire.json` })
   },
 
   importWorkflowDocument: (document) => {
     const applied = applyImportedWorkflow(document)
+    history = { past: [], future: [] }
     set({
       nodes: applied.nodes,
       edges: applied.edges,
       workflowName: applied.name,
       workflowId: null,
       isDirty: true,
+      canUndo: false,
+      canRedo: false,
     })
     useDebugStore.getState().addLog({
       level: 'success',
       source: 'Workflow',
       message: `Imported "${applied.name}" (${applied.nodes.length} blocks)`,
     })
+    toastEmitter.emit({ tone: 'success', message: 'Workflow imported', detail: applied.name })
     fitWorkflowView()
+  },
+
+  undo: () => {
+    if (history.past.length === 0) return
+    const current = snapshotState(get())
+    const previous = history.past.pop()!
+    history.future.push(current)
+    set({
+      nodes: previous.nodes,
+      edges: previous.edges,
+      workflowName: previous.workflowName,
+      isDirty: true,
+      canUndo: history.past.length > 0,
+      canRedo: history.future.length > 0,
+    })
+    void maybeAutosave(get)
+    toastEmitter.emit({ tone: 'info', message: 'Undo' })
+  },
+
+  redo: () => {
+    if (history.future.length === 0) return
+    const current = snapshotState(get())
+    const next = history.future.pop()!
+    history.past.push(current)
+    set({
+      nodes: next.nodes,
+      edges: next.edges,
+      workflowName: next.workflowName,
+      isDirty: true,
+      canUndo: history.past.length > 0,
+      canRedo: history.future.length > 0,
+    })
+    void maybeAutosave(get)
+    toastEmitter.emit({ tone: 'info', message: 'Redo' })
   },
 }))
 

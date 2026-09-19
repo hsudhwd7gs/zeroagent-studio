@@ -15,10 +15,12 @@ import DebugTerminal from './components/debugger/DebugTerminal'
 import GuideHeader from './components/guide/GuideHeader'
 import GuidePage from './components/guide/GuidePage'
 import CommandPalette from './components/cmdk/CommandPalette'
+import { ToastProvider } from './components/feedback/ToastProvider'
 import { useSettingsStore } from './stores/settingsStore'
 import { useWorkflowStore } from './stores/workflowStore'
 import { useProjectStore } from './stores/projectStore'
 import { useTutorialStore } from './stores/tutorialStore'
+import { usePanelCollapseStore } from './stores/panelCollapseStore'
 import { useAppRoute } from './hooks/useAppRoute'
 import {
   APP_STORAGE_CLEARED_EVENT,
@@ -58,7 +60,16 @@ export default function App() {
   const showLaunchSplashAction = useTutorialStore((s) => s.showLaunchSplashAction)
   const nodes = useWorkflowStore((s) => s.nodes)
   const saveCurrentWorkflow = useWorkflowStore((s) => s.saveCurrentWorkflow)
+  const newWorkflow = useWorkflowStore((s) => s.newWorkflow)
+  const undo = useWorkflowStore((s) => s.undo)
+  const redo = useWorkflowStore((s) => s.redo)
   const initProjects = useProjectStore((s) => s.init)
+  const paletteCollapsed = usePanelCollapseStore((s) => s.collapsed.palette)
+  const inspectorCollapsed = usePanelCollapseStore((s) => s.collapsed.inspector)
+  const togglePalette = usePanelCollapseStore((s) => s.toggle)
+  const mobileOpen = usePanelCollapseStore((s) => s.mobileOpen)
+  const closeAllMobile = usePanelCollapseStore((s) => s.closeAllMobile)
+
   const [welcomeDismissed, setWelcomeDismissed] = useState(
     () => localStorage.getItem(WELCOME_DISMISSED_KEY) === '1'
   )
@@ -141,21 +152,69 @@ export default function App() {
   // ── Global keyboard shortcuts ───────────────────────────────────
   // Cmd/Ctrl-K  → command palette
   // Cmd/Ctrl-S  → save (prevent default browser save)
+  // Cmd/Ctrl-N  → new workflow
+  // Cmd/Ctrl-Z  → undo
+  // Cmd/Ctrl-Shift-Z or Cmd/Ctrl-Y → redo
+  // [           → toggle palette
+  // ]           → toggle inspector
+  // \           → toggle both
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const meta = e.metaKey || e.ctrlKey
+      const target = e.target as HTMLElement | null
+      const isTyping =
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable ||
+          target.getAttribute('contenteditable') === 'true')
       if (meta && e.key === 'k') {
         e.preventDefault()
         setCmdkOpen((v) => !v)
+        return
       }
       if (meta && e.key === 's') {
         e.preventDefault()
         void saveCurrentWorkflow()
+        return
+      }
+      if (meta && e.key === 'n') {
+        e.preventDefault()
+        newWorkflow()
+        return
+      }
+      if (meta && !e.shiftKey && e.key.toLowerCase() === 'z') {
+        if (isTyping) return
+        e.preventDefault()
+        undo()
+        return
+      }
+      if ((meta && e.shiftKey && e.key.toLowerCase() === 'z') || (meta && e.key.toLowerCase() === 'y')) {
+        if (isTyping) return
+        e.preventDefault()
+        redo()
+        return
+      }
+      // Panel toggles — only when not typing
+      if (!meta && !isTyping) {
+        if (e.key === '[') {
+          e.preventDefault()
+          usePanelCollapseStore.getState().toggle('palette')
+        } else if (e.key === ']') {
+          e.preventDefault()
+          usePanelCollapseStore.getState().toggle('inspector')
+        } else if (e.key === '\\') {
+          e.preventDefault()
+          const s = usePanelCollapseStore.getState()
+          const bothCollapsed = s.collapsed.palette && s.collapsed.inspector
+          s.setCollapsed('palette', !bothCollapsed)
+          s.setCollapsed('inspector', !bothCollapsed)
+        }
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [saveCurrentWorkflow])
+  }, [saveCurrentWorkflow, newWorkflow, undo, redo])
 
   useEffect(() => {
     const onStorageCleared = (event: Event) => {
@@ -188,9 +247,13 @@ export default function App() {
         <GuidePage />
         <SettingsPanel />
         <ConfirmDialog />
+        <ToastProvider />
       </div>
     )
   }
+
+  // Mobile backdrop closes any open panel when tapped
+  const anyMobileOpen = mobileOpen.palette || mobileOpen.inspector
 
   return (
     <div className="app">
@@ -225,13 +288,31 @@ export default function App() {
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
       >
-        <NodePalette />
+        <NodePalette
+          collapsed={paletteCollapsed}
+          onToggleCollapse={() => togglePalette('palette')}
+          mobileOpen={mobileOpen.palette}
+          onCloseMobile={() => closeAllMobile()}
+        />
         <FlowCanvas suppressEmptyState={suppressCanvasOnboarding} />
-        <NodeInspector />
+        <NodeInspector
+          collapsed={inspectorCollapsed}
+          onToggleCollapse={() => togglePalette('inspector')}
+          mobileOpen={mobileOpen.inspector}
+          onCloseMobile={() => closeAllMobile()}
+        />
       </motion.main>
+      {anyMobileOpen && (
+        <div
+          className="sidebar-backdrop"
+          onClick={() => closeAllMobile()}
+          aria-hidden
+        />
+      )}
       <DebugTerminal />
       <SettingsPanel />
       <ConfirmDialog />
+      <ToastProvider />
     </div>
   )
 }

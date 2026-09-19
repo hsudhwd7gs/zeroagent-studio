@@ -1,4 +1,4 @@
-# Contributing to ZeroAgent Studio
+# Contributing to Brainwire
 
 Thank you for helping make AI workflows accessible to everyone — especially people
 who cannot pay for subscriptions or new hardware.
@@ -35,8 +35,8 @@ change quests, tools, or ports.
 Requires **Node.js 22** (matches CI). Clone your fork:
 
 ```bash
-git clone https://github.com/<your-username>/zeroagent-studio.git
-cd zeroagent-studio
+git clone https://github.com/<your-username>/brainwire.git
+cd brainwire
 npm install
 npm run dev
 ```
@@ -109,5 +109,5 @@ layer boundaries and the `npm run ci` gate for coding assistants.
 
 ## Questions?
 
-Open a [Discussion](https://github.com/sakurablush/zeroagent-studio/discussions)
+Open a [Discussion](https://github.com/sakurablush/brainwire/discussions)
 or an issue with the feature template. Security issues: see [SECURITY.md](../SECURITY.md).

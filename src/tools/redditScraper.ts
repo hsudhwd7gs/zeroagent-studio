@@ -15,7 +15,7 @@ export async function runRedditScraper(
     ? `https://www.reddit.com/r/${encodeURIComponent(subreddit)}/top.json?limit=${limit}&t=${timeframe}`
     : `https://www.reddit.com/r/${encodeURIComponent(subreddit)}/${sort}.json?limit=${limit}`
 
-  const res = await fetch(url, { headers: { 'User-Agent': 'ZeroAgent-Studio/2.0' } })
+  const res = await fetch(url, { headers: { 'User-Agent': 'Brainwire-Studio/2.0' } })
   if (!res.ok) throw new Error(`Reddit fetch failed: ${res.status}`)
   const data = await res.json() as any
   const posts = (data?.data?.children ?? []).map((p: any) => ({

@@ -231,10 +231,10 @@ describe('tutorialStore', () => {
   })
 
   it('migrates legacy tutorial completed flag for snack quest', () => {
-    localStorage.setItem('zeroagent-tutorial-completed', '1')
+    localStorage.setItem('brainwire-tutorial-completed', '1')
     expect(useTutorialStore.getState().isCompleted('snack')).toBe(true)
     expect(localStorage.getItem(TUTORIAL_COMPLETED_KEY)).toBe('1')
-    expect(localStorage.getItem('zeroagent-tutorial-completed')).toBeNull()
+    expect(localStorage.getItem('brainwire-tutorial-completed')).toBeNull()
   })
 
   it('checkAutoAdvance no-ops when tutorial is inactive', () => {

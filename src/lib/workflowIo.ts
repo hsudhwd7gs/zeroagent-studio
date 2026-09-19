@@ -1,7 +1,7 @@
 import type { Edge, Node } from '@xyflow/react'
 import { migrateWorkflow } from './workflowMigration'
 
-export const WORKFLOW_EXPORT_FORMAT = 'zeroagent-workflow' as const
+export const WORKFLOW_EXPORT_FORMAT = 'brainwire-workflow' as const
 export const WORKFLOW_EXPORT_VERSION = 1
 
 /** Patterns that look like API keys accidentally pasted into workflow config. */
@@ -101,7 +101,8 @@ export function parseWorkflowExport(raw: string): WorkflowParseResult {
 
   const record = data as Record<string, unknown>
 
-  if (record.format === WORKFLOW_EXPORT_FORMAT) {
+  // Accept both new "brainwire-workflow" and legacy "zeroagent-workflow" format identifiers
+  if (record.format === WORKFLOW_EXPORT_FORMAT || record.format === 'zeroagent-workflow') {
     const version = record.version
     if (typeof version !== 'number' || version > WORKFLOW_EXPORT_VERSION) {
       return { ok: false, error: 'This workflow file was exported from a newer app version.' }
@@ -139,7 +140,7 @@ export function parseWorkflowExport(raw: string): WorkflowParseResult {
 
   return {
     ok: false,
-    error: 'Unrecognized workflow file. Export from ZeroAgent Studio (.zeroagent.json).',
+    error: 'Unrecognized workflow file. Export from Brainwire (.brainwire.json).',
   }
 }
 
@@ -154,7 +155,7 @@ export function sanitizeWorkflowFilename(name: string): string {
 }
 
 export function downloadWorkflowExport(doc: WorkflowExportDocument): void {
-  const filename = `${sanitizeWorkflowFilename(doc.workflow.name)}.zeroagent.json`
+  const filename = `${sanitizeWorkflowFilename(doc.workflow.name)}.brainwire.json`
   const blob = new Blob([JSON.stringify(doc, null, 2)], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
   const anchor = document.createElement('a')

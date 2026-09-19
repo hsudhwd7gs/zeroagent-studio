@@ -59,11 +59,11 @@ describe('brainSetup', () => {
     expect(
       getAgentBrainBadgeLabel('openrouter', { openrouter: 'sk' }, 'meta-llama/foo:free').text
     ).toBe('OR :free')
-    expect(getAgentBrainBadgeLabel('transformers', {}).text).toBe('Local $0')
+    expect(getAgentBrainBadgeLabel('transformers', {}).text).toBe('Local')
     expect(getAgentBrainBadgeLabel('groq', { groq: 'gsk' }).text).toBe('Groq free')
     expect(getAgentBrainBadgeLabel('gemini', { gemini: 'AIza' }).text).toBe('Gemini free')
     mockedWebGPU.mockReturnValue(true)
-    expect(getAgentBrainBadgeLabel('local', {}, 'model').text).toBe('WebLLM $0')
+    expect(getAgentBrainBadgeLabel('local', {}, 'model').text).toBe('WebLLM')
     expect(getAgentBrainBadgeLabel('unknown' as 'groq', {}).text).toContain('unknown')
   })
 

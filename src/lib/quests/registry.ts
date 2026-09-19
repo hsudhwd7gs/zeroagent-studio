@@ -149,11 +149,11 @@ export function getQuestSteps(questId: TutorialQuestId) {
 }
 
 export function getTutorialCompletedKey(questId: TutorialQuestId): string {
-  return `zeroagent-tutorial-${questId}-completed`
+  return `brainwire-tutorial-${questId}-completed`
 }
 
 /** @deprecated Use getTutorialCompletedKey('snack') */
-export const LEGACY_TUTORIAL_COMPLETED_KEY = 'zeroagent-tutorial-completed'
+export const LEGACY_TUTORIAL_COMPLETED_KEY = 'brainwire-tutorial-completed'
 
 /** All quest step arrays — for integrity tests and tooling. */
 export function getAllQuestSteps(): { questId: TutorialQuestId; steps: TutorialQuest['steps'] }[] {

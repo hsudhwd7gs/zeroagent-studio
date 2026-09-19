@@ -42,16 +42,16 @@ export default function AgentSetupAdviceDialog({
               workflow quality.
             </strong>{' '}
             For snappy multi-step workflows, a free cloud key is almost always best — OpenRouter is our
-            usual pick. Transformers.js is the honest $0 local path when you skip signup or cloud.
+            usual pick. Transformers.js is the honest local path when you skip signup or cloud.
           </p>
           <ul className="privacy-consent-list">
             <li>
-              <strong>Free API keys (recommended)</strong> — OpenRouter is our usual $0 pick for speed
+              <strong>Free API keys (recommended)</strong> — OpenRouter is our usual free pick for speed
               (no local download). Groq and Gemini also offer free tiers. Read each provider&apos;s
               privacy settings first, then paste a key in <strong>Privacy &amp; keys</strong>.
             </li>
             <li>
-              <strong>Transformers.js</strong> — local, $0, no key. First use downloads a small model;
+              <strong>Transformers.js</strong> — local, no key. First use downloads a small model;
               slower than cloud and can feel sluggish on old hardware, but typically faster than WebLLM.
             </li>
           </ul>

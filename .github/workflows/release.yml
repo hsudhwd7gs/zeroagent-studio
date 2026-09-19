@@ -50,7 +50,7 @@ jobs:
         if: github.event_name == 'push'
         uses: softprops/action-gh-release@v3
         with:
-          name: ZeroAgent Studio ${{ github.ref_name }}
+          name: Brainwire ${{ github.ref_name }}
           body_path: release-notes.md
           generate_release_notes: false
           tag_name: ${{ github.ref_name }}

@@ -55,7 +55,14 @@ function modelLabel(model: string): string {
   return model
 }
 
-export default function NodeInspector() {
+interface NodeInspectorProps {
+  collapsed?: boolean
+  onToggleCollapse?: () => void
+  mobileOpen?: boolean
+  onCloseMobile?: () => void
+}
+
+export default function NodeInspector({ collapsed = false, onToggleCollapse, mobileOpen = false, onCloseMobile }: NodeInspectorProps = {}) {
   const selectedEdge = useWorkflowStore((s) => s.edges.find((e) => e.selected) ?? null)
   const selectedNode = useWorkflowStore(
     useShallow((s) => {
@@ -77,8 +84,30 @@ export default function NodeInspector() {
 
   if (!selectedNode) {
     return (
-      <aside className="sidebar inspector inspector--empty">
-        <h3 className="sidebar-title">Block settings</h3>
+      <aside className={`sidebar inspector inspector--empty ${collapsed ? 'is-collapsed' : ''} ${mobileOpen ? 'is-mobile-open' : ''}`}>
+        <div className="sidebar-header-row">
+          <h3 className="sidebar-title">Block settings</h3>
+          {onToggleCollapse && (
+            <button
+              type="button"
+              className={`sidebar-collapse-btn ${collapsed ? 'is-collapsed' : ''}`}
+              onClick={onToggleCollapse}
+              aria-label={collapsed ? 'Expand inspector panel' : 'Collapse inspector panel'}
+              title={collapsed ? 'Expand panel (] to toggle)' : 'Collapse panel (] to toggle)'}
+            >
+              <span className="chevron" aria-hidden>›</span>
+            </button>
+          )}
+          {mobileOpen && onCloseMobile && (
+            <button
+              type="button"
+              className="sidebar-collapse-btn mobile-close-btn"
+              onClick={onCloseMobile}
+              aria-label="Close panel"
+              title="Close"
+            >✕</button>
+          )}
+        </div>
         <div className="inspector-empty-state">
           <span className="inspector-empty-icon" aria-hidden>
             ◇
@@ -94,6 +123,12 @@ export default function NodeInspector() {
             </p>
             <p className="inspector-empty-tip-row">
               <kbd>⌘S</kbd><span>save the current canvas</span>
+            </p>
+            <p className="inspector-empty-tip-row">
+              <kbd>⌘Z</kbd><span>undo · </span><kbd>⌘⇧Z</kbd><span>redo</span>
+            </p>
+            <p className="inspector-empty-tip-row">
+              <kbd>[</kbd><kbd>]</kbd><span>toggle side panels</span>
             </p>
             <p className="inspector-empty-tip-row">
               <span className="inspector-empty-tip-icon">📁</span>
@@ -116,6 +151,10 @@ export default function NodeInspector() {
         nodeType="chat"
         label={data.label || 'Chat'}
         onLabelChange={(label) => updateNodeData(selectedNode.id, { label })}
+        collapsed={collapsed}
+        onToggleCollapse={onToggleCollapse}
+        mobileOpen={mobileOpen}
+        onCloseMobile={onCloseMobile}
       >
         <p className="inspector-summary">
           {messageCount} message{messageCount === 1 ? '' : 's'} in history. Type and send on the
@@ -143,6 +182,10 @@ export default function NodeInspector() {
         nodeType="agent"
         label={data.label}
         onLabelChange={(label) => updateNodeData(selectedNode.id, { label })}
+        collapsed={collapsed}
+        onToggleCollapse={onToggleCollapse}
+        mobileOpen={mobileOpen}
+        onCloseMobile={onCloseMobile}
       >
         <PortLegend inputs={getAgentPorts().filter((p) => p.direction === 'in')} outputs={getAgentPorts().filter((p) => p.direction === 'out')} />
         <p className="inspector-hint">
@@ -258,6 +301,10 @@ export default function NodeInspector() {
         nodeId={selectedNode.id}
         data={selectedNode.data as ToolNodeData}
         updateNodeData={updateNodeData}
+        collapsed={collapsed}
+        onToggleCollapse={onToggleCollapse}
+        mobileOpen={mobileOpen}
+        onCloseMobile={onCloseMobile}
       />
     )
   }
@@ -274,6 +321,10 @@ export default function NodeInspector() {
         nodeType="loop"
         label={data.label || 'Loop'}
         onLabelChange={(label) => updateNodeData(selectedNode.id, { label })}
+        collapsed={collapsed}
+        onToggleCollapse={onToggleCollapse}
+        mobileOpen={mobileOpen}
+        onCloseMobile={onCloseMobile}
       >
         <PortLegend
           inputs={getLoopPorts().filter((p) => p.direction === 'in')}

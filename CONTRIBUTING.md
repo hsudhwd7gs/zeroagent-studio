@@ -1,14 +1,14 @@
 # Contributing
 
-Thanks for helping improve ZeroAgent Studio!
+Thanks for helping improve Brainwire!
 
 **Full guide:** [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)
 
 Quick start:
 
 ```bash
-git clone https://github.com/sakurablush/zeroagent-studio.git
-cd zeroagent-studio
+git clone https://github.com/sakurablush/brainwire.git
+cd brainwire
 npm install
 npm run dev
 ```

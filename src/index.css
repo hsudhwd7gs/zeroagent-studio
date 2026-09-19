@@ -2614,30 +2614,67 @@ body {
 .model-load-header {
   display: flex;
   justify-content: space-between;
+  align-items: center;
+  gap: 12px;
   font-size: 12px;
   font-weight: 600;
   color: var(--accent-cyan);
   margin-bottom: 8px;
 }
 
-.model-load-bar {
-  height: 4px;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.model-load-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple));
-  transition: width 0.3s ease;
-}
-
-.model-load-status {
-  margin-top: 6px;
-  font-size: 11px;
-  color: var(--text-muted);
+.model-load-percent {
   font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.model-load-dismiss {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid var(--glass-border);
+  border-radius: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 11px;
+  line-height: 1;
+  transition: all 0.15s ease;
+}
+
+.model-load-dismiss:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+  border-color: var(--text-muted);
+}
+
+.model-load-stuck-warning {
+  margin-top: 8px;
+  padding: 8px 10px;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 6px;
+  font-size: 11px;
+  color: #fbbf24;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.model-load-stuck-action {
+  padding: 4px 10px;
+  background: rgba(245, 158, 11, 0.2);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 4px;
+  color: #fbbf24;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.model-load-stuck-action:hover {
+  background: rgba(245, 158, 11, 0.3);
 }
 
 /* Debug data expansion */
@@ -2686,22 +2723,144 @@ body {
   }
 }
 
+/* Tablet — 768 to 1024 */
+@media (max-width: 1024px) and (min-width: 769px) {
+  .header-actions {
+    gap: 4px;
+  }
+  .header-btn {
+    padding: 6px 8px;
+    font-size: 12px;
+  }
+}
+
+/* Mobile — under 768px: compact header + collapsible side panels */
 @media (max-width: 768px) {
+  .app-header {
+    padding: 8px 12px;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .header-left {
+    flex: 1 1 auto;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .logo-stack {
+    display: none;
+  }
+
+  .logo-icon {
+    font-size: 22px;
+  }
+
+  .workflow-name-input {
+    flex: 1 1 auto;
+    width: 100%;
+    min-width: 80px;
+    max-width: 200px;
+    font-size: 13px;
+    padding: 4px 8px;
+  }
+
+  .header-center {
+    display: none;
+  }
+
+  /* Mobile: toolbar wraps to a second row with horizontal scroll */
+  .header-actions {
+    flex: 1 1 100%;
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+    gap: 4px;
+    padding-bottom: 4px;
+    justify-content: flex-start;
+  }
+
+  .header-actions::-webkit-scrollbar {
+    height: 3px;
+  }
+
+  .header-group {
+    gap: 4px;
+    flex-wrap: nowrap;
+  }
+
+  .header-btn {
+    padding: 6px 10px;
+    font-size: 12px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .header-btn-icon {
+    font-size: 14px;
+  }
+
+  .header-divider {
+    display: none;
+  }
+
+  /* Mobile: side panels become overlays (toggled by buttons in toolbar) */
   .app-main {
     flex-direction: column;
   }
 
   .sidebar {
-    width: 100%;
-    max-height: min(42vh, 320px);
-    border-right: none;
-    border-bottom: 1px solid var(--glass-border);
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    width: 85vw;
+    max-width: 320px;
+    z-index: 50;
+    transform: translateX(-100%);
+    transition: transform 0.22s ease-out;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.5);
   }
 
   .sidebar.inspector {
-    border-left: none;
-    border-top: 1px solid var(--glass-border);
-    max-height: min(36vh, 280px);
+    top: 0;
+    bottom: 0;
+    left: auto;
+    right: 0;
+    transform: translateX(100%);
+    border-left: 1px solid var(--glass-border);
+    border-right: none;
+    max-height: none;
+  }
+
+  .sidebar.is-mobile-open {
+    transform: translateX(0);
+  }
+
+  /* Mobile backdrop when a side panel is open */
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 40;
+  }
+
+  /* Mobile toolbar buttons for opening side panels */
+  .mobile-panel-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    font-size: 16px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 6px;
+    color: var(--text-primary);
+    cursor: pointer;
+    flex-shrink: 0;
   }
 
   .palette-items {
@@ -2716,21 +2875,61 @@ body {
     width: 100%;
   }
 
-  .header-actions {
-    flex-wrap: wrap;
-    justify-content: flex-end;
-  }
-
-  .header-divider {
-    display: none;
-  }
-
   .welcome-quest-grid {
     grid-template-columns: 1fr;
   }
 
-  .workflow-name-input {
-    width: 140px;
+  .welcome-banner {
+    margin: 12px;
+    padding: 16px;
+    font-size: 14px;
+  }
+
+  .flow-canvas {
+    width: 100%;
+  }
+
+  .flow-controls {
+    transform: scale(0.85);
+    transform-origin: bottom left;
+  }
+
+  .flow-minimap {
+    transform: scale(0.75);
+    transform-origin: bottom right;
+  }
+
+  .debug-terminal {
+    max-height: 35vh;
+  }
+
+  /* Mobile: hide ⌘K hint — no keyboard on touch */
+  .header-hint {
+    display: none;
+  }
+}
+
+/* Very small phones — under 380px */
+@media (max-width: 380px) {
+  .app-header {
+    padding: 6px 8px;
+  }
+  .header-btn {
+    padding: 5px 8px;
+    font-size: 11px;
+  }
+  .logo-icon {
+    font-size: 18px;
+  }
+}
+
+/* Desktop: hide mobile panel toggle buttons */
+@media (min-width: 769px) {
+  .mobile-panel-toggle {
+    display: none;
+  }
+  .sidebar-backdrop {
+    display: none;
   }
 }
 
@@ -3675,4 +3874,195 @@ body {
   20% { opacity: 1; transform: translateY(0); }
   80% { opacity: 1; }
   100% { opacity: 0; }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   Side-panel collapse (desktop rail mode + mobile overlay)
+   ───────────────────────────────────────────────────────────────── */
+
+/* Collapsed rail mode — thin sliver with an expand button */
+.sidebar.is-collapsed {
+  width: 36px !important;
+  padding: 8px 4px !important;
+  overflow: hidden;
+}
+
+.sidebar.is-collapsed .sidebar-title,
+.sidebar.is-collapsed .palette-intro,
+.sidebar.is-collapsed .palette-search,
+.sidebar.is-collapsed .palette-items,
+.sidebar.is-collapsed .inspector-fields,
+.sidebar.is-collapsed .inspector-header-row,
+.sidebar.is-collapsed .inspector-summary,
+.sidebar.is-collapsed .port-legend,
+.sidebar.is-collapsed .inspector-hint,
+.sidebar.is-collapsed .inspector-action-btn,
+.sidebar.is-collapsed .inspector-checkbox-label,
+.sidebar.is-collapsed .inspector-preview,
+.sidebar.is-collapsed .inspector-delete-btn,
+.sidebar.is-collapsed .settings-body,
+.sidebar.is-collapsed .settings-header,
+.sidebar.is-collapsed .debug-terminal,
+.sidebar.is-collapsed .palette-group {
+  display: none !important;
+}
+
+.sidebar.is-collapsed .sidebar-collapse-btn {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* Collapse / expand button on the side panel header */
+.sidebar-collapse-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid var(--glass-border);
+  border-radius: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.15s ease;
+}
+
+.sidebar-collapse-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+}
+
+.sidebar-collapse-btn .chevron {
+  display: inline-block;
+  transition: transform 0.18s ease;
+}
+
+.sidebar-collapse-btn.is-collapsed .chevron {
+  transform: rotate(180deg);
+}
+
+/* Header layout for sidebar with collapse button */
+.sidebar-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.sidebar-header-row .sidebar-title {
+  margin-bottom: 0;
+}
+
+/* When the palette is collapsed, show a vertical "Building blocks" label */
+.sidebar.is-collapsed::before {
+  content: "⚡";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-90deg);
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.sidebar.inspector.is-collapsed::before {
+  content: "⚙";
+  transform: translate(-50%, -50%);
+  font-size: 18px;
+}
+
+/* When inspector is in collapsed state, the settings panel should also collapse */
+.settings-panel.is-collapsed {
+  width: 36px !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   Toast notifications
+   ───────────────────────────────────────────────────────────────── */
+.toast-stack {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 9000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 380px;
+  pointer-events: none;
+}
+
+.toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  background: rgba(20, 20, 24, 0.95);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text-primary);
+  backdrop-filter: blur(20px);
+}
+
+.toast-icon {
+  font-size: 14px;
+  font-weight: 700;
+  margin-top: 1px;
+}
+
+.toast-body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.toast-message {
+  font-weight: 500;
+}
+
+.toast-detail {
+  margin-top: 2px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.toast-close {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 11px;
+  border-radius: 3px;
+}
+
+.toast-close:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+
+@media (max-width: 768px) {
+  .toast-stack {
+    top: 8px;
+    right: 8px;
+    left: 8px;
+    max-width: none;
+  }
+  .toast {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
 }

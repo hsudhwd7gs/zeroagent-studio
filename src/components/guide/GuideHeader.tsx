@@ -21,7 +21,7 @@ export default function GuideHeader() {
         <div className="guide-header-brand">
           <span className="logo-icon">🔥</span>
           <div className="logo-stack">
-            <span className="logo-text">ZeroAgent Studio</span>
+            <span className="logo-text">Brainwire</span>
             <span className="guide-header-sub">How to use it</span>
           </div>
         </div>
