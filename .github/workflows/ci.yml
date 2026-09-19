@@ -1,11 +1,12 @@
 name: CI
 
-# Triggers: every push to main/master + every PR targeting those branches.
-# Uses minimal scopes (contents: read) for least privilege.
+# Triggers: every push to main/master + the deploy branch (brainwire-rebrand —
+# the branch the live Cloudflare Worker ships from) + every PR targeting
+# those branches. Uses minimal scopes (contents: read) for least privilege.
 
 on:
   push:
-    branches: [main, master]
+    branches: [main, master, brainwire-rebrand]
   pull_request:
     branches: [main, master]
   workflow_dispatch:
