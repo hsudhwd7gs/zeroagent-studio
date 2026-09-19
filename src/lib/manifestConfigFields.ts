@@ -333,12 +333,6 @@ const FIELDS: Record<string, ManifestConfigField[]> = {
     { key: 'steps', label: 'Steps (number)', placeholder: '30', type: 'number' },
     { key: 'gpu', label: 'Enable GPU', type: 'select', options: ['true', 'false'] },
   ],
-  'colab-notebook': [
-    { key: 'action', label: 'Action', type: 'select', options: ['start', 'stop', 'status', 'output'] },
-    { key: 'notebookId', label: 'Notebook ID (Colab /api/...) or path', placeholder: '1abc...xyz or my_nb.ipynb' },
-    { key: 'token', label: 'Auth token (optional — stored in worker)', placeholder: 'stored in /api/keys', type: 'password' },
-    { key: 'vars', label: 'Notebook vars (JSON, optional)', placeholder: '{"prompt":"hello"}', type: 'textarea' },
-  ],
   'ai-video-gen': [
     { key: 'prompt', label: 'Prompt', placeholder: 'A cat playing piano, cinematic, 4K', type: 'textarea' },
     { key: 'provider', label: 'Provider', type: 'select', options: ['workers-ai', 'groq', 'openrouter'] },
@@ -502,9 +496,9 @@ const FIELDS: Record<string, ManifestConfigField[]> = {
     { key: 'format', label: 'Format', type: 'select', options: ['png', 'jpeg'] },
   ],
   'scheduler': [
-    { key: 'cron', label: 'Cron expression', placeholder: '0 9 * * *' },
-    { key: 'workflowId', label: 'Workflow to trigger', placeholder: 'workflow uuid or name' },
-    { key: 'webhookUrl', label: 'Webhook to fire (optional)', placeholder: 'https://...' },
+    { key: 'cron', label: 'Cron expression (min hour day month weekday)', placeholder: '0 9 * * 1-5' },
+    { key: 'webhookUrl', label: 'Webhook URL to fire (required)', placeholder: 'https://your-hook.example/abc (or wire a URL into this node)' },
+    { key: 'workflowId', label: 'Workflow ID sent in the payload (optional)', placeholder: 'workflow uuid or name' },
   ],
   'file-generator': [
     { key: 'mode', label: 'Content mode', type: 'select', options: ['text', 'json', 'dataurl', 'url'] },

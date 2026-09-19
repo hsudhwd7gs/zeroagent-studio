@@ -43,7 +43,6 @@ const KEY_CATALOG: KeySlot[] = [
   { name: 'SLACK_TOKEN', label: 'Slack bot token', description: 'xoxb-... bot OAuth token', link: 'https://api.slack.com/apps', group: 'Cloud' },
   { name: 'RESEND_API_KEY', label: 'Resend', description: 'Email API — free 3k/month', link: 'https://resend.com/api-keys', group: 'Cloud' },
   { name: 'TELEGRAM_BOT_TOKEN', label: 'Telegram bot', description: '123:abc... from @BotFather', link: 'https://t.me/BotFather', group: 'Cloud' },
-  { name: 'COLAB_TOKEN', label: 'Colab auth token', description: 'For the Colab node (optional)', link: 'https://colab.research.google.com', group: 'Cloud' },
 ]
 
 interface Props {

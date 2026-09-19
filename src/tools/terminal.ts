@@ -7,9 +7,6 @@
 //     `sort`, `uniq` are emulated via Python's `os`/`pathlib`/`shutil`.
 //   • Mode "js-eval": evaluates JavaScript in a sandboxed worker (same as
 //     Custom Script) with access to a virtual filesystem (Map).
-//   • Mode "worker-proxy": POSTs the script to the Brainwire worker, which
-//     runs it under isolated exec on Cloudflare. Requires authentication.
-//
 // Safety:
 //   • Network calls are allowed (CORS still applies).
 //   • No access to DOM, window, or cookies.
@@ -29,7 +26,7 @@ export interface TerminalResult {
 
 export interface TerminalConfig {
   command?: string
-  mode?: 'pyodide-shell' | 'js-eval' | 'worker-proxy'
+  mode?: 'pyodide-shell' | 'js-eval'
   cwd?: string
 }
 

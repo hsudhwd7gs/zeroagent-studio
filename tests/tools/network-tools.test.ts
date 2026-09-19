@@ -450,19 +450,23 @@ describe('emailSend', () => {
     ).rejects.toThrow('body')
   })
 
-  it('sends via Resend with a Bearer token', async () => {
+  it('sends via Resend through the worker proxy with a Bearer token', async () => {
     vi.mocked(fetch).mockResolvedValue(okResponse({ id: 'e1' }))
     const out = parse(
       await runEmailSend('hello', { apiKey: 'k', from: 'a@b.c', to: 'd@e.f, g@h.i', subject: 'S' })
     )
     expect(out.ok).toBe(true)
     const [url, init] = vi.mocked(fetch).mock.calls[0] as [string, RequestInit]
-    expect(url).toBe('https://api.resend.com/emails')
-    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer k')
-    expect(String(init.body)).toContain('"to":["d@e.f","g@h.i"]')
+    // Postmark/Resend have no CORS — the tool must route via the worker proxy.
+    expect(url.endsWith('/api/proxy')).toBe(true)
+    const proxied = JSON.parse(String(init.body))
+    expect(proxied.url).toBe('https://api.resend.com/emails')
+    expect(proxied.method).toBe('POST')
+    expect(proxied.headers.Authorization).toBe('Bearer k')
+    expect(JSON.stringify(proxied.body)).toContain('d@e.f')
   })
 
-  it('sends via Postmark with a server token', async () => {
+  it('sends via Postmark through the worker proxy with a server token', async () => {
     vi.mocked(fetch).mockResolvedValue(okResponse({}))
     await runEmailSend('hello', {
       provider: 'postmark',
@@ -472,8 +476,10 @@ describe('emailSend', () => {
       subject: 'S',
     })
     const [url, init] = vi.mocked(fetch).mock.calls[0] as [string, RequestInit]
-    expect(url).toBe('https://api.postmarkapp.com/email')
-    expect((init.headers as Record<string, string>)['X-Postmark-Server-Token']).toBe('k')
+    expect(url.endsWith('/api/proxy')).toBe(true)
+    const proxied = JSON.parse(String(init.body))
+    expect(proxied.url).toBe('https://api.postmarkapp.com/email')
+    expect(proxied.headers['X-Postmark-Server-Token']).toBe('k')
   })
 })
 
@@ -557,16 +563,48 @@ describe('kaggleNotebook', () => {
 })
 
 describe('scheduler', () => {
-  it('registers a job in worker KV', async () => {
+  it('registers a live cron job that fires a webhook', async () => {
     vi.mocked(fetch).mockResolvedValue(okResponse({ job_id: 'j1' }))
-    const out = parse(await runScheduler('', { cron: '*/5 * * * *', workflowId: 'w1' }))
+    const out = parse(
+      await runScheduler('', { cron: '*/5 * * * *', webhookUrl: 'https://hook.dev/x', workflowId: 'w1' })
+    )
     expect(out.ok).toBe(true)
     expect(out.job_id).toBe('j1')
     expect(out.cron).toBe('*/5 * * * *')
+    expect(out.webhookUrl).toBe('https://hook.dev/x')
+    const [url, init] = vi.mocked(fetch).mock.calls[0] as [string, RequestInit]
+    expect(url.endsWith('/api/jobs')).toBe(true)
+    const payload = JSON.parse(String(init.body))
+    expect(payload.status).toBe('scheduled')
+    expect(payload.data.cron).toBe('*/5 * * * *')
+    expect(payload.data.webhookUrl).toBe('https://hook.dev/x')
   })
 
   it('requires a cron expression', async () => {
     await expect(runScheduler('', {})).rejects.toThrow('cron expression required')
+  })
+
+  it('requires a webhook URL — browser workflows cannot run headless', async () => {
+    await expect(runScheduler('', { cron: '*/5 * * * *' })).rejects.toThrow('webhook URL required')
+    await expect(
+      runScheduler('', { cron: '*/5 * * * *', webhookUrl: 'ftp://bad' })
+    ).rejects.toThrow('webhook URL required')
+  })
+
+  it('rejects malformed cron expressions', async () => {
+    await expect(
+      runScheduler('', { cron: 'every five minutes', webhookUrl: 'https://h/x' })
+    ).rejects.toThrow('invalid cron expression')
+    await expect(
+      runScheduler('', { cron: '* * * *', webhookUrl: 'https://h/x' })
+    ).rejects.toThrow('invalid cron expression')
+  })
+
+  it('accepts a webhook URL wired into the node input', async () => {
+    vi.mocked(fetch).mockResolvedValue(okResponse({ job_id: 'j2' }))
+    const out = parse(await runScheduler('https://hook.dev/y', { cron: '0 9 * * 1-5' }))
+    expect(out.job_id).toBe('j2')
+    expect(out.webhookUrl).toBe('https://hook.dev/y')
   })
 })
 

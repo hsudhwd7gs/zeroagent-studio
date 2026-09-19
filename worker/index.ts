@@ -269,43 +269,66 @@ async function injectProviderAuth(
     return
   }
 
+  // User-provided credentials always win — only inject when the caller has
+  // not already set an Authorization / x-api-key header for that host.
+  const hasAuth = headers['Authorization'] !== undefined || headers['authorization'] !== undefined
+
   if (host.endsWith('groq.com')) {
     const key = await getKey(env, 'GROQ_API_KEY')
-    if (key) headers['Authorization'] = `Bearer ${key}`
+    if (key && !hasAuth) headers['Authorization'] = `Bearer ${key}`
+  }
+  if (host.endsWith('openai.com')) {
+    const key = await getKey(env, 'OPENAI_API_KEY')
+    if (key && !hasAuth) headers['Authorization'] = `Bearer ${key}`
+  }
+  if (host.endsWith('anthropic.com')) {
+    const key = await getKey(env, 'ANTHROPIC_API_KEY')
+    if (key && !headers['x-api-key']) {
+      headers['x-api-key'] = key
+      headers['anthropic-version'] = headers['anthropic-version'] ?? '2023-06-01'
+    }
+  }
+  if (host.endsWith('mistral.ai')) {
+    const key = await getKey(env, 'MISTRAL_API_KEY')
+    if (key && !hasAuth) headers['Authorization'] = `Bearer ${key}`
+  }
+  if (host.endsWith('cohere.com') || host.endsWith('cohere.ai')) {
+    const key = await getKey(env, 'COHERE_API_KEY')
+    if (key && !hasAuth) headers['Authorization'] = `Bearer ${key}`
   }
   if (host.endsWith('openrouter.ai')) {
     const key = await getKey(env, 'OPENROUTER_API_KEY')
-    if (key) headers['Authorization'] = `Bearer ${key}`
+    if (key && !hasAuth) headers['Authorization'] = `Bearer ${key}`
   }
   if (host.endsWith('googleapis.com')) {
     const key = await getKey(env, 'GEMINI_API_KEY')
-    if (key) headers['x-goog-api-key'] = key
+    if (key && !hasAuth && !headers['x-goog-api-key']) headers['x-goog-api-key'] = key
   }
   if (host.endsWith('yoinku.com')) {
     const key = await getKey(env, 'YOINKU_API_KEY')
-    if (key) headers['x-api-key'] = key
+    if (key && !headers['x-api-key']) headers['x-api-key'] = key
   }
   if (host.endsWith('kaggle.com')) {
     const username = await getKey(env, 'KAGGLE_USERNAME')
     const key = await getKey(env, 'KAGGLE_KEY')
-    if (username && key) {
+    if (username && key && !hasAuth) {
       headers['Authorization'] = `Basic ${btoa(`${username}:${key}`)}`
     }
   }
   if (host.endsWith('notion.com')) {
     const key = await getKey(env, 'NOTION_API_KEY')
-    if (key) {
+    if (key && !hasAuth) {
       headers['Authorization'] = `Bearer ${key}`
       headers['Notion-Version'] = '2022-06-28'
     }
   }
   if (host.endsWith('slack.com')) {
     const key = await getKey(env, 'SLACK_TOKEN')
-    if (key) headers['Authorization'] = `Bearer ${key}`
+    if (key && !hasAuth) headers['Authorization'] = `Bearer ${key}`
   }
   if (host.endsWith('github.com') || host.endsWith('api.github.com')) {
     const key = await getKey(env, 'GITHUB_TOKEN')
-    if (key) {
+    if (key && !hasAuth) {
       headers['Authorization'] = `Bearer ${key}`
       headers['Accept'] = 'application/vnd.github+json'
       headers['X-GitHub-Api-Version'] = '2022-11-28'
@@ -313,7 +336,7 @@ async function injectProviderAuth(
   }
   if (host.endsWith('resend.com')) {
     const key = await getKey(env, 'RESEND_API_KEY')
-    if (key) headers['Authorization'] = `Bearer ${key}`
+    if (key && !hasAuth) headers['Authorization'] = `Bearer ${key}`
   }
 
   // Generic: any SECRET_<HOST_WITH_UNDERSCORES> in KV or env
@@ -388,7 +411,7 @@ async function proxyRequest(
 // download via cobalt.tools (requires their JWT — fall back gracefully)
 // ─────────────────────────────────────────────────────────────
 
-async function handleYtDlp(env: Env, request: Request): Promise<Response> {
+async function handleYtDlp(_env: Env, request: Request): Promise<Response> {
   const body = await request.json() as { url?: string; action?: string; format?: string; cookies?: string }
   const videoUrl = body.url?.trim()
   if (!videoUrl) return json({ error: 'url required' }, 400)
@@ -608,6 +631,23 @@ async function handleProjects(env: Env, request: Request, url: URL): Promise<Res
       ).run()
       return json({ ok: true, workflow: { id, project_id: projectId, name: body.name.trim(), updated_at: ts } })
     }
+  }
+
+  // GET /api/workflows — list all workflows across projects (advertised by /api/health)
+  if (request.method === 'GET' && path === '/api/workflows') {
+    const { results } = await env.DB.prepare(
+      'SELECT id, project_id, name, updated_at FROM workflows ORDER BY updated_at DESC LIMIT 500'
+    ).all() as { results: WorkflowRow[] }
+    return json({
+      ok: true,
+      count: results.length,
+      workflows: results.map((r) => ({
+        id: r.id,
+        project_id: r.project_id,
+        name: r.name,
+        updated_at: r.updated_at,
+      })),
+    })
   }
 
   // /api/workflows/{id}
@@ -1236,23 +1276,38 @@ export default {
 
       // ─── GROQ: Audio ───────────────────────────────────────
       if (path === '/api/groq/audio' && request.method === 'POST') {
-        const key = await getKey(env, 'GROQ_API_KEY')
+        // Multipart pass-through for Whisper transcription. The raw body and
+        // Content-Type (multipart/form-data with boundary) are forwarded
+        // untouched; only the Authorization header is added server-side
+        // because api.groq.com / api.openai.com block direct browser calls.
+        // ?provider=openai switches the target to OpenAI whisper-1.
+        // An incoming Authorization header (the user's own key) wins over
+        // the worker's stored key.
+        const provider = url.searchParams.get('provider') ?? 'groq'
+        const targetUrl =
+          provider === 'openai'
+            ? 'https://api.openai.com/v1/audio/transcriptions'
+            : 'https://api.groq.com/openai/v1/audio/transcriptions'
+        const kvKeyName = provider === 'openai' ? 'OPENAI_API_KEY' : 'GROQ_API_KEY'
+        const key =
+          request.headers.get('Authorization')?.replace(/^Bearer\s+/i, '') ??
+          (await getKey(env, kvKeyName))
         if (!key) {
-          return json({ error: 'GROQ_API_KEY not set. Add it in Privacy & keys, or POST /api/keys.' }, 500)
+          return json(
+            { error: `${kvKeyName} not set. Add it in Privacy & keys, or POST /api/keys.` },
+            500
+          )
         }
         const body = await request.arrayBuffer()
         const contentType = request.headers.get('content-type') ?? 'audio/mpeg'
-        const response = await fetch(
-          'https://api.groq.com/openai/v1/audio/transcriptions',
-          {
-            method: 'POST',
-            headers: {
-              Authorization: `Bearer ${key}`,
-              'Content-Type': contentType,
-            },
-            body,
-          }
-        )
+        const response = await fetch(targetUrl, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${key}`,
+            'Content-Type': contentType,
+          },
+          body,
+        })
         return withCors(response)
       }
 
@@ -1495,7 +1550,150 @@ export default {
         } catch (err) {
           console.error('Cron job failed:', err)
         }
+
+        // ── Scheduler node dispatch ─────────────────────────────
+        // Jobs created by the Scheduler node live in KV as job:{id} with
+        // { status, data: { cron, webhookUrl, workflowId, ... }, ... }.
+        // Every 5-minute tick we evaluate each job's cron expression and
+        // POST its webhook when due. This makes the Scheduler node REAL —
+        // previously it only persisted "intent" and nothing ever ran.
+        try {
+          await dispatchScheduledJobs(env, controller.scheduledTime)
+        } catch (err) {
+          console.error('Scheduler dispatch failed:', err)
+        }
       })()
     )
   },
+}
+
+// ─────────────────────────────────────────────────────────────
+// Cron expression matching (5-field: min hour dom month dow)
+// Supports: *  */n  a  a-b  a,b,c  a-b/n
+// ─────────────────────────────────────────────────────────────
+
+function cronFieldMatches(field: string, value: number, min: number, max: number): boolean {
+  for (const part of field.split(',')) {
+    const [range, stepRaw] = part.split('/')
+    const step = stepRaw ? parseInt(stepRaw, 10) : 1
+    if (!Number.isFinite(step) || step < 1) continue
+    let lo: number, hi: number
+    if (range === '*') {
+      lo = min
+      hi = max
+    } else if (range.includes('-')) {
+      const [a, b] = range.split('-')
+      lo = parseInt(a, 10)
+      hi = parseInt(b, 10)
+    } else {
+      lo = parseInt(range, 10)
+      hi = stepRaw ? max : lo // "5/10" means start at 5, every 10
+    }
+    if (!Number.isFinite(lo) || !Number.isFinite(hi)) continue
+    if (value < lo || value > hi) continue
+    if ((value - lo) % step === 0) return true
+  }
+  return false
+}
+
+/** True when the 5-field cron expression matches the given time. */
+export function cronMatches(expr: string, date: Date): boolean {
+  const fields = expr.trim().split(/\s+/)
+  if (fields.length !== 5) return false
+  const minute = date.getUTCMinutes()
+  const hour = date.getUTCHours()
+  const dom = date.getUTCDate()
+  const month = date.getUTCMonth() + 1
+  const dow = date.getUTCDay()
+  const fMin = fields[0]
+  const fHour = fields[1]
+  const fDom = fields[2]
+  const fMonth = fields[3]
+  // Cron allows 7 as an alias for Sunday — normalize to 0.
+  const fDow = fields[4] === '7' ? '0' : fields[4]
+  const domRestricted = fDom !== '*'
+  const dowRestricted = fDow !== '*'
+  const domOk = cronFieldMatches(fDom, dom, 1, 31)
+  const dowOk = cronFieldMatches(fDow, dow, 0, 6)
+  // Standard cron: when both dom and dow are restricted, either may match.
+  const dayOk = domRestricted && dowRestricted ? domOk || dowOk : domOk && dowOk
+  return (
+    cronFieldMatches(fMin, minute, 0, 59) &&
+    cronFieldMatches(fHour, hour, 0, 23) &&
+    cronFieldMatches(fMonth, month, 1, 12) &&
+    dayOk
+  )
+}
+
+interface ScheduledJobData {
+  cron?: string
+  webhookUrl?: string
+  workflowId?: string
+  createdAt?: number
+  lastFired?: number
+  fireCount?: number
+  lastStatus?: string
+  lastError?: string
+}
+
+/** Scan KV job:* entries and fire due webhooks. Runs every 5-minute tick. */
+async function dispatchScheduledJobs(env: Env, scheduledTime: number): Promise<void> {
+  if (!env.CACHE) return
+  const tick = Math.floor(scheduledTime / 300_000) * 300_000 // 5-minute slot
+  const tickDate = new Date(tick)
+  let listed = await env.CACHE.list({ prefix: 'job:' })
+  let fired = 0
+  while (listed.keys.length > 0) {
+    for (const key of listed.keys) {
+      const raw = await env.CACHE.get(key.name)
+      if (!raw) continue
+      let entry: { status?: string; data?: ScheduledJobData; updated_at?: number }
+      try {
+        entry = JSON.parse(raw)
+      } catch {
+        continue
+      }
+      const data = entry.data ?? {}
+      if (entry.status !== 'scheduled' || !data.cron || !data.webhookUrl) continue
+      // Only fire once per 5-minute slot, and only for slots newer than the
+      // job's creation (a freshly created "*/5" job should not fire instantly
+      // for the slot it was created in).
+      if ((data.lastFired ?? 0) >= tick) continue
+      if (data.createdAt && tick < Math.floor(data.createdAt / 300_000) * 300_000) continue
+      if (!cronMatches(data.cron, tickDate)) continue
+      try {
+        const res = await fetch(data.webhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Brainwire-Schedule': data.cron },
+          body: JSON.stringify({
+            ok: true,
+            jobId: key.name.slice('job:'.length),
+            cron: data.cron,
+            workflowId: data.workflowId ?? null,
+            firedAt: new Date(tick).toISOString(),
+            fireCount: (data.fireCount ?? 0) + 1,
+          }),
+        })
+        data.lastStatus = `${res.status}`
+        if (!res.ok) data.lastError = `webhook returned ${res.status}`
+        else data.lastError = undefined
+      } catch (err) {
+        data.lastStatus = 'error'
+        data.lastError = err instanceof Error ? err.message : String(err)
+      }
+      data.lastFired = tick
+      data.fireCount = (data.fireCount ?? 0) + 1
+      // Re-put with a fresh 7-day TTL so recurring schedules stay alive while
+      // the workflow that owns them keeps re-registering them.
+      await env.CACHE.put(
+        key.name,
+        JSON.stringify({ ...entry, data, updated_at: Date.now() }),
+        { expirationTtl: 7 * 24 * 60 * 60 }
+      )
+      fired++
+    }
+    if (listed.list_complete || !listed.cursor) break
+    listed = await env.CACHE.list({ prefix: 'job:', cursor: listed.cursor })
+  }
+  if (fired > 0) console.log(`Scheduler fired ${fired} webhook job(s) at ${new Date(tick).toISOString()}`)
 }

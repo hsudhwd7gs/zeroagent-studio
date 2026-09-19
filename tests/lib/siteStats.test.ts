@@ -22,14 +22,14 @@ describe('siteStats', () => {
     }).toMatchInlineSnapshot(`
       {
         "browserTools": 292,
-        "cloudTools": 17,
-        "curatedModules": 129,
+        "cloudTools": 16,
+        "curatedModules": 128,
         "customTools": 5,
         "exampleWorkflows": 22,
         "guidedQuests": 8,
         "manifestPresets": 185,
-        "paletteBuildingBlocks": 316,
-        "totalTools": 314,
+        "paletteBuildingBlocks": 315,
+        "totalTools": 313,
       }
     `)
 

@@ -58,10 +58,15 @@ export async function runEmailSend(
 
   let response: Response
   try {
-    response = await fetch(url, {
+    // api.postmarkapp.com and api.resend.com do not send CORS headers, so a
+    // direct browser fetch is blocked. Route through the worker's universal
+    // proxy — it forwards our headers (with the user's API key) server-side
+    // and adds CORS on the way back.
+    const workerUrl = typeof window !== 'undefined' ? window.location.origin : ''
+    response = await fetch(`${workerUrl}/api/proxy`, {
       method: 'POST',
-      headers,
-      body: JSON.stringify(payload),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url, method: 'POST', headers, body: payload }),
     })
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)

@@ -34,9 +34,17 @@ export async function transcribeWithGroq(
   form.append('model', GROQ_WHISPER_MODEL)
   if (language?.trim()) form.append('language', language.trim())
 
-  const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+  // api.groq.com does not send CORS headers, so a direct browser fetch is
+  // blocked. Route the multipart body through the worker's /api/groq/audio
+  // pass-through: it forwards the body + Content-Type untouched and adds the
+  // Authorization header server-side. The user's own key (when provided)
+  // wins over the worker's stored GROQ_API_KEY.
+  const headers: Record<string, string> = {}
+  if (apiKey.trim()) headers['Authorization'] = `Bearer ${apiKey.trim()}`
+
+  const response = await fetch('/api/groq/audio', {
     method: 'POST',
-    headers: { Authorization: `Bearer ${apiKey}` },
+    headers,
     body: form,
   })
 

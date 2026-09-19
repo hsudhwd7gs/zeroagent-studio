@@ -1,6 +1,7 @@
 // Photon — apply image filters via @silvia-odwyer/photon (WASM, CDN-loaded).
+// NOTE: the latest published version is 0.3.3 — 0.34.0 never existed and 404s.
 
-const PHOTON_URL = 'https://esm.sh/@silvia-odwyer/photon@0.34.0'
+const PHOTON_URL = 'https://esm.sh/@silvia-odwyer/photon@0.3.3'
 
 interface PhotonImage {
   get_bytes: () => Uint8Array
@@ -23,18 +24,29 @@ async function loadPhoton(): Promise<PhotonModule> {
   if (PhotonRef) return PhotonRef
   if (!PhotonInit) {
     PhotonInit = (async () => {
-      const mod = (await import(/* @vite-ignore */ PHOTON_URL)) as { default?: unknown }
+      const mod = (await import(/* @vite-ignore */ PHOTON_URL)) as {
+        default?: unknown
+      } & Record<string, unknown>
       const candidate: unknown = mod.default ?? mod
       let photon: PhotonModule
       if (typeof candidate === 'function') {
-        // photon is a WASM module that exposes a default async init
-        photon = await (candidate as () => Promise<PhotonModule>)()
+        // wasm-bindgen style: default export is the async init() that
+        // compiles the embedded WASM. It may return the exports or void —
+        // the named exports on the module namespace are populated either way.
+        const inited = await (candidate as () => Promise<unknown>)()
+        photon =
+          inited && typeof inited === 'object' && 'PhotonImage' in (inited as Record<string, unknown>)
+            ? (inited as PhotonModule)
+            : (mod as unknown as PhotonModule)
       } else {
         const maybeModule = candidate as PhotonModule
         if (maybeModule && typeof maybeModule.init === 'function') {
           await maybeModule.init()
         }
         photon = maybeModule
+      }
+      if (typeof photon.PhotonImage?.new_from_byteslice !== 'function') {
+        throw new Error('Photon WASM module loaded but PhotonImage is missing — the CDN build may have changed')
       }
       PhotonRef = photon
       return PhotonRef

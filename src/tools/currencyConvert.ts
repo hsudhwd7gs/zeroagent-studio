@@ -14,7 +14,7 @@ export async function runCurrencyConvert(
   const from = (config.from ?? 'USD').toUpperCase()
   const to = (config.to ?? 'EUR').toUpperCase()
 
-  const res = await fetch(`https://api.frankfurter.app/latest?amount=${amount}&from=${from}&to=${to}`)
+  const res = await fetch(`https://api.frankfurter.dev/v1/latest?amount=${amount}&from=${from}&to=${to}`)
   if (!res.ok) throw new Error(`Frankfurter API failed: ${res.status}`)
   const data = await res.json() as FrankfurterResponse
   return JSON.stringify({

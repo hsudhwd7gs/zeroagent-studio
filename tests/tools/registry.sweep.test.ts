@@ -45,7 +45,6 @@ const RUN_SKIP = new Set([
   'python-runner', // pyodide CDN loader
   'trendpy', // pyodide CDN loader
   'kaggle-notebook', // remote kernel
-  'colab-notebook', // remote kernel
   'ytdlp', // native binary
   'audio-gen', // heavy loader
   'video-gen', // heavy loader

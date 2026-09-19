@@ -81,7 +81,6 @@ import { runWebAudio } from './webAudioTool'
 import { runYamlTool } from './yamlTool'
 import { runYtDlp } from './ytdlpTool'
 import { runKaggleNotebook } from './kaggleNotebook'
-import { runColabNotebook } from './colabNotebook'
 import { runAiVideoGen } from './aiVideoGen'
 import { runAiAudioGen } from './aiAudioGen'
 import { runAiImageGen } from './aiImageGen'
@@ -1230,18 +1229,6 @@ const CURATED_TOOLS: ToolDefinition[] = [
     run: wrapLegacyRun(async (input, config) => runKaggleNotebook(input, config)),
   },
   {
-    id: 'colab-notebook',
-    label: 'Colab Notebook',
-    description: 'Start / stop / status / output of a Google Colab notebook',
-    icon: '📊',
-    paletteGroup: 'cloud',
-    paletteDragType: 'tool-colab-notebook',
-    requirement: { kind: 'none' },
-    autoRun: { defaultEnabled: false, canRunWithoutInput: (c) => c.action !== 'status' || !!c.notebookId?.trim() },
-    ...DEFAULT_TOOL_IO,
-    run: wrapLegacyRun(async (input, config) => runColabNotebook(input, config)),
-  },
-  {
     id: 'ai-video-gen',
     label: 'AI Video Gen',
     description: 'Generate video or video script via Workers AI / Groq',
@@ -1610,7 +1597,7 @@ const CURATED_TOOLS: ToolDefinition[] = [
   {
     id: 'scheduler',
     label: 'Scheduler',
-    description: 'Register a cron trigger that fires a webhook or workflow',
+    description: 'Cron schedule that POSTs your webhook when due (worker checks every 5 min)',
     icon: '⏰',
     paletteGroup: 'browser',
     browserSubcategory: 'flow',

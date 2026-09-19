@@ -51,10 +51,11 @@ binding = "AI"
 # (stored in KV, takes effect immediately without redeploying).
 
 # ───────────────────────────────────────────────────────────────
-# Cron triggers (optional — keep disabled by default)
+# Cron triggers — powers the Scheduler node (worker evaluates stored cron
+# specs every 5 minutes and POSTs the job's webhook when due)
 # ───────────────────────────────────────────────────────────────
-# [triggers]
-# crons = ["0 3 * * *"]  # Daily cleanup at 03:00 UTC
+[triggers]
+crons = ["*/5 * * * *"]
 
 # ───────────────────────────────────────────────────────────────
 # Observability
@@ -67,4 +68,4 @@ head_sampling_rate = 1
 # Vars (non-secret, plain text)
 # ───────────────────────────────────────────────────────────────
 [vars]
-WORKER_VERSION = "3.0.0"
+WORKER_VERSION = "3.1.0"
