@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useModelLoadStore } from '../../stores/modelLoadStore'
 
@@ -21,34 +21,40 @@ export default function ModelLoadBanner() {
   const reset = useModelLoadStore((s) => s.reset)
 
   const [userDismissed, setUserDismissed] = useState(false)
-  const [lastProgress, setLastProgress] = useState(0)
-  const [lastProgressAt, setLastProgressAt] = useState(Date.now())
   const [stuckSeconds, setStuckSeconds] = useState(0)
 
-  // Track progress changes to detect stalls
+  // Track progress changes to detect stalls. Timestamps live in refs (never in
+  // render state) so nothing impure runs during render and no setState fires
+  // synchronously inside effects.
+  const lastProgressRef = useRef(-1)
+  const lastProgressAtRef = useRef(0)
+
   useEffect(() => {
+    if (progress !== lastProgressRef.current) {
+      lastProgressRef.current = progress
+      lastProgressAtRef.current = Date.now()
+    }
+  }, [progress, isLoading])
+
+  // Reset transient state whenever a load finishes (adjust-during-render pattern).
+  const [prevLoading, setPrevLoading] = useState(isLoading)
+  if (isLoading !== prevLoading) {
+    setPrevLoading(isLoading)
     if (!isLoading) {
       setUserDismissed(false)
-      setLastProgress(0)
-      setStuckSeconds(0)
-      return
-    }
-    if (progress !== lastProgress) {
-      setLastProgress(progress)
-      setLastProgressAt(Date.now())
       setStuckSeconds(0)
     }
-  }, [progress, isLoading, lastProgress])
+  }
 
   // Tick every second to update stuckSeconds
   useEffect(() => {
     if (!isLoading || userDismissed) return
     const id = window.setInterval(() => {
-      const elapsed = Math.floor((Date.now() - lastProgressAt) / 1000)
+      const elapsed = Math.floor((Date.now() - lastProgressAtRef.current) / 1000)
       setStuckSeconds(elapsed)
     }, 1000)
     return () => window.clearInterval(id)
-  }, [isLoading, userDismissed, lastProgressAt])
+  }, [isLoading, userDismissed])
 
   // Auto-dismiss when load completes
   useEffect(() => {

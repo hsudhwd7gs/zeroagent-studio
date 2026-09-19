@@ -15,7 +15,7 @@ export interface SwitchConfig {
 
 export function runSwitch(input: string, config: SwitchConfig = {}): string {
   const trimmed = (input ?? '').trim()
-  let cases: SwitchCase[] = []
+  let cases: SwitchCase[]
   try {
     cases = config.cases ? JSON.parse(config.cases) : []
   } catch {

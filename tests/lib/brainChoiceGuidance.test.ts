@@ -16,7 +16,7 @@ describe('brainChoiceGuidance', () => {
   })
 
   it('exports runtime strings used by chat and dag', () => {
-    expect(CHAT_INPUT_PLACEHOLDER).toContain('free key')
+    expect(CHAT_INPUT_PLACEHOLDER).toContain('free with a key')
     expect(DAG_NO_BRAIN_ERROR).toContain('OpenRouter')
     expect(SETTINGS_SKIP_KEYS_NOTE).toContain('recommend')
   })

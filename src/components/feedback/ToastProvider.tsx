@@ -1,28 +1,6 @@
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-
-type ToastTone = 'success' | 'info' | 'warn' | 'error'
-
-interface Toast {
-  id: number
-  tone: ToastTone
-  message: string
-  detail?: string
-}
-
-interface ToastContextValue {
-  toast: (t: Omit<Toast, 'id'>) => void
-}
-
-const ToastContext = createContext<ToastContextValue | null>(null)
-
-export function useToast(): ToastContextValue {
-  const ctx = useContext(ToastContext)
-  if (!ctx) {
-    return { toast: () => {} }
-  }
-  return ctx
-}
+import { ToastContext, toastEmitter, type Toast, type ToastTone } from './toast'
 
 const TONE_ICONS: Record<ToastTone, string> = {
   success: '✓',
@@ -102,9 +80,4 @@ export function ToastProvider({ children }: { children?: ReactNode }) {
       </div>
     </ToastContext.Provider>
   )
-}
-
-// Imperative emit — used by non-React modules (stores, lib)
-export const toastEmitter: { emit: (t: Omit<Toast, 'id'>) => void } = {
-  emit: () => {},
 }

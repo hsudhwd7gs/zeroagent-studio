@@ -25,7 +25,7 @@ import { useConnectionStore } from './connectionStore'
 import { useDebugStore } from './debugStore'
 import { useProjectStore } from './projectStore'
 import { fitWorkflowView } from '../lib/flowCanvasRegistry'
-import { toastEmitter } from '../components/feedback/ToastProvider'
+import { toastEmitter } from '../components/feedback/toast'
 
 // ────────────────────────────────────────────────────────────────────
 // Workflow name validation

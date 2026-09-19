@@ -78,6 +78,9 @@ export default defineConfig({
         'src/tools/textDiff.ts',
         'src/tools/yamlTool.ts',
         'src/tools/diffusionStudioTool.ts',
+        'src/tools/terminal.ts',
+        'src/tools/mathLatex.ts',
+        'src/tools/mermaidRenderer.ts',
       ],
       thresholds: {
         lines: 70,
