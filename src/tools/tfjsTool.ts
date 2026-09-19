@@ -4,10 +4,39 @@
 
 const TFJS_URL = 'https://esm.sh/@tensorflow/tfjs@4.22.0'
 
-let TfRef: any | null = null
-async function loadTf(): Promise<any> {
+interface TfTensor {
+  dispose: () => void
+  data: () => Promise<Float32Array | Int32Array | Uint8Array>
+}
+
+interface TfModel {
+  inputs?: Array<{ shape?: Array<number | null> }>
+  predict: (tensor: unknown) => TfTensor | TfTensor[]
+  dispose: () => void
+}
+
+interface TfTensor4d {
+  slice: (start: number[], size: number[]) => unknown
+}
+
+interface TfModule {
+  ready: () => Promise<void>
+  getBackend: () => string
+  findBackend: (name: string) => unknown
+  version_core?: string
+  version?: { core?: string }
+  loadLayersModel: (url: string) => Promise<TfModel>
+  tidy: (fn: () => unknown) => unknown
+  sub: (a: unknown, b: number) => unknown
+  div: (a: unknown, b: number) => unknown
+  tensor4d: (data: number[], shape: number[]) => TfTensor4d
+}
+
+let TfRef: TfModule | null = null
+async function loadTf(): Promise<TfModule> {
   if (TfRef) return TfRef
-  TfRef = await import(/* @vite-ignore */ TFJS_URL)
+  const mod = (await import(/* @vite-ignore */ TFJS_URL)) as unknown as TfModule
+  TfRef = mod
   return TfRef
 }
 
@@ -69,9 +98,9 @@ export async function runTfjs(
         ),
         1
       )
-    )
+    ) as TfTensor
 
-    const prediction = model.predict(tensor) as any
+    const prediction = model.predict(tensor)
     const probs = await (Array.isArray(prediction) ? prediction[0] : prediction).data()
     tensor.dispose()
     model.dispose()

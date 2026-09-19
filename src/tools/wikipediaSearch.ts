@@ -1,5 +1,32 @@
 // Wikipedia node — search, summary (extract), or full page via Wikipedia Action API.
 
+interface WikiSearchResponse {
+  query?: {
+    search?: Array<{
+      title?: string
+      pageid?: number
+      snippet?: string
+      size?: number
+      wordcount?: number
+    }>
+  }
+}
+
+interface WikiSummaryResponse {
+  title?: string
+  extract?: string
+  content_urls?: { desktop?: { page?: string } }
+  thumbnail?: { source?: string }
+}
+
+interface WikiParseResponse {
+  parse?: {
+    title?: string
+    pageid?: number
+    wikitext?: { ['*']?: string }
+  }
+}
+
 export async function runWikipediaSearch(
   input: string,
   config: Record<string, string>
@@ -14,8 +41,8 @@ export async function runWikipediaSearch(
       `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&srlimit=${limit}&format=json&origin=*`,
     )
     if (!res.ok) throw new Error(`Wikipedia search failed: ${res.status}`)
-    const data = await res.json() as any
-    const items = (data.query?.search ?? []).map((s: any) => ({
+    const data = await res.json() as WikiSearchResponse
+    const items = (data.query?.search ?? []).map((s) => ({
       title: s.title,
       pageid: s.pageid,
       url: `https://en.wikipedia.org/?curid=${s.pageid}`,
@@ -31,7 +58,7 @@ export async function runWikipediaSearch(
       `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query.replace(/\s+/g, '_'))}`,
     )
     if (!res.ok) throw new Error(`Wikipedia summary failed: ${res.status}`)
-    const data = await res.json() as any
+    const data = await res.json() as WikiSummaryResponse
     return JSON.stringify({
       ok: true,
       action,
@@ -48,7 +75,7 @@ export async function runWikipediaSearch(
       `https://en.wikipedia.org/w/api.php?action=parse&page=${encodeURIComponent(query)}&prop=wikitext&format=json&origin=*`,
     )
     if (!res.ok) throw new Error(`Wikipedia page failed: ${res.status}`)
-    const data = await res.json() as any
+    const data = await res.json() as WikiParseResponse
     return JSON.stringify({
       ok: true,
       action,

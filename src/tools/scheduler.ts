@@ -1,4 +1,8 @@
 // Scheduler node — registers a cron trigger via the worker.
+
+interface JobResponse {
+  job_id?: string
+}
 // The worker stores cron specs in KV; a separate cron handler dispatches them.
 
 export async function runScheduler(
@@ -25,7 +29,7 @@ export async function runScheduler(
     body: JSON.stringify(jobBody),
   })
   if (!res.ok) throw new Error(`Failed to create job: ${res.status} ${await res.text()}`)
-  const jobData = await res.json() as any
+  const jobData = await res.json() as JobResponse
 
   // If a webhook URL is set, fire it now to register the cron with an external service
   let webhookResponse: unknown = null

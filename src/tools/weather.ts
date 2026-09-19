@@ -1,5 +1,23 @@
 // Weather node — uses Open-Meteo (free, no API key required).
 
+interface GeoPlace {
+  name: string
+  admin1?: string
+  country?: string
+  latitude: number
+  longitude: number
+}
+
+interface GeoResponse {
+  results?: GeoPlace[]
+}
+
+interface WeatherResponse {
+  current?: unknown
+  hourly?: unknown
+  daily?: unknown
+}
+
 export async function runWeather(
   input: string,
   config: Record<string, string>
@@ -14,7 +32,7 @@ export async function runWeather(
     `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=1&language=en&format=json`,
   )
   if (!geoRes.ok) throw new Error(`Geocoding failed: ${geoRes.status}`)
-  const geoData = await geoRes.json() as any
+  const geoData = await geoRes.json() as GeoResponse
   if (!geoData.results?.length) throw new Error(`Location not found: ${location}`)
   const place = geoData.results[0]
 
@@ -27,7 +45,7 @@ export async function runWeather(
     `&forecast_days=7&timezone=auto` + (isImperial ? '&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch' : ''),
   )
   if (!weatherRes.ok) throw new Error(`Weather fetch failed: ${weatherRes.status}`)
-  const w = await weatherRes.json() as any
+  const w = await weatherRes.json() as WeatherResponse
 
   return JSON.stringify({
     ok: true,

@@ -5,6 +5,7 @@ import { getViewportCenterPosition } from '../../lib/flowCanvasRegistry'
 import { getQuestSteps } from '../../lib/tutorialQuests'
 import { useTutorialStore } from '../../stores/tutorialStore'
 import { useSettingsStore } from '../../stores/settingsStore'
+import { useWorkflowStore } from '../../stores/workflowStore'
 import {
   listToolsForPalette,
   getToolBadge,
@@ -129,7 +130,11 @@ export default function NodePalette({ collapsed = false, onToggleCollapse, mobil
   }
 
   const onDoubleClickAdd = (type: string) => {
-    addPaletteNodeAt(type, getViewportCenterPosition())
+    // Cascade each new block away from the exact center so consecutive adds
+    // never stack perfectly on top of each other.
+    const center = getViewportCenterPosition()
+    const cascade = (useWorkflowStore.getState().nodes.length % 8) * 36
+    addPaletteNodeAt(type, { x: center.x + cascade, y: center.y + cascade })
   }
 
   let itemIndex = 0

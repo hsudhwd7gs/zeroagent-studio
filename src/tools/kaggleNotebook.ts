@@ -10,7 +10,7 @@ export async function runKaggleNotebook(
 
   if (action === 'generate') {
     const promptsRaw = config.prompts?.trim() || input.trim()
-    let prompts: string[] = []
+    let prompts: string[]
     try {
       const parsed = JSON.parse(promptsRaw)
       prompts = Array.isArray(parsed) ? parsed : [String(parsed)]

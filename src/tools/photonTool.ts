@@ -2,23 +2,41 @@
 
 const PHOTON_URL = 'https://esm.sh/@silvia-odwyer/photon@0.34.0'
 
-let PhotonRef: any | null = null
-let PhotonInit: Promise<any> | null = null
-async function loadPhoton(): Promise<any> {
+interface PhotonImage {
+  get_bytes: () => Uint8Array
+  free?: () => void
+}
+
+interface PhotonModule {
+  PhotonImage: { new_from_byteslice: (bytes: Uint8Array) => PhotonImage }
+  grayscale: (image: PhotonImage) => void
+  sepia: (image: PhotonImage) => void
+  gaussian_blur: (image: PhotonImage, radius: number) => void
+  invert: (image: PhotonImage) => void
+  init?: () => Promise<void>
+}
+
+let PhotonRef: PhotonModule | null = null
+let PhotonInit: Promise<PhotonModule> | null = null
+
+async function loadPhoton(): Promise<PhotonModule> {
   if (PhotonRef) return PhotonRef
   if (!PhotonInit) {
     PhotonInit = (async () => {
-      const mod = await import(/* @vite-ignore */ PHOTON_URL)
-      const photon = mod.default ?? mod
-      // photon is a WASM module that exposes a default async init
-      if (typeof photon === 'function') {
-        PhotonRef = await photon()
-      } else if (photon && typeof photon.init === 'function') {
-        await photon.init()
-        PhotonRef = photon
+      const mod = (await import(/* @vite-ignore */ PHOTON_URL)) as { default?: unknown }
+      const candidate: unknown = mod.default ?? mod
+      let photon: PhotonModule
+      if (typeof candidate === 'function') {
+        // photon is a WASM module that exposes a default async init
+        photon = await (candidate as () => Promise<PhotonModule>)()
       } else {
-        PhotonRef = photon
+        const maybeModule = candidate as PhotonModule
+        if (maybeModule && typeof maybeModule.init === 'function') {
+          await maybeModule.init()
+        }
+        photon = maybeModule
       }
+      PhotonRef = photon
       return PhotonRef
     })()
   }
@@ -54,7 +72,7 @@ export async function runPhoton(
   const outputUrl = URL.createObjectURL(blob)
 
   try {
-    image.free()
+    image.free?.()
   } catch {
     /* ignore — some versions don't expose free() */
   }

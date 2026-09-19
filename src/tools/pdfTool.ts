@@ -2,10 +2,29 @@
 
 const PDF_LIB_URL = 'https://esm.sh/pdf-lib@1.17.1'
 
-let PdfRef: any | null = null
-async function loadPdfLib(): Promise<any> {
+interface PdfPage {
+  drawText: (text: string, options: { x: number; y: number; size: number }) => void
+}
+
+interface PdfDocument {
+  addPage: (size?: [number, number] | PdfPage) => PdfPage
+  copyPages: (source: PdfDocument, indices: number[]) => Promise<PdfPage[]>
+  getPageIndices: () => number[]
+  save: () => Promise<Uint8Array>
+}
+
+interface PdfLibModule {
+  PDFDocument: {
+    create: () => Promise<PdfDocument>
+    load: (data: ArrayBuffer) => Promise<PdfDocument>
+  }
+}
+
+let PdfRef: PdfLibModule | null = null
+async function loadPdfLib(): Promise<PdfLibModule> {
   if (PdfRef) return PdfRef
-  PdfRef = await import(/* @vite-ignore */ PDF_LIB_URL)
+  const mod = (await import(/* @vite-ignore */ PDF_LIB_URL)) as unknown as PdfLibModule
+  PdfRef = mod
   return PdfRef
 }
 
@@ -21,7 +40,7 @@ export async function runPdfTool(
     const page = doc.addPage([600, 400])
     page.drawText(config.text || input || 'Hello from Brainwire!', { x: 50, y: 350, size: 16 })
     const bytes = await doc.save()
-    const blob = new Blob([bytes as ArrayBuffer], { type: 'application/pdf' })
+    const blob = new Blob([bytes.slice().buffer as ArrayBuffer], { type: 'application/pdf' })
     const outputUrl = URL.createObjectURL(blob)
     return JSON.stringify({ ok: true, url: outputUrl, size: blob.size })
   }
@@ -35,10 +54,10 @@ export async function runPdfTool(
       const buf = await res.arrayBuffer()
       const doc = await PDFDocument.load(buf)
       const pages = await merged.copyPages(doc, doc.getPageIndices())
-      pages.forEach((p: any) => merged.addPage(p))
+      pages.forEach((p) => merged.addPage(p))
     }
     const bytes = await merged.save()
-    const blob = new Blob([bytes as ArrayBuffer], { type: 'application/pdf' })
+    const blob = new Blob([bytes.slice().buffer as ArrayBuffer], { type: 'application/pdf' })
     const outputUrl = URL.createObjectURL(blob)
     return JSON.stringify({ ok: true, url: outputUrl, size: blob.size })
   }

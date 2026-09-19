@@ -1,5 +1,10 @@
 // Cohere Chat node — calls Cohere v1 chat via the worker proxy.
 
+interface CohereResponse {
+  text?: string
+  meta?: Record<string, unknown>
+}
+
 export async function runCohereChat(
   input: string,
   config: Record<string, string>
@@ -24,6 +29,6 @@ export async function runCohereChat(
     }),
   })
   if (!res.ok) throw new Error(`Cohere call failed: ${res.status} ${await res.text()}`)
-  const data = await res.json() as any
+  const data = await res.json() as CohereResponse
   return JSON.stringify({ ok: true, model: body.model, text: data.text, meta: data.meta }, null, 2)
 }

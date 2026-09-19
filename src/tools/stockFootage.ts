@@ -8,6 +8,45 @@ interface StockResult {
   results: Array<{ id: string; url: string; thumb: string; width?: number; height?: number; duration?: number; author?: string }>
 }
 
+interface PexelsVideoFile {
+  link?: string
+}
+
+interface PexelsVideo {
+  id: number | string
+  video_files?: PexelsVideoFile[]
+  url?: string
+  image?: string
+  width?: number
+  height?: number
+  duration?: number
+  user?: { name?: string }
+}
+
+interface PexelsResponse {
+  videos?: PexelsVideo[]
+}
+
+interface PixabayVideoVariant {
+  url?: string
+  width?: number
+  height?: number
+  thumbnail?: string
+}
+
+interface PixabayHit {
+  id: number | string
+  videos?: { large?: PixabayVideoVariant; small?: PixabayVideoVariant }
+  pageURL?: string
+  previewURL?: string
+  duration?: number
+  user?: string
+}
+
+interface PixabayResponse {
+  hits?: PixabayHit[]
+}
+
 export async function runStockFootage(
   input: string,
   config: Record<string, string>
@@ -24,11 +63,11 @@ export async function runStockFootage(
       headers: { Authorization: apiKey },
     })
     if (!res.ok) throw new Error(`Pexels error: ${res.status}`)
-    const data = await res.json() as any
-    const results = (data.videos ?? []).map((v: any) => ({
+    const data = await res.json() as PexelsResponse
+    const results = (data.videos ?? []).map((v) => ({
       id: String(v.id),
-      url: v.video_files?.[0]?.link ?? v.url,
-      thumb: v.image,
+      url: v.video_files?.[0]?.link ?? v.url ?? '',
+      thumb: v.image ?? '',
       width: v.width,
       height: v.height,
       duration: v.duration,
@@ -41,11 +80,11 @@ export async function runStockFootage(
     if (!apiKey) throw new Error('Pixabay requires an API key (free at pixabay.com/accounts)')
     const res = await fetch(`https://pixabay.com/api/videos/?key=${apiKey}&q=${encodeURIComponent(query)}&per_page=${limit}`)
     if (!res.ok) throw new Error(`Pixabay error: ${res.status}`)
-    const data = await res.json() as any
-    const results = (data.hits ?? []).map((h: any) => ({
+    const data = await res.json() as PixabayResponse
+    const results = (data.hits ?? []).map((h) => ({
       id: String(h.id),
-      url: h.videos?.large?.url ?? h.pageURL,
-      thumb: h.videos?.small?.thumbnail ?? h.previewURL,
+      url: h.videos?.large?.url ?? h.pageURL ?? '',
+      thumb: h.videos?.small?.thumbnail ?? h.previewURL ?? '',
       width: h.videos?.large?.width,
       height: h.videos?.large?.height,
       duration: h.duration,

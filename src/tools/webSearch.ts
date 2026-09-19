@@ -6,6 +6,14 @@ interface SearchResult {
   snippet: string
 }
 
+interface SearxResponse {
+  results?: Array<{ title?: string; url?: string; content?: string }>
+}
+
+interface WikipediaSearchResponse {
+  query?: { search?: Array<{ title?: string; pageid?: number; snippet?: string }> }
+}
+
 export async function runWebSearch(
   input: string,
   config: Record<string, string>
@@ -47,8 +55,8 @@ export async function runWebSearch(
     const searxUrl = 'https://searx.be/search'
     const res = await fetch(`${workerUrl}/api/proxy?url=${encodeURIComponent(`${searxUrl}?q=${encodeURIComponent(query)}&format=json`)}`)
     if (!res.ok) throw new Error(`SearX failed: ${res.status}`)
-    const data = await res.json() as any
-    const results: SearchResult[] = (data.results ?? []).slice(0, limit).map((r: any) => ({
+    const data = await res.json() as SearxResponse
+    const results: SearchResult[] = (data.results ?? []).slice(0, limit).map((r) => ({
       title: r.title ?? '',
       url: r.url ?? '',
       snippet: r.content ?? '',
@@ -64,9 +72,9 @@ async function wikipediaSearch(query: string, limit: number): Promise<string> {
     `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&srlimit=${limit}&format=json&origin=*`,
   )
   if (!res.ok) throw new Error(`Wikipedia search failed: ${res.status}`)
-  const data = await res.json() as any
-  const results = (data.query?.search ?? []).map((s: any) => ({
-    title: s.title,
+  const data = await res.json() as WikipediaSearchResponse
+  const results = (data.query?.search ?? []).map((s) => ({
+    title: s.title ?? '',
     url: `https://en.wikipedia.org/?curid=${s.pageid}`,
     snippet: s.snippet?.replace(/<[^>]+>/g, '') ?? '',
   }))

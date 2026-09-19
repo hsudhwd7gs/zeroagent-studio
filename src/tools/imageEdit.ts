@@ -19,8 +19,8 @@ export async function runImageEdit(
     img.onerror = () => reject(new Error('Failed to load image'))
   })
 
-  let canvas = document.createElement('canvas')
-  let ctx = canvas.getContext('2d')!
+  const canvas = document.createElement('canvas')
+  const ctx = canvas.getContext('2d')!
 
   // Compute output dimensions
   if (operation === 'crop') {

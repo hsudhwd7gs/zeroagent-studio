@@ -35,15 +35,29 @@ export async function initTransformers(
     currentModel = model
     onProgress?.({ text: `Downloading ${model}...`, progress: 0.3 })
 
-    pipelineInstance = (await pipeline('text-generation', model, {
-      dtype: 'q8',
-    })) as TextGenPipeline
+    try {
+      pipelineInstance = (await pipeline('text-generation', model, {
+        dtype: 'q8',
+      })) as TextGenPipeline
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : String(err)
+      throw new Error(
+        `Could not load the local model "${model}" (${detail}). ` +
+          'Check your internet connection (the model downloads from huggingface.co on first use), ' +
+          'then press Run again to retry. You can also switch this Agent to a cloud brain like OpenRouter in Block settings.',
+        { cause: err },
+      )
+    }
 
     onProgress?.({ text: 'Transformers.js ready', progress: 1 })
   })()
 
-  await loadingPromise
-  loadingPromise = null
+  try {
+    await loadingPromise
+  } finally {
+    // Always clear the promise — including on failure — so a later run can retry.
+    loadingPromise = null
+  }
 }
 
 export const transformersEngine: BrainEngine = {

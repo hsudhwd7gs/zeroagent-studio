@@ -10,16 +10,31 @@ export interface SyncSnapshot {
   workflows: Workflow[]
 }
 
+/** Raw workflow row as stored by the worker (snake_case, nodes/edges possibly stringified). */
+interface WorkflowRowPayload {
+  id: string
+  name: string
+  project_id?: string
+  projectId?: string
+  nodes?: string | unknown[]
+  edges?: string | unknown[]
+  created_at?: number
+  createdAt?: number
+  updated_at?: number
+  updatedAt?: number
+}
+
 export async function pullFromCloud(): Promise<SyncSnapshot | null> {
   if (!WORKER_ORIGIN) return null
   try {
     const res = await fetch(`${WORKER_ORIGIN}/api/sync`, { method: 'GET' })
     if (!res.ok) return null
-    const data = await res.json() as { ok: boolean; projects: Project[]; workflows: any[] }
+    const data = await res.json() as { ok: boolean; projects: Project[]; workflows?: WorkflowRowPayload[] }
     if (!data.ok) return null
-    // Normalize workflow shape (worker stores nodes/edges as strings or already parsed)
-    const workflows: Workflow[] = (data.workflows ?? []).map((w: any) => ({
-      id: w.id,
+    // Normalize workflow shape (worker stores nodes/edges as strings or already parsed).
+    // The row id is a string; the local Workflow id is optional-numeric — normalize via Number.
+    const workflows: Workflow[] = (data.workflows ?? []).map((w) => ({
+      id: w.id !== undefined && w.id !== '' ? Number(w.id) : undefined,
       name: w.name,
       projectId: w.project_id ?? w.projectId,
       nodes: typeof w.nodes === 'string' ? safeParse(w.nodes, []) : w.nodes ?? [],

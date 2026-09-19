@@ -8,7 +8,7 @@ export async function runGithubApi(
   const workerUrl = window.location.origin
   const action = config.action ?? 'repo'
 
-  let url = ''
+  let url: string
   if (action === 'repo') {
     const repo = config.repo?.trim() || input.trim()
     if (!repo) throw new Error('repo required (owner/repo)')

@@ -1,5 +1,15 @@
 // Translate node — uses the free, no-key MyMemory translation API.
 
+interface MyMemoryMatch {
+  translation?: string
+  quality?: number | string
+}
+
+interface MyMemoryResponse {
+  responseData?: { translatedText?: string; detectedLanguage?: unknown }
+  matches?: MyMemoryMatch[]
+}
+
 export async function runTranslate(
   input: string,
   config: Record<string, string>
@@ -15,7 +25,7 @@ export async function runTranslate(
 
   const res = await fetch(url)
   if (!res.ok) throw new Error(`MyMemory API failed: ${res.status}`)
-  const data = await res.json() as any
+  const data = await res.json() as MyMemoryResponse
   return JSON.stringify({
     ok: true,
     text,

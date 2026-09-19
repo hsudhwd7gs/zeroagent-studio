@@ -14,6 +14,8 @@ interface TrendResult {
     method?: string
     trend?: 'up' | 'down' | 'flat'
     correlation?: number
+    moving_average?: number[]
+    window?: number
   }
 }
 
@@ -22,7 +24,7 @@ export async function runTrendpy(
   config: Record<string, string>
 ): Promise<string> {
   const mode = config.mode ?? 'trend'
-  let dataRaw = config.data?.trim() || input.trim()
+  const dataRaw = config.data?.trim() || input.trim()
   if (!dataRaw) throw new Error('data required (array of numbers, or {date,value} objects)')
 
   // Parse data
@@ -34,10 +36,10 @@ export async function runTrendpy(
       if (typeof parsed[0] === 'number') {
         values = parsed as number[]
       } else if (parsed[0] && typeof parsed[0] === 'object' && 'value' in parsed[0]) {
-        values = (parsed as any[]).map((p) => Number(p.value))
+        values = (parsed as Array<{ value: number }>).map((p) => Number(p.value))
       }
     }
-  } catch (err) {
+  } catch {
     // Maybe a comma/newline separated list
     values = dataRaw.split(/[,\n\s]+/).map((s) => parseFloat(s.trim())).filter((n) => !isNaN(n))
   }
@@ -152,9 +154,7 @@ print(result)
     for (let i = 0; i <= n - window; i++) {
       ma.push(values.slice(i, i + window).reduce((a, b) => a + b, 0) / window)
     }
-    result = { method: 'moving_average' }
-    ;(result as any).moving_average = ma
-    ;(result as any).window = window
+    result = { method: 'moving_average', moving_average: ma, window }
   } else if (mode === 'correlation') {
     const x1 = values.slice(0, -1)
     const x2 = values.slice(1)

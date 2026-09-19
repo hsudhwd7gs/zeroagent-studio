@@ -32,7 +32,7 @@ export async function runReadFileContent(
       return await extractFileContent(file, mode)
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') {
-        throw new Error('File picker cancelled')
+        throw new Error('File picker cancelled', { cause: err })
       }
       // Fall through to input fallback
     }

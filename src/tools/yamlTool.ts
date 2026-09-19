@@ -3,11 +3,17 @@
 
 const YAML_URL = 'https://esm.sh/js-yaml@4.1.0'
 
-let YamlRef: any | null = null
-async function loadYaml(): Promise<any> {
+interface YamlModule {
+  load: (text: string) => unknown
+  dump: (value: unknown, options?: { indent?: number; lineWidth?: number }) => string
+}
+
+let YamlRef: YamlModule | null = null
+async function loadYaml(): Promise<YamlModule> {
   if (YamlRef) return YamlRef
-  const mod = await import(/* @vite-ignore */ YAML_URL)
-  YamlRef = mod.default ?? mod
+  const mod = (await import(/* @vite-ignore */ YAML_URL)) as { default?: YamlModule }
+  const yaml = mod.default ?? (mod as unknown as YamlModule)
+  YamlRef = yaml
   return YamlRef
 }
 

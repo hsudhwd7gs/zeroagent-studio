@@ -2,12 +2,43 @@
 
 const CHART_JS_URL = 'https://esm.sh/chart.js@4.4.4/auto'
 
-let ChartRef: any | null = null
-async function loadChart(): Promise<any> {
+interface ChartDatum {
+  label: string
+  value: number
+}
+
+interface ChartInstance {
+  destroy: () => void
+}
+
+interface ChartConfig {
+  type: string
+  data: {
+    labels: Array<string | undefined>
+    datasets: Array<Record<string, unknown>>
+  }
+  options: Record<string, unknown>
+}
+
+type ChartConstructor = new (canvas: HTMLCanvasElement, config: ChartConfig) => ChartInstance
+
+let ChartRef: ChartConstructor | null = null
+async function loadChart(): Promise<ChartConstructor> {
   if (ChartRef) return ChartRef
-  const mod = await import(/* @vite-ignore */ CHART_JS_URL)
-  ChartRef = mod.default ?? mod
+  const mod = (await import(/* @vite-ignore */ CHART_JS_URL)) as { default?: ChartConstructor }
+  const Ctor = mod.default
+  if (typeof Ctor !== 'function') throw new Error('Chart.js failed to load from CDN')
+  ChartRef = Ctor
   return ChartRef
+}
+
+function parseDataArray(raw: string): ChartDatum[] {
+  try {
+    const parsed = raw ? JSON.parse(raw) : []
+    return Array.isArray(parsed) ? (parsed as ChartDatum[]) : []
+  } catch {
+    return []
+  }
 }
 
 export async function runChartJs(
@@ -16,20 +47,9 @@ export async function runChartJs(
 ): Promise<string> {
   const Chart = await loadChart()
 
-  let data: Array<{ label: string; value: number }> = []
-  try {
-    const parsed = input ? JSON.parse(input) : []
-    data = Array.isArray(parsed) ? parsed : []
-  } catch {
-    data = []
-  }
+  let data = parseDataArray(input)
   if (data.length === 0 && config.data) {
-    try {
-      const parsed = JSON.parse(config.data)
-      data = Array.isArray(parsed) ? parsed : []
-    } catch {
-      /* ignore */
-    }
+    data = parseDataArray(config.data)
   }
 
   const chartType = (config.chartType || 'bar') as 'bar' | 'line' | 'pie' | 'doughnut' | 'scatter'
@@ -42,7 +62,6 @@ export async function runChartJs(
   canvas.style.left = '-9999px'
   document.body.appendChild(canvas)
 
-  let dataUrl = ''
   try {
     const chart = new Chart(canvas, {
       type: chartType,
@@ -80,11 +99,10 @@ export async function runChartJs(
     })
 
     // Synchronous render with animation:false — toDataURL is safe immediately
-    dataUrl = canvas.toDataURL('image/png')
+    const dataUrl = canvas.toDataURL('image/png')
     chart.destroy()
+    return JSON.stringify({ ok: true, url: dataUrl, chartType })
   } finally {
     canvas.remove()
   }
-
-  return JSON.stringify({ ok: true, url: dataUrl, chartType })
 }

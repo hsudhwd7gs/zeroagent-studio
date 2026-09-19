@@ -1,5 +1,10 @@
 // Mistral Chat node — calls Mistral API via the worker proxy.
 
+interface MistralResponse {
+  choices?: Array<{ message?: { content?: string } }>
+  usage?: Record<string, unknown>
+}
+
 export async function runMistralChat(
   input: string,
   config: Record<string, string>
@@ -27,7 +32,7 @@ export async function runMistralChat(
     }),
   })
   if (!res.ok) throw new Error(`Mistral call failed: ${res.status} ${await res.text()}`)
-  const data = await res.json() as any
+  const data = await res.json() as MistralResponse
   const content = data.choices?.[0]?.message?.content ?? ''
   return JSON.stringify({ ok: true, model: body.model, content, usage: data.usage }, null, 2)
 }

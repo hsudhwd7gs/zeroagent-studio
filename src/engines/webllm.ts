@@ -25,18 +25,32 @@ export async function initWebLLM(
       engineInstance = null
     }
     currentModel = model
-    engineInstance = await CreateMLCEngine(model, {
-      initProgressCallback: (report) => {
-        onProgress?.({
-          text: report.text,
-          progress: report.progress,
-        })
-      },
-    })
+    try {
+      engineInstance = await CreateMLCEngine(model, {
+        initProgressCallback: (report) => {
+          onProgress?.({
+            text: report.text,
+            progress: report.progress,
+          })
+        },
+      })
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : String(err)
+      throw new Error(
+        `Could not load the WebLLM model "${model}" (${detail}). ` +
+          'The model downloads on first use — check your connection and press Run again to retry, ' +
+          'or switch this Agent to another brain in Block settings.',
+        { cause: err },
+      )
+    }
   })()
 
-  await loadingPromise
-  loadingPromise = null
+  try {
+    await loadingPromise
+  } finally {
+    // Always clear the promise — including on failure — so a later run can retry.
+    loadingPromise = null
+  }
 }
 
 export function isWebGPUAvailable(): boolean {

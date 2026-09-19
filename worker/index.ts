@@ -114,6 +114,34 @@ interface WorkflowRow {
 }
 
 // ─────────────────────────────────────────────────────────────
+// Shared response payload types
+// ─────────────────────────────────────────────────────────────
+
+/** oEmbed-style video metadata (noembed.com / YouTube oEmbed). */
+interface OEmbedInfo {
+  title?: string
+  author_name?: string
+  author_url?: string
+  thumbnail_url?: string
+  provider_name?: string
+  provider_url?: string
+  type?: string
+  version?: string
+  error?: string
+}
+
+/** OpenAI-compatible chat completion response (Groq, Workers AI gateway). */
+interface ChatCompletionPayload {
+  choices?: Array<{ message?: { content?: string } }>
+}
+
+/** Cloudflare Workers AI run() result — response shape varies by model. */
+interface WorkersAiPayload {
+  response?: string | Record<string, unknown>
+  choices?: Array<{ message?: { content?: string } }>
+}
+
+// ─────────────────────────────────────────────────────────────
 // CORS
 // ─────────────────────────────────────────────────────────────
 
@@ -137,10 +165,6 @@ function withCors(response: Response): Response {
 
 function json(data: unknown, status = 200): Response {
   return Response.json(data, { status, headers: CORS_HEADERS })
-}
-
-function textResponse(body: string, status = 200, contentType = 'text/plain; charset=utf-8'): Response {
-  return new Response(body, { status, headers: { ...CORS_HEADERS, 'Content-Type': contentType } })
 }
 
 function notFound(msg = 'Not found'): Response {
@@ -386,7 +410,7 @@ async function handleYtDlp(env: Env, request: Request): Promise<Response> {
       })
       triedSources.push({ source: 'noembed.com', status: noembedRes.status })
       if (noembedRes.ok) {
-        const data = await noembedRes.json() as any
+        const data = await noembedRes.json() as OEmbedInfo
         if (data && !data.error) {
           return json({
             ok: true,
@@ -415,7 +439,7 @@ async function handleYtDlp(env: Env, request: Request): Promise<Response> {
       })
       triedSources.push({ source: 'youtube-oembed', status: oembedRes.status })
       if (oembedRes.ok) {
-        const data = await oembedRes.json() as any
+        const data = await oembedRes.json() as OEmbedInfo
         return json({
           ok: true,
           source: 'youtube-oembed',
@@ -443,7 +467,7 @@ async function handleYtDlp(env: Env, request: Request): Promise<Response> {
         headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: videoUrl }),
       })
-      const data = await cobaltRes.json() as any
+      const data = await cobaltRes.json() as Record<string, unknown>
       return json({ ok: true, source: 'cobalt.tools', info: data, tried: triedSources })
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
@@ -463,7 +487,7 @@ async function handleYtDlp(env: Env, request: Request): Promise<Response> {
           filenamePattern: 'basic',
         }),
       })
-      const data = await cobaltRes.json() as any
+      const data = await cobaltRes.json() as { status?: string; error?: { code?: string } }
       if (data?.status === 'error' && data?.error?.code === 'error.api.auth.jwt.missing') {
         return json({
           ok: false,
@@ -737,7 +761,7 @@ async function handleAiWorkflow(env: Env, request: Request): Promise<Response> {
           response_format: { type: 'json_object' },
         }),
       })
-      const data = await groqRes.json() as any
+      const data = await groqRes.json() as ChatCompletionPayload
       const content = data.choices?.[0]?.message?.content
       if (content) {
         try {
@@ -755,19 +779,19 @@ async function handleAiWorkflow(env: Env, request: Request): Promise<Response> {
   // Fallback to Workers AI — use llama-3.2-3b-instruct (current non-deprecated model)
   if (env.AI) {
     try {
-      const aiResponse = await env.AI.run(
+      const aiResponse = (await env.AI.run(
         '@cf/meta/llama-3.2-3b-instruct',
         {
           messages: [{ role: 'user', content: fullPrompt }],
           max_tokens: 4096,
         }
-      ) as any
+      )) as WorkersAiPayload
       // Workers AI may return either { response: string } or { choices: [{ message: { content: string } }] }
       let content: string | undefined
       if (typeof aiResponse?.response === 'string') {
         content = aiResponse.response
       } else if (typeof aiResponse?.choices?.[0]?.message?.content === 'string') {
-        content = aiResponse.choices[0].message.content
+        content = aiResponse.choices[0].message?.content
       } else if (aiResponse?.response) {
         // Some models return an object — stringify it
         content = JSON.stringify(aiResponse.response)
@@ -803,7 +827,7 @@ async function handleAiWorkflow(env: Env, request: Request): Promise<Response> {
 // Bulk sync (push/pull entire state)
 // ─────────────────────────────────────────────────────────────
 
-async function handleSync(env: Env, request: Request, url: URL): Promise<Response> {
+async function handleSync(env: Env, request: Request): Promise<Response> {
   await ensureSchema(env)
   if (!env.DB) return json({ error: 'D1 not bound' }, 500)
 
@@ -816,10 +840,10 @@ async function handleSync(env: Env, request: Request, url: URL): Promise<Respons
     ).all()).results ?? []
 
     // Parse nodes/edges back to objects
-    const parsedWorkflows = workflows.map((w: any) => ({
+    const parsedWorkflows = workflows.map((w) => ({
       ...w,
-      nodes: safeParse(w.nodes, []),
-      edges: safeParse(w.edges, []),
+      nodes: typeof w.nodes === 'string' ? safeParse(w.nodes, []) : (w.nodes ?? []),
+      edges: typeof w.edges === 'string' ? safeParse(w.edges, []) : (w.edges ?? []),
     }))
 
     return json({ ok: true, projects, workflows: parsedWorkflows })
@@ -1407,7 +1431,7 @@ export default {
 
       // ─── SYNC ─────────────────────────────────────────────
       if (path === '/api/sync') {
-        return handleSync(env, request, url)
+        return handleSync(env, request)
       }
 
       // ─── JOBS ─────────────────────────────────────────────

@@ -3,10 +3,19 @@
 
 const JSBARCODE_URL = 'https://esm.sh/jsbarcode@3.11.6'
 
-let JsBarcodeRef: any = null
-async function loadJsBarcode(): Promise<any> {
+type JsBarcodeFn = (
+  svg: Element,
+  text: string,
+  options: { format?: string; width?: number; height?: number; displayValue?: boolean }
+) => void
+
+let JsBarcodeRef: JsBarcodeFn | null = null
+async function loadJsBarcode(): Promise<JsBarcodeFn> {
   if (JsBarcodeRef) return JsBarcodeRef
-  JsBarcodeRef = await import(/* @vite-ignore */ JSBARCODE_URL)
+  const mod = (await import(/* @vite-ignore */ JSBARCODE_URL)) as { default?: JsBarcodeFn }
+  const fn = mod.default
+  if (typeof fn !== 'function') throw new Error('JsBarcode failed to load from CDN')
+  JsBarcodeRef = fn
   return JsBarcodeRef
 }
 

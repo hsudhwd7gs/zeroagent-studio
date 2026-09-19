@@ -13,6 +13,9 @@
 
 const RETRYABLE_STATUS = new Set([408, 425, 429, 500, 502, 503, 504])
 
+/** Thrown for HTTP statuses that should never be retried (e.g. 404, 401). */
+class NonRetryableHttpError extends Error {}
+
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms))
 }
@@ -113,7 +116,7 @@ export async function runRetryWithBackoff(
         }
         attempts.push({ attempt, status: response.status, error: `HTTP ${response.status}` })
 
-        throw new Error(
+        throw new NonRetryableHttpError(
           `Non-retryable HTTP ${response.status}: ${errorBody.slice(0, 200)}`
         )
       }
@@ -135,6 +138,9 @@ export async function runRetryWithBackoff(
       if (attempt < maxAttempts) await sleep(waitMs)
       continue
     } catch (err) {
+      // Non-retryable failures must propagate immediately — the surrounding
+      // catch must not swallow them into the retry loop.
+      if (err instanceof NonRetryableHttpError) throw err
       lastError = err instanceof Error ? err.message : String(err)
       if (attempt >= maxAttempts) {
         attempts.push({ attempt, error: lastError })

@@ -1,5 +1,10 @@
 // Anthropic Chat node — calls Anthropic Messages API via the worker proxy.
 
+interface AnthropicResponse {
+  content?: Array<{ text?: string }>
+  usage?: Record<string, unknown>
+}
+
 export async function runAnthropicChat(
   input: string,
   config: Record<string, string>
@@ -29,7 +34,7 @@ export async function runAnthropicChat(
     }),
   })
   if (!res.ok) throw new Error(`Anthropic call failed: ${res.status} ${await res.text()}`)
-  const data = await res.json() as any
+  const data = await res.json() as AnthropicResponse
   const content = data.content?.[0]?.text ?? ''
   return JSON.stringify({ ok: true, model: body.model, content, usage: data.usage }, null, 2)
 }

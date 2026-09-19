@@ -3,10 +3,25 @@
 
 const DIFF_URL = 'https://esm.sh/diff@5.2.0'
 
-let DiffRef: any | null = null
-async function loadDiff(): Promise<any> {
+interface DiffChange {
+  added?: boolean
+  removed?: boolean
+  value: string
+  count?: number
+}
+
+interface DiffModule {
+  diffWords: (a: string, b: string) => DiffChange[]
+  diffChars: (a: string, b: string) => DiffChange[]
+  diffJson: (a: unknown, b: unknown) => DiffChange[]
+  diffLines: (a: string, b: string) => DiffChange[]
+}
+
+let DiffRef: DiffModule | null = null
+async function loadDiff(): Promise<DiffModule> {
   if (DiffRef) return DiffRef
-  DiffRef = await import(/* @vite-ignore */ DIFF_URL)
+  const mod = (await import(/* @vite-ignore */ DIFF_URL)) as unknown as DiffModule
+  DiffRef = mod
   return DiffRef
 }
 
@@ -24,7 +39,7 @@ export async function runTextDiff(
   const Diff = await loadDiff()
   const mode = config.mode ?? 'lines'
 
-  let changes: Array<{ added?: boolean; removed?: boolean; value: string; count?: number }>
+  let changes: DiffChange[]
   if (mode === 'words') {
     changes = Diff.diffWords(oldText, newText)
   } else if (mode === 'chars') {
