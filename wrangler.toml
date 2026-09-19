@@ -18,28 +18,24 @@ not_found_handling = "single-page-application"
 # KV — dynamic API keys + webhook payloads + background jobs (TTL'd)
 [[kv_namespaces]]
 binding = "CACHE"
-id = "REPLACE_WITH_YOUR_KV_ID"            # wrangler kv:namespace create CACHE
-preview_id = "REPLACE_WITH_YOUR_KV_PREVIEW_ID"  # wrangler kv:namespace create CACHE --preview
+id = "61d56978d1244e59bfe5e6dde6ed7440"            # bootstrap via scripts/bootstrap_cf_resources.py
+preview_id = "61d56978d1244e59bfe5e6dde6ed7440"  # same namespace for preview
 
-# R2 — uploaded files + generated media
-[[r2_buckets]]
-binding = "STORAGE"
-bucket_name = "zeroagent-studio-storage"
+# R2 — uploaded files + generated media (optional — enable R2 in dashboard first,
+# then uncomment and run `wrangler r2 bucket create zeroagent-studio-storage`)
+# [[r2_buckets]]
+# binding = "STORAGE"
+# bucket_name = "zeroagent-studio-storage"
 
 # D1 — projects, workflows, kv, webhook_log
 [[d1_databases]]
 binding = "DB"
 database_name = "zeroagent-studio"
-database_id = "REPLACE_WITH_YOUR_D1_ID"   # wrangler d1 create zeroagent-studio
+database_id = "278f9e36-61c7-47ab-9eab-b49471fae9f3"  # bootstrap via scripts/bootstrap_cf_resources.py
 
 # Workers AI — text/image/embedding generation + workflow generator fallback
 [ai]
 binding = "AI"
-
-# Analytics Engine (optional)
-[analytics_engine_datasets]
-binding = "ANALYTICS"
-dataset = "zeroagent-studio"
 
 # ───────────────────────────────────────────────────────────────
 # Static secrets (optional — set via dashboard or wrangler secret put)

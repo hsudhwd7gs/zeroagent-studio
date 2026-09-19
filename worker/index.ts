@@ -360,7 +360,8 @@ async function proxyRequest(
 }
 
 // ─────────────────────────────────────────────────────────────
-// yt-dlp proxy via cobalt.tools (free, open-source, no key needed)
+// yt-dlp proxy — info via YouTube oEmbed (always free, no key),
+// download via cobalt.tools (requires their JWT — fall back gracefully)
 // ─────────────────────────────────────────────────────────────
 
 async function handleYtDlp(env: Env, request: Request): Promise<Response> {
@@ -371,36 +372,91 @@ async function handleYtDlp(env: Env, request: Request): Promise<Response> {
   const action = body.action ?? 'info'
 
   if (action === 'info') {
-    // Use cobalt.tools to get video metadata / available formats
+    // Use YouTube oEmbed for video metadata — always free, no key needed.
+    // Works for youtube.com/watch?v=... and youtu.be/...
+    // Try noembed.com first (aggregator that works reliably from CF Workers),
+    // then fall back to direct YouTube oEmbed, then cobalt.tools.
+    const encodedUrl = encodeURIComponent(videoUrl)
+    const triedSources: Array<{ source: string; status: number; body?: string }> = []
+
+    // 1. noembed.com — works reliably from CF Workers IPs
+    try {
+      const noembedRes = await fetch(`https://noembed.com/embed?url=${encodedUrl}`, {
+        headers: { 'User-Agent': 'ZeroAgent-Studio/2.0' },
+      })
+      triedSources.push({ source: 'noembed.com', status: noembedRes.status })
+      if (noembedRes.ok) {
+        const data = await noembedRes.json() as any
+        if (data && !data.error) {
+          return json({
+            ok: true,
+            source: 'noembed.com',
+            info: {
+              title: data.title,
+              author_name: data.author_name,
+              author_url: data.author_url,
+              thumbnail_url: data.thumbnail_url,
+              provider_name: data.provider_name,
+              provider_url: data.provider_url,
+              type: data.type,
+              url: videoUrl,
+            },
+          })
+        }
+      }
+    } catch (err) {
+      triedSources.push({ source: 'noembed.com', status: 0, body: String(err) })
+    }
+
+    // 2. Direct YouTube oEmbed
+    try {
+      const oembedRes = await fetch(`https://www.youtube.com/oembed?url=${encodedUrl}&format=json`, {
+        headers: { 'User-Agent': 'ZeroAgent-Studio/2.0' },
+      })
+      triedSources.push({ source: 'youtube-oembed', status: oembedRes.status })
+      if (oembedRes.ok) {
+        const data = await oembedRes.json() as any
+        return json({
+          ok: true,
+          source: 'youtube-oembed',
+          info: {
+            title: data.title,
+            author_name: data.author_name,
+            author_url: data.author_url,
+            thumbnail_url: data.thumbnail_url,
+            provider_name: data.provider_name,
+            provider_url: data.provider_url,
+            type: data.type,
+            version: data.version,
+            url: videoUrl,
+          },
+        })
+      }
+    } catch (err) {
+      triedSources.push({ source: 'youtube-oembed', status: 0, body: String(err) })
+    }
+
+    // 3. cobalt.tools fallback
     try {
       const cobaltRes = await fetch('https://api.cobalt.tools/', {
         method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          url: videoUrl,
-          // Ask for metadata only — cobalt returns this without downloading
-        }),
+        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: videoUrl }),
       })
       const data = await cobaltRes.json() as any
-      return json({ ok: true, source: 'cobalt.tools', info: data })
+      return json({ ok: true, source: 'cobalt.tools', info: data, tried: triedSources })
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      return json({ ok: false, error: 'cobalt.tools fetch failed', detail: message }, 502)
+      return json({ ok: false, error: 'Could not fetch video info', detail: message, tried: triedSources }, 502)
     }
   }
 
   if (action === 'download') {
-    // Ask cobalt.tools for a direct download URL
+    // Try cobalt.tools first; if it requires JWT, return a helpful error.
     try {
       const cobaltRes = await fetch('https://api.cobalt.tools/', {
         method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
         body: JSON.stringify({
           url: videoUrl,
           videoQuality: body.format ?? '720',
@@ -408,10 +464,17 @@ async function handleYtDlp(env: Env, request: Request): Promise<Response> {
         }),
       })
       const data = await cobaltRes.json() as any
+      if (data?.status === 'error' && data?.error?.code === 'error.api.auth.jwt.missing') {
+        return json({
+          ok: false,
+          error: 'cobalt.tools public instance now requires authentication. Self-host cobalt.tools or use the "info" action.',
+          detail: data,
+        }, 502)
+      }
       return json({ ok: true, source: 'cobalt.tools', result: data })
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      return json({ ok: false, error: 'cobalt.tools download failed', detail: message }, 502)
+      return json({ ok: false, error: 'cobalt.tools fetch failed', detail: message }, 502)
     }
   }
 
@@ -631,26 +694,22 @@ async function handleWebhook(env: Env, request: Request, url: URL): Promise<Resp
 // Text-to-workflow generator (Groq first, Workers AI fallback)
 // ─────────────────────────────────────────────────────────────
 
-const WORKFLOW_GEN_PROMPT = `You are a workflow generator for ZeroAgent Studio, a visual AI agent builder.
+const WORKFLOW_GEN_PROMPT = `You are a workflow generator for ZeroAgent Studio. Output a JSON workflow ONLY.
 
-Given a user's description, output a JSON object representing a workflow. Schema:
+Schema:
 {
   "name": string,
-  "nodes": [
-    { "id": string, "type": "chat"|"agent"|"tool", "toolId"?: string, "data": { "label"?: string, "prompt"?: string, "role"?: string, "config"?: object }, "position": { "x": number, "y": number } }
-  ],
-  "edges": [
-    { "id": string, "source": string, "target": string, "sourceHandle"?: string, "targetHandle"?: string }
-  ]
+  "nodes": [{ "id": string, "type": "chat"|"agent"|"tool", "toolId"?: string, "data": { "label"?: string, "role"?: string, "prompt"?: string }, "position": { "x": number, "y": number } }],
+  "edges": [{ "id": string, "source": string, "target": string }]
 }
 
-Available tool IDs: chat, agent, web-scraper, file-reader, speech, text-transform, json-tool, datetime, calculator, clipboard, groq-transcribe, gemini-vision, custom-script, parse-url, fetch-json, multi-input, string-template, array-filter, array-map, array-sort, array-dedupe, array-group-by, array-chunk, array-slice, loop-over, batch-split, json-path, json-merge, json-flatten, json-pick, json-diff, csv-export, csv-to-json, text-chunk, text-truncate, text-extract, text-split, text-join, regex-extract, hash-text, base64-codec, retry-backoff, variable-store, cache, timer, webhook-send, email-send, google-sheets, google-analytics, youtube-analytics, telegram-send, notion-api, api-key-manager, python, audio-tool, browser-login, chart-js, d3-chart, discord-send, ffmpeg, ffprobe, file-download, fusion-meta, image-resize, language-detect, long-text-gen, ocr, pdf-tool, photon, rust-lib, spell-check, text-diff, tfjs, thumbnail-gen, wasm-runner, web-audio, yaml-tool, ytdlp.
+Common tools: web-scraper, file-reader, speech, text-transform, json-tool, datetime, calculator, fetch-json, custom-script, parse-url, ocr, long-text-gen, pdf-tool, image-resize, thumbnail-gen, chart-js, d3-chart, ffmpeg, ffprobe, ytdlp, discord-send, telegram-send, notion-api, google-sheets, youtube-analytics.
 
 Rules:
-- Always include a Chat node and at least one Agent for conversational workflows.
-- Wire Chat Out → Agent Context, then chain via Agent Out → next tool In.
-- Use realistic positions (spread nodes 300px apart horizontally).
-- Output ONLY the JSON object, no explanation.
+- Always include Chat + Agent nodes
+- Wire Chat Out → Agent, then Agent Out → next tool
+- Spread nodes 300px apart horizontally
+- Output ONLY the JSON object, no markdown fences, no explanation
 
 User request:`
 
@@ -693,27 +752,44 @@ async function handleAiWorkflow(env: Env, request: Request): Promise<Response> {
     }
   }
 
-  // Fallback to Workers AI
+  // Fallback to Workers AI — use llama-3.2-3b-instruct (current non-deprecated model)
   if (env.AI) {
     try {
       const aiResponse = await env.AI.run(
-        '@cf/meta/llama-3.1-8b-instruct',
-        { messages: [{ role: 'user', content: fullPrompt }] }
+        '@cf/meta/llama-3.2-3b-instruct',
+        {
+          messages: [{ role: 'user', content: fullPrompt }],
+          max_tokens: 4096,
+        }
       ) as any
-      const content = aiResponse?.response ?? aiResponse?.choices?.[0]?.message?.content
+      // Workers AI may return either { response: string } or { choices: [{ message: { content: string } }] }
+      let content: string | undefined
+      if (typeof aiResponse?.response === 'string') {
+        content = aiResponse.response
+      } else if (typeof aiResponse?.choices?.[0]?.message?.content === 'string') {
+        content = aiResponse.choices[0].message.content
+      } else if (aiResponse?.response) {
+        // Some models return an object — stringify it
+        content = JSON.stringify(aiResponse.response)
+      }
       if (content) {
+        // Strip markdown code fences (```json ... ``` or ``` ... ```)
+        const cleaned = content
+          .replace(/^```(?:json)?\s*/i, '')
+          .replace(/\s*```\s*$/i, '')
+          .trim()
         // Extract first JSON object from response
-        const jsonMatch = content.match(/\{[\s\S]*\}/)
+        const jsonMatch = cleaned.match(/\{[\s\S]*\}/)
         if (jsonMatch) {
           try {
             const workflow = JSON.parse(jsonMatch[0])
             return json({ ok: true, source: 'workers-ai', workflow })
           } catch {
-            return json({ ok: false, error: 'Could not parse AI output as JSON', raw: content })
+            return json({ ok: false, error: 'Could not parse AI output as JSON', raw: cleaned })
           }
         }
       }
-      return json({ ok: false, error: 'Workers AI returned no usable content', raw: content })
+      return json({ ok: false, error: 'Workers AI returned no usable content', raw: aiResponse })
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       return json({ ok: false, error: 'Workers AI failed', detail: message }, 502)
@@ -1190,7 +1266,7 @@ export default {
         if (!env.AI) return json({ error: 'Workers AI not bound' }, 500)
         const { prompt, model } = await request.json() as { prompt: string; model?: string }
         const response = await env.AI.run(
-          model ?? '@cf/meta/llama-3.1-8b-instruct',
+          model ?? '@cf/meta/llama-3.2-3b-instruct',
           { prompt }
         )
         return json(response)
