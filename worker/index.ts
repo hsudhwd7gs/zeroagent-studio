@@ -681,6 +681,36 @@ async function handleProjects(env: Env, request: Request, url: URL): Promise<Res
 // Webhook receiver (KV + D1)
 // ─────────────────────────────────────────────────────────────
 
+/** Store a webhook payload the same way an incoming POST would (used by both
+ *  the HTTP handler and the scheduler's internal dispatch — Workers cannot
+ *  fetch their own *.workers.dev URL, so same-app webhooks are routed directly). */
+async function recordWebhookPayload(env: Env, id: string, body: string): Promise<void> {
+  const ts = now()
+  if (env.DB) {
+    try {
+      await env.DB.prepare(
+        'INSERT INTO webhook_log (hook_id, body, received_at) VALUES (?, ?, ?)'
+      ).bind(id, body, ts).run()
+      // Trim to last 50
+      await env.DB.prepare(
+        `DELETE FROM webhook_log WHERE hook_id = ? AND id NOT IN (
+           SELECT id FROM webhook_log WHERE hook_id = ? ORDER BY received_at DESC LIMIT 50
+        )`
+      ).bind(id, id).run()
+    } catch {
+      /* ignore — schema may not be ready */
+    }
+  }
+  if (env.CACHE) {
+    try {
+      await env.CACHE.put(`webhook:${id}`, body)
+      await env.CACHE.put(`webhook_ts:${id}`, String(ts))
+    } catch {
+      /* KV hiccup — the D1 history above is the durable record */
+    }
+  }
+}
+
 async function handleWebhook(env: Env, request: Request, url: URL): Promise<Response> {
   const path = url.pathname
   // GET /api/webhooks — list all webhook IDs (from KV)
@@ -691,7 +721,7 @@ async function handleWebhook(env: Env, request: Request, url: URL): Promise<Resp
     return json({ ok: true, webhooks: ids })
   }
 
-  const match = path.match(/^\/api\/webhook\/([\w-]+)$/)
+  const match = path.match(/^\/api\/webhook\/([\w-]+)$/) 
   if (!match) return notFound('Unknown webhook route')
 
   const id = match[1]
@@ -699,31 +729,8 @@ async function handleWebhook(env: Env, request: Request, url: URL): Promise<Resp
   if (request.method === 'POST' || request.method === 'PUT') {
     // Store last 10 payloads in D1, plus latest in KV
     const body = await request.text()
-    const ts = now()
-    if (env.DB) {
-      try {
-        await env.DB.prepare(
-          'INSERT INTO webhook_log (hook_id, body, received_at) VALUES (?, ?, ?)'
-        ).bind(id, body, ts).run()
-        // Trim to last 50
-        await env.DB.prepare(
-          `DELETE FROM webhook_log WHERE hook_id = ? AND id NOT IN (
-             SELECT id FROM webhook_log WHERE hook_id = ? ORDER BY received_at DESC LIMIT 50
-          )`
-        ).bind(id, id).run()
-      } catch {
-        /* ignore — schema may not be ready */
-      }
-    }
-    if (env.CACHE) {
-      try {
-        await env.CACHE.put(`webhook:${id}`, body)
-        await env.CACHE.put(`webhook_ts:${id}`, String(ts))
-      } catch {
-        /* KV hiccup — the D1 history above is the durable record */
-      }
-    }
-    return json({ ok: true, received: id, ts, size: body.length })
+    await recordWebhookPayload(env, id, body)
+    return json({ ok: true, received: id, ts: now(), size: body.length })
   }
 
   if (request.method === 'GET') {
@@ -959,10 +966,26 @@ async function handleJobs(env: Env, request: Request, url: URL): Promise<Respons
   const path = url.pathname
 
   if (request.method === 'POST' && path === '/api/jobs') {
-    const body = await request.json() as { id?: string; status?: string; data?: unknown; ttl?: number }
+    const body = await request.json() as { id?: string; status?: string; data?: Record<string, unknown>; ttl?: number }
     const id = body.id ?? uuid()
+    // Scheduled jobs that point their webhook at THIS app's Webhook Receiver
+    // (same origin, /api/webhook/{id}) are marked for internal delivery —
+    // Workers cannot fetch their own *.workers.dev URL, so the cron dispatcher
+    // stores the payload directly instead of looping through HTTP.
+    if (body.status === 'scheduled' && body.data && typeof body.data.webhookUrl === 'string') {
+      try {
+        const target = new URL(body.data.webhookUrl)
+        const self = new URL(request.url)
+        const hookMatch = target.pathname.match(/^\/api\/webhook\/([\w-]+)$/)
+        if (hookMatch && target.hostname === self.hostname) {
+          body.data.internalWebhookId = hookMatch[1]
+        }
+      } catch {
+        /* invalid webhook URL — the Scheduler node validates client-side */
+      }
+    }
     const payload = JSON.stringify({ status: body.status ?? 'pending', data: body.data, updated_at: now() })
-    const ttl = body.ttl ? Math.min(body.ttl, 86400) : 3600
+    const ttl = body.ttl ? Math.min(body.ttl, 604800) : 3600
     await env.CACHE.put(`job:${id}`, payload, { expirationTtl: ttl })
     return json({ ok: true, job_id: id })
   }
@@ -1628,6 +1651,8 @@ export function cronMatches(expr: string, date: Date): boolean {
 interface ScheduledJobData {
   cron?: string
   webhookUrl?: string
+  /** Set server-side when webhookUrl points at this app's own receiver. */
+  internalWebhookId?: string
   workflowId?: string
   createdAt?: number
   lastFired?: number
@@ -1662,21 +1687,32 @@ async function dispatchScheduledJobs(env: Env, scheduledTime: number): Promise<v
       if (data.createdAt && tick < Math.floor(data.createdAt / 300_000) * 300_000) continue
       if (!cronMatches(data.cron, tickDate)) continue
       try {
-        const res = await fetch(data.webhookUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-Brainwire-Schedule': data.cron },
-          body: JSON.stringify({
-            ok: true,
-            jobId: key.name.slice('job:'.length),
-            cron: data.cron,
-            workflowId: data.workflowId ?? null,
-            firedAt: new Date(tick).toISOString(),
-            fireCount: (data.fireCount ?? 0) + 1,
-          }),
+        const payload = JSON.stringify({
+          ok: true,
+          jobId: key.name.slice('job:'.length),
+          cron: data.cron,
+          workflowId: data.workflowId ?? null,
+          firedAt: new Date(tick).toISOString(),
+          fireCount: (data.fireCount ?? 0) + 1,
         })
-        data.lastStatus = `${res.status}`
-        if (!res.ok) data.lastError = `webhook returned ${res.status}`
-        else data.lastError = undefined
+        // Workers cannot fetch their own *.workers.dev URL (Cloudflare returns
+        // a 404 "nothing is here" for workers.dev subrequests). When the job
+        // was created with a same-origin Webhook Receiver URL, POST /api/jobs
+        // normalized it into internalWebhookId — deliver directly, no HTTP.
+        if (data.internalWebhookId) {
+          await recordWebhookPayload(env, data.internalWebhookId, payload)
+          data.lastStatus = '200'
+          data.lastError = undefined
+        } else {
+          const res = await fetch(data.webhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Brainwire-Schedule': data.cron },
+            body: payload,
+          })
+          data.lastStatus = `${res.status}`
+          if (!res.ok) data.lastError = `webhook returned ${res.status}`
+          else data.lastError = undefined
+        }
       } catch (err) {
         data.lastStatus = 'error'
         data.lastError = err instanceof Error ? err.message : String(err)
